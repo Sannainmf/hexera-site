@@ -612,6 +612,9 @@ html.lenis, html.lenis body { height: auto; }
 .marquee--logos .marquee__item::before { content: none; }
 .marquee__logo { height: 1.6rem; width: auto; max-width: 150px; display: block; }
 .marquee__word { font-family: var(--font-body); font-weight: 700; font-size: 1.25rem; letter-spacing: -0.01em; color: #d8392f; }
+/* slim trust bar (logos under the hero) */
+.trustbar { position: relative; z-index: var(--z-content); background: var(--black); padding: clamp(1.4rem, 3.5vh, 2.4rem) var(--pad-x); border-block: 1px solid var(--line); }
+.trustbar__label { display: block; text-align: center; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--faint); margin-bottom: 1.1rem; }
 @keyframes marquee { to { transform: translateX(-50%); } }
 
 /* ============================================================
