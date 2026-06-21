@@ -50,6 +50,22 @@
     }
   }
 
+  /* ---------- hero: ensure the bg video plays + fade content on scroll ----------
+     As you scroll out of the hero, the content (title/demo) fades and drifts,
+     leaving just the moving background before the statement section. */
+  const heroVid = document.getElementById("heroVideo");
+  if (heroVid) { const p = heroVid.play(); if (p && p.catch) p.catch(() => {}); }
+  const heroGrid = document.querySelector(".hero .hero__grid");
+  if (heroGrid && !reduce) {
+    const updHero = () => {
+      const k = clamp(window.scrollY / (window.innerHeight * 0.7), 0, 1);
+      heroGrid.style.opacity = (1 - k).toFixed(3);
+      heroGrid.style.transform = "translateY(" + (-k * 50).toFixed(1) + "px)";
+    };
+    window.addEventListener("scroll", updHero, { passive: true });
+    updHero();
+  }
+
   /* ---------- back-to-top (smooth via Lenis when present) ---------- */
   document.querySelectorAll("[data-totop]").forEach((el) =>
     el.addEventListener("click", (e) => {

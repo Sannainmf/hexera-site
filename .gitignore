@@ -41,4 +41,5 @@ tools/
 # assets: keep only what the live site actually loads
 assets/*
 !assets/hero-bg.jpg
+!assets/hero-bg.mp4
 !assets/airfoil.msh.gz
