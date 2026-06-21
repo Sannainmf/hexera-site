@@ -296,16 +296,13 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ---------- The mesh experience (ported verbatim from HEXARA, themed teal) ---------- */
-.mesh-experience { position: relative; z-index: var(--z-content); height: 650vh; background: #060402; }
+.mesh-experience { position: relative; z-index: var(--z-content); height: 650vh; background: var(--black); }
 .mesh-experience-sticky { position: sticky; top: 0; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden;
-  /* very slight stage: a soft teal pool of light behind the model so it isn't a flat void */
-  background:
-    radial-gradient(ellipse 58% 50% at 50% 56%, rgba(15,182,172,0.10), rgba(15,182,172,0.03) 40%, transparent 72%),
-    #060402; }
+  background: var(--black); }   /* plain black — matches the section before it */
 #meshCanvas3D { position: absolute; inset: 0; width: 100%; height: 100%; }
-.mesh-experience-sticky::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to bottom, #0b0903, transparent); z-index: 10; pointer-events: none; }
-.mesh-experience-sticky::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to top, #0b0903, transparent); z-index: 10; pointer-events: none; }
-.mesh-loading { position: absolute; inset: 0; z-index: 30; background: #060402; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; transition: opacity 0.8s ease; }
+.mesh-experience-sticky::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to bottom, var(--black), transparent); z-index: 10; pointer-events: none; }
+.mesh-experience-sticky::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to top, var(--black), transparent); z-index: 10; pointer-events: none; }
+.mesh-loading { position: absolute; inset: 0; z-index: 30; background: var(--black); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; transition: opacity 0.8s ease; }
 .mesh-loading.hidden { opacity: 0; pointer-events: none; }
 .mesh-loading-spinner { width: 32px; height: 32px; border: 3px solid rgba(15,182,172,0.15); border-top-color: var(--teal); border-radius: 50%; animation: spin 0.7s linear infinite; }
 .mesh-loading-text { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
