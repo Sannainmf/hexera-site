@@ -12,7 +12,7 @@
 </head>
 <body>
   <div class="hero-art" aria-hidden="true"></div>
-  <video class="hero-video" id="heroVideo" aria-hidden="true" autoplay muted loop playsinline preload="auto" poster="assets/hero-bg.jpg">
+  <video class="hero-video" id="heroVideo" aria-hidden="true" muted playsinline preload="auto" poster="assets/hero-bg.jpg">
     <source src="assets/hero-bg.mp4" type="video/mp4" />
   </video>
   <canvas class="fluid" id="fluidCanvas" aria-hidden="true"></canvas>
@@ -92,6 +92,9 @@
       <span class="hero__scroll-rail"><span class="hero__scroll-dot"></span></span>
     </div>
   </main>
+
+  <!-- ===== Scrub zone: the fixed hero video plays through as you scroll ===== -->
+  <section class="hero-scrub" aria-hidden="true"></section>
 
   <!-- ===== Interlude: full-page statement that bridges hero → mesh scroll ===== -->
   <section class="interlude" aria-label="The problem we solve">

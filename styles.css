@@ -50,19 +50,21 @@ a { color: inherit; text-decoration: none; }
 .hero-art {
   position: fixed; inset: 0; z-index: var(--z-canvas);
   background: var(--bg) url("assets/hero-bg.jpg") center / cover no-repeat;
-  filter: saturate(0.8) contrast(0.97) brightness(0.82);  /* toned down — less grand */
+  filter: saturate(1.12) contrast(1.06);   /* original vivid colors */
   transform: scale(1.06); will-change: transform;
 }
-/* animated hero background (5s Higgsfield clip); poster falls back to the still */
+/* animated hero background (5s Higgsfield clip), scrubbed by scroll */
 .hero-video {
   position: fixed; inset: 0; z-index: var(--z-canvas);
   width: 100%; height: 100%; object-fit: cover; pointer-events: none;
-  filter: saturate(0.8) contrast(0.97) brightness(0.8);  /* match the toned still */
+  filter: saturate(1.12) contrast(1.06);   /* original vivid colors */
 }
+/* transparent scroll length where the fixed video scrubs (just the moving bg) */
+.hero-scrub { position: relative; z-index: var(--z-content); height: 160vh; pointer-events: none; }
 .fluid {
   position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%;
   pointer-events: none;          /* never blocks clicks/scroll */
-  opacity: 0.5;                  /* softened — a faint accent over the video, less grand */
+  opacity: 1;                    /* full strength — original */
   mix-blend-mode: screen;        /* only adds light, never covers the image */
 }
 .vignette {
