@@ -50,41 +50,6 @@
     }
   }
 
-  /* ---------- hero: fade content, then scrub the bg video on scroll ----------
-     Uses YOUR original background, animated (assets/hero-bg.mp4).
-     Phase 1 (first ~0.7 viewport of scroll): the hero content (title + demo)
-     fades and drifts away. Phase 2 (through the .hero-scrub spacer): the fixed
-     background video scrubs from its first frame to its last, tied to scroll —
-     a real scroll animation. The statement section then fades in after. */
-  const heroVid = document.getElementById("heroVideo");
-  const heroGrid = document.querySelector(".hero .hero__grid");
-  const scrubEl = document.querySelector(".hero-scrub");
-  if (heroVid) heroVid.pause();
-  if (!reduce && heroVid && scrubEl) {
-    let dur = 5;
-    const setDur = () => { if (heroVid.duration && isFinite(heroVid.duration)) dur = heroVid.duration; };
-    heroVid.addEventListener("loadedmetadata", setDur); setDur();
-    let ticking = false;
-    const update = () => {
-      ticking = false;
-      const vh = window.innerHeight, y = window.scrollY;
-      if (heroGrid) {                                   // phase 1 — content fade
-        const k = clamp(y / (vh * 0.7), 0, 1);
-        heroGrid.style.opacity = (1 - k).toFixed(3);
-        heroGrid.style.transform = "translateY(" + (-k * 50).toFixed(1) + "px)";
-      }
-      const fadeEnd = vh * 0.7;                          // phase 2 — scrub video
-      const scrubEnd = scrubEl.offsetTop + scrubEl.offsetHeight - vh;
-      const p = clamp((y - fadeEnd) / Math.max(scrubEnd - fadeEnd, 1), 0, 1);
-      if (heroVid.readyState >= 1) { try { heroVid.currentTime = p * Math.max(dur - 0.05, 0); } catch (e) {} }
-    };
-    window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
-    window.addEventListener("resize", update);
-    update();
-  } else if (heroGrid && reduce) {
-    heroGrid.style.opacity = "1";
-  }
-
   /* ---------- back-to-top (smooth via Lenis when present) ---------- */
   document.querySelectorAll("[data-totop]").forEach((el) =>
     el.addEventListener("click", (e) => {
