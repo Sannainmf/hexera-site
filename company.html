@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Company — Hexera</title>
+  <meta name="description" content="Hexera is building the autonomous meshing engineer for aerospace — founded by people who have meshed in anger and shipped real hardware." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="nav" id="nav">
+    <a class="brand" href="index.html" aria-label="Hexera home">
+      <svg class="brand__mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M12 2v20M3 7l18 10M21 7 3 17" stroke="currentColor" stroke-width="0.8" opacity="0.55"/>
+      </svg>
+      <span class="brand__word">HEXERA</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="technology.html">Technology</a>
+      <a href="aerospace.html">Aerospace</a>
+      <a href="company.html" class="is-current">Company</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <div class="nav__end">
+      <a class="btn btn--ghost nav__cta cta-mono" href="contact.html">Request access <span aria-hidden="true">↗</span></a>
+      <button class="nav__toggle" aria-label="Toggle menu"><span></span></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="phero">
+      <div class="wrap wrap--narrow">
+        <span class="kicker phero__eyebrow">Who we are</span>
+        <h1 class="phero__title">Meshing is the bottleneck. We're <em>removing it</em>.</h1>
+        <p class="phero__lede">Every CFD team loses days to preprocessing — repairing geometry, hand-building boundary layers, babysitting solvers. Hexera exists to give that week back, on every part, to every engineer.</p>
+      </div>
+    </section>
+
+    <!-- FAN CARDS: principles -->
+    <section class="section section--tight">
+      <div class="wrap">
+        <span class="kicker">What we believe</span>
+        <h2 class="h2">Five principles we mesh&nbsp;by.</h2>
+        <div class="fan">
+          <div class="fan-card reveal">
+            <svg class="fan-card__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+            <h3 class="fan-card__h">Physics first</h3>
+            <p class="fan-card__p">A pretty mesh that fails the solver is worthless. Quality metrics decide, not aesthetics.</p>
+          </div>
+          <div class="fan-card reveal d1">
+            <svg class="fan-card__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>
+            <h3 class="fan-card__h">Engineer in control</h3>
+            <p class="fan-card__p">We automate the setup, never the judgment. You approve intent; the agent does the labour.</p>
+          </div>
+          <div class="fan-card reveal d2">
+            <svg class="fan-card__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>
+            <h3 class="fan-card__h">Speed is a feature</h3>
+            <p class="fan-card__p">Hours, not days. Fast turnaround is what lets teams explore the design space at all.</p>
+          </div>
+          <div class="fan-card reveal d3">
+            <svg class="fan-card__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 4h16v12H4z"/><path d="M8 20h8M9 9l2 2 4-4"/></svg>
+            <h3 class="fan-card__h">Auditable by default</h3>
+            <p class="fan-card__p">Every decision is logged and reported. No black boxes in a safety-critical workflow.</p>
+          </div>
+          <div class="fan-card reveal d4">
+            <svg class="fan-card__ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><circle cx="9" cy="7" r="3"/><path d="M17 11l2 2 4-4"/></svg>
+            <h3 class="fan-card__h">Built by operators</h3>
+            <p class="fan-card__p">We've meshed in anger and shipped hardware. We build the tool we always wished we had.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEAM -->
+    <section class="section section--tight" id="team">
+      <div class="wrap">
+        <span class="kicker">The team</span>
+        <h2 class="h2">People who've <span class="teal">meshed in anger</span>.</h2>
+        <p class="lede">Aerospace engineers, CFD specialists and ML researchers who got tired of losing weeks to preprocessing — and decided to fix it.</p>
+        <div class="team">
+          <div class="member reveal"><div class="member__photo">AR</div><div class="member__name">Areen Patil</div><div class="member__role">Founder / CEO</div></div>
+          <div class="member reveal d1"><div class="member__photo">JC</div><div class="member__name">Jordan Cho</div><div class="member__role">Aerodynamicist</div></div>
+          <div class="member reveal d2"><div class="member__photo">MR</div><div class="member__name">Maya Reyes</div><div class="member__role">CFD Lead</div></div>
+          <div class="member reveal d3"><div class="member__photo">DK</div><div class="member__name">Dev Khanna</div><div class="member__role">ML Research</div></div>
+          <div class="member reveal"><div class="member__photo">SL</div><div class="member__name">Sofia Lindqvist</div><div class="member__role">Meshing Engineer</div></div>
+          <div class="member reveal d1"><div class="member__photo">TO</div><div class="member__name">Tomas Oduya</div><div class="member__role">Platform</div></div>
+          <div class="member reveal d2"><div class="member__photo">HW</div><div class="member__name">Hana Watanabe</div><div class="member__role">Solver Integrations</div></div>
+          <div class="member reveal d3"><div class="member__photo">BL</div><div class="member__name">Ben Larsson</div><div class="member__role">Design</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MISSION (cream) -->
+    <section class="section section--light" id="careers">
+      <div class="grain-light" aria-hidden="true"></div>
+      <div class="wrap wrap--narrow" style="position:relative">
+        <span class="kicker">The mission</span>
+        <h2 class="h2">Give every aero team a <em>senior mesher</em> on tap.</h2>
+        <p class="lede">The best preprocessing engineers are rare, expensive and overloaded. We're encoding that judgment into an agent that any team can run — so the bottleneck stops being a person, and starts being your imagination.</p>
+        <p class="lede">We're hiring engineers who care about the unglamorous, decisive parts of CFD. If meshing has ever cost you a week you'll never get back, you'll fit right in.</p>
+        <div style="margin-top:2rem">
+          <a class="btn btn--gold" href="contact.html">See open roles <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <h2 class="cta-band__h">Want the week back?</h2>
+      <p class="cta-band__p">Whether you're an aero team or an engineer who wants to build this with us — let's talk.</p>
+      <div class="cta-band__actions">
+        <a class="btn btn--gold" href="contact.html">Request access <span aria-hidden="true">→</span></a>
+        <a class="btn btn--line" href="technology.html">See the technology <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__top">
+      <div class="footer__brand">
+        <a class="brand" href="index.html" aria-label="Hexera home">
+          <svg class="brand__mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            <path d="M12 2v20M3 7l18 10M21 7 3 17" stroke="currentColor" stroke-width="0.8" opacity="0.55"/>
+          </svg>
+          <span class="brand__word">HEXERA</span>
+        </a>
+        <p class="footer__tag">The autonomous meshing engineer for modern aerospace — CAD to simulation-ready mesh in hours, not days.</p>
+      </div>
+      <div class="footer__col">
+        <h4>Product</h4>
+        <a href="technology.html">Technology</a>
+        <a href="aerospace.html">Aerospace</a>
+        <a href="index.html#meshExperience">Mesh viewer</a>
+        <a href="contact.html">Request access</a>
+      </div>
+      <div class="footer__col">
+        <h4>Company</h4>
+        <a href="company.html">About</a>
+        <a href="company.html#team">Team</a>
+        <a href="company.html#careers">Careers</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="footer__col">
+        <h4>Connect</h4>
+        <a href="contact.html">Book a demo</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">X / Twitter</a>
+        <a href="#">Changelog</a>
+      </div>
+    </div>
+    <div class="footer__bar">
+      <span class="footer__copy">© <span data-year>2026</span> Hexera, Inc.</span>
+      <a class="footer__totop" href="#" data-totop>Back to top <span aria-hidden="true">↑</span></a>
+    </div>
+    <div class="footer__word" aria-hidden="true">HEXERA</div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
+  <script src="site.js" defer></script>
+  <script src="pages.js" defer></script>
+</body>
+</html>

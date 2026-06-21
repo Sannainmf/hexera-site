@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact — Hexera</title>
+  <meta name="description" content="Request access to Hexera or book a meshing demo. Bring a real aerospace part and we'll turn it around solver-ready." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="nav" id="nav">
+    <a class="brand" href="index.html" aria-label="Hexera home">
+      <svg class="brand__mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M12 2v20M3 7l18 10M21 7 3 17" stroke="currentColor" stroke-width="0.8" opacity="0.55"/>
+      </svg>
+      <span class="brand__word">HEXERA</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="technology.html">Technology</a>
+      <a href="aerospace.html">Aerospace</a>
+      <a href="company.html">Company</a>
+      <a href="contact.html" class="is-current">Contact</a>
+    </nav>
+    <div class="nav__end">
+      <a class="btn btn--ghost nav__cta cta-mono" href="contact.html">Request access <span aria-hidden="true">↗</span></a>
+      <button class="nav__toggle" aria-label="Toggle menu"><span></span></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="phero">
+      <div class="wrap">
+        <span class="kicker phero__eyebrow">Get in touch</span>
+        <h1 class="phero__title">Bring a real part. We'll <em>mesh it</em>.</h1>
+        <p class="phero__lede">Request access or book a demo. The fastest way to evaluate Hexera is to send geometry that's given your team trouble — we'll turn it around solver-ready and walk you through the quality report.</p>
+      </div>
+    </section>
+
+    <section class="section section--tight">
+      <div class="wrap contact-grid">
+        <aside class="contact-aside reveal">
+          <h3>Talk to an engineer, not a funnel.</h3>
+          <p>Every request goes to someone who has actually built meshes for a living. Tell us what you're trying to simulate and what's slowing you down.</p>
+          <ul class="contact-points">
+            <li class="contact-point"><span>Email</span><b>hello@hexera.ai</b></li>
+            <li class="contact-point"><span>Demos</span><b>Bring a STEP/IGES part</b></li>
+            <li class="contact-point"><span>Based</span><b>Remote · aerospace corridors</b></li>
+            <li class="contact-point"><span>Response</span><b>Within one business day</b></li>
+          </ul>
+        </aside>
+
+        <form class="form reveal d1" data-access-form novalidate>
+          <div class="form__row">
+            <div class="field">
+              <label for="name">Name</label>
+              <input id="name" name="name" type="text" placeholder="Ada Lovelace" autocomplete="name" />
+            </div>
+            <div class="field">
+              <label for="email">Work email</label>
+              <input id="email" name="email" type="email" placeholder="you@company.com" autocomplete="email" required />
+            </div>
+          </div>
+          <div class="form__row">
+            <div class="field">
+              <label for="company">Company</label>
+              <input id="company" name="company" type="text" placeholder="Acme Aerospace" autocomplete="organization" />
+            </div>
+            <div class="field">
+              <label for="use">What are you meshing?</label>
+              <select id="use" name="use">
+                <option>External aerodynamics</option>
+                <option>Turbomachinery</option>
+                <option>Hypersonics / high-speed</option>
+                <option>Space &amp; propulsion</option>
+                <option>Something else</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="message">What's slowing you down?</label>
+            <textarea id="message" name="message" placeholder="Tell us about the geometry, the solver, and where preprocessing hurts today."></textarea>
+          </div>
+          <button class="btn btn--gold" type="submit" style="justify-content:center">Request access <span aria-hidden="true">→</span></button>
+          <p class="form__note" data-access-note role="status" aria-live="polite">We'll never share your details. This form runs locally — nothing is sent until we connect a backend.</p>
+        </form>
+      </div>
+    </section>
+
+    <section class="section section--tight" aria-label="Frequently asked">
+      <div class="wrap wrap--narrow">
+        <span class="kicker">Questions</span>
+        <h2 class="h2">Before you ask.</h2>
+        <div class="faq">
+          <details open><summary>What do you need from me to start?</summary><p>A CAD part (STEP, IGES or Parasolid) and a sentence about what you're simulating — flow conditions, the quantities you care about, any constraints. That's enough for a first mesh.</p></details>
+          <details><summary>Which solvers can you export to?</summary><p>OpenFOAM, ANSYS Fluent and Abaqus today, with CGNS and Gmsh interchange. If you run something else, tell us — formats are the easy part.</p></details>
+          <details><summary>Is my geometry kept private?</summary><p>Yes. Parts are handled under NDA and never used to train shared models without explicit agreement. Aerospace IP is the whole game.</p></details>
+          <details><summary>Do engineers stay in control?</summary><p>Always. Hexera automates the setup and labour, not the judgment — you approve the simulation intent, and every decision the agent makes is logged and reported.</p></details>
+          <details><summary>How fast is a typical turnaround?</summary><p>Most parts that took 6–8 days of manual preprocessing come back solver-ready in hours, quality-checked, with a written report.</p></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__top">
+      <div class="footer__brand">
+        <a class="brand" href="index.html" aria-label="Hexera home">
+          <svg class="brand__mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            <path d="M12 2v20M3 7l18 10M21 7 3 17" stroke="currentColor" stroke-width="0.8" opacity="0.55"/>
+          </svg>
+          <span class="brand__word">HEXERA</span>
+        </a>
+        <p class="footer__tag">The autonomous meshing engineer for modern aerospace — CAD to simulation-ready mesh in hours, not days.</p>
+      </div>
+      <div class="footer__col">
+        <h4>Product</h4>
+        <a href="technology.html">Technology</a>
+        <a href="aerospace.html">Aerospace</a>
+        <a href="index.html#meshExperience">Mesh viewer</a>
+        <a href="contact.html">Request access</a>
+      </div>
+      <div class="footer__col">
+        <h4>Company</h4>
+        <a href="company.html">About</a>
+        <a href="company.html#team">Team</a>
+        <a href="company.html#careers">Careers</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="footer__col">
+        <h4>Connect</h4>
+        <a href="contact.html">Book a demo</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">X / Twitter</a>
+        <a href="#">Changelog</a>
+      </div>
+    </div>
+    <div class="footer__bar">
+      <span class="footer__copy">© <span data-year>2026</span> Hexera, Inc.</span>
+      <a class="footer__totop" href="#" data-totop>Back to top <span aria-hidden="true">↑</span></a>
+    </div>
+    <div class="footer__word" aria-hidden="true">HEXERA</div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
+  <script src="site.js" defer></script>
+  <script src="pages.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Technology — Hexera</title>
+  <meta name="description" content="How Hexera turns aerospace CAD into simulation-ready meshes: a self-correcting agent pipeline that reads geometry, translates intent, writes and inspects the mesh." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="nav" id="nav">
+    <a class="brand" href="index.html" aria-label="Hexera home">
+      <svg class="brand__mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M12 2v20M3 7l18 10M21 7 3 17" stroke="currentColor" stroke-width="0.8" opacity="0.55"/>
+      </svg>
+      <span class="brand__word">HEXERA</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="technology.html" class="is-current">Technology</a>
+      <a href="aerospace.html">Aerospace</a>
+      <a href="company.html">Company</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <div class="nav__end">
+      <a class="btn btn--ghost nav__cta cta-mono" href="contact.html">Request access <span aria-hidden="true">↗</span></a>
+      <button class="nav__toggle" aria-label="Toggle menu"><span></span></button>
+    </div>
+  </header>
+
+  <main>
+    <!-- page hero -->
+    <section class="phero">
+      <div class="wrap">
+        <span class="kicker phero__eyebrow">The Hexera pipeline</span>
+        <h1 class="phero__title">A meshing agent that thinks like a <em>senior engineer</em>.</h1>
+        <p class="phero__lede">Hexera reads geometry, translates simulation intent into meshing parameters, writes and debugs the scripts, then inspects the result before it ever reaches you — a self-correcting loop, not a black box.</p>
+        <div class="phero__meta">
+          <div class="phero__stat"><b><span data-count="6" data-suffix="–8 days">0</span></b><span>manual preprocessing, before</span></div>
+          <div class="phero__stat"><b><span data-count="4" data-dec="0" data-suffix="h">0</span></b><span>typical turnaround, after</span></div>
+          <div class="phero__stat"><b><span data-count="0.94" data-dec="2">0</span></b><span>median mesh quality</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ORBITAL PROCESS RING -->
+    <section class="ring-sec" aria-label="The meshing loop">
+      <div class="ring-sticky">
+        <div class="ring-grid">
+          <div class="ring-copy">
+            <span class="kicker">The meshing loop</span>
+            <h2 class="h2">Four phases, one&nbsp;agent.</h2>
+            <div class="ring-phase">
+              <div class="ring-phase__item active">
+                <div class="ring-phase__n">01 / INGEST</div>
+                <h3 class="ring-phase__t">Read the geometry</h3>
+                <p class="ring-phase__d">Hexera opens your CAD natively, heals slivers and gaps, and identifies walls, inlets and trailing edges — the way an engineer scans a part before touching a mesh.</p>
+              </div>
+              <div class="ring-phase__item">
+                <div class="ring-phase__n">02 / MESH</div>
+                <h3 class="ring-phase__t">Translate intent to a mesh</h3>
+                <p class="ring-phase__d">Your simulation intent becomes concrete parameters — boundary-layer y+, prism stacks, refinement regions — then the agent writes and runs the meshing script.</p>
+              </div>
+              <div class="ring-phase__item">
+                <div class="ring-phase__n">03 / VERIFY</div>
+                <h3 class="ring-phase__t">Inspect like a reviewer</h3>
+                <p class="ring-phase__d">Every mesh is graded on skewness, orthogonality and aspect ratio. Failures are localised and re-refined automatically — never dumped back on you.</p>
+              </div>
+              <div class="ring-phase__item">
+                <div class="ring-phase__n">04 / DELIVER</div>
+                <h3 class="ring-phase__t">Hand off, solver-ready</h3>
+                <p class="ring-phase__d">Export to OpenFOAM, ANSYS or Abaqus with a written report of every decision and quality metric. Days of preprocessing collapse into hours.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="ring-stage">
+            <svg class="ring-svg" viewBox="0 0 400 400" role="img" aria-label="Process ring">
+              <circle class="ring-track" cx="200" cy="200" r="150" />
+              <g transform="rotate(-90 200 200)"><circle class="ring-prog" cx="200" cy="200" r="150" /></g>
+              <!-- nodes: 0 top, 1 right, 2 bottom, 3 left -->
+              <circle class="ring-node" data-i="0" cx="200" cy="50" r="7" />
+              <circle class="ring-node" data-i="1" cx="350" cy="200" r="7" />
+              <circle class="ring-node" data-i="2" cx="200" cy="350" r="7" />
+              <circle class="ring-node" data-i="3" cx="50" cy="200" r="7" />
+              <text class="ring-node-label" x="200" y="32" text-anchor="middle">Ingest</text>
+              <text class="ring-node-label" x="368" y="204" text-anchor="start">Mesh</text>
+              <text class="ring-node-label" x="200" y="378" text-anchor="middle">Verify</text>
+              <text class="ring-node-label" x="32" y="204" text-anchor="end">Deliver</text>
+              <text class="ring-center" x="200" y="204" text-anchor="middle">MESHING&#160;LOOP</text>
+              <circle class="ring-marker" cx="200" cy="50" r="9" />
+            </svg>
+          </div>
+        </div>
+        <div class="ring-tabs">
+          <span class="ring-tab active">Ingest</span>
+          <span class="ring-tab">Mesh</span>
+          <span class="ring-tab">Verify</span>
+          <span class="ring-tab">Deliver</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ZOO-STYLE STICKY FEATURE -->
+    <section class="section stickyfeat" aria-label="What the agent does">
+      <div class="wrap stickyfeat__inner">
+        <div class="stickyfeat__left">
+          <span class="kicker">Under the hood</span>
+          <h2 class="h2">What the agent <span class="teal">actually does</span>.</h2>
+          <ul class="stickyfeat__list">
+            <li class="sf-item" data-sf="0">Reads geometry the way you would</li>
+            <li class="sf-item" data-sf="1">Reasons about your simulation intent</li>
+            <li class="sf-item" data-sf="2">Writes and debugs its own scripts</li>
+            <li class="sf-item" data-sf="3">Inspects the result before you see it</li>
+          </ul>
+        </div>
+
+        <div class="stickyfeat__right">
+          <div class="sf-panel" data-sf="0">
+            <h3 class="sf-panel__h">Reads geometry the way you would</h3>
+            <div class="sf-card">
+              <div class="sf-card__bar"><i></i><i></i><i></i> geometry · wing_v7.step <b>PARSED</b></div>
+              <div class="sf-card__body">
+                <dl class="sf-line"><dt>Solids</dt><dd>1 watertight body</dd></dl>
+                <dl class="sf-line"><dt>Faces</dt><dd>2,114 surfaces · 18 trailing edges</dd></dl>
+                <dl class="sf-line"><dt>Healed</dt><dd>6 sliver faces, 2 gaps closed</dd></dl>
+                <dl class="sf-line"><dt>Tagged</dt><dd>walls · inlet · outlet · symmetry</dd></dl>
+                <div class="sf-cap">Native CAD — no manual cleanup</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sf-panel" data-sf="1">
+            <h3 class="sf-panel__h">Reasons about your simulation intent</h3>
+            <div class="sf-card">
+              <div class="sf-card__bar"><i></i><i></i><i></i> intent · external aero <b>RESOLVED</b></div>
+              <div class="sf-card__body">
+                <dl class="sf-line"><dt>You said</dt><dd>“External aero at M0.85, resolve the boundary layer.”</dd></dl>
+                <dl class="sf-line"><dt>y+ target</dt><dd>≈ 1.0 (wall-resolved)</dd></dl>
+                <dl class="sf-line"><dt>Prism stack</dt><dd>24 layers · first cell 8×10⁻⁶ m</dd></dl>
+                <dl class="sf-line"><dt>Far-field</dt><dd>30 chord lengths</dd></dl>
+                <div class="sf-cap">Intent → meshing parameters</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sf-panel" data-sf="2">
+            <h3 class="sf-panel__h">Writes and debugs its own scripts</h3>
+            <div class="sf-card">
+              <div class="sf-card__bar"><i></i><i></i><i></i> mesh.py · agent <b>RUNNING</b></div>
+              <div class="sf-card__body">
+                <dl class="sf-line"><dt>Step</dt><dd>surface remesh → prism extrude → volume fill</dd></dl>
+                <dl class="sf-line"><dt>Retry</dt><dd>auto-fixed 1 extrusion collision at the TE</dd></dl>
+                <dl class="sf-line"><dt>Runtime</dt><dd>9m 04s on 32 vCPU</dd></dl>
+                <div class="sf-cap">Self-correcting — it debugs itself</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sf-panel" data-sf="3">
+            <h3 class="sf-panel__h">Inspects the result before you see it</h3>
+            <div class="sf-card">
+              <div class="sf-card__bar"><i></i><i></i><i></i> report · quality <b>PASSED</b></div>
+              <div class="sf-card__body">
+                <dl class="sf-line"><dt>Cells</dt><dd>8.4M (poly-hex core)</dd></dl>
+                <dl class="sf-line"><dt>Max skew</dt><dd>0.62 — within spec</dd></dl>
+                <dl class="sf-line"><dt>Orthogonality</dt><dd>0.94 median</dd></dl>
+                <dl class="sf-line"><dt>y+</dt><dd>0.9 across the wing</dd></dl>
+                <div class="sf-cap">Reviewed like a senior engineer would</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TERMINAL -->
+    <section class="section section--tight" aria-label="A run, start to finish">
+      <div class="wrap wrap--narrow reveal">
+        <span class="kicker">One command</span>
+        <h2 class="h2">From <em>STEP</em> to solver-ready, watched live.</h2>
+        <p class="lede">A single run reads the part, translates intent, meshes, catches its own quality issues, and exports — the work of a week, narrated as it happens.</p>
+        <div class="term" style="margin-top:2.25rem">
+          <div class="term__bar"><i></i><i></i><i></i> hexera · mesh studio <b>LIVE</b></div>
+          <div class="term__body" data-term></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-band">
+      <h2 class="cta-band__h">See it mesh <em>your</em> geometry.</h2>
+      <p class="cta-band__p">Bring a real part. We'll turn it around solver-ready and show you every decision the agent made.</p>
+      <div class="cta-band__actions">
+        <a class="btn btn--gold" href="contact.html">Request access <span aria-hidden="true">→</span></a>
+        <a class="btn btn--line" href="aerospace.html">Where it's used <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__top">
+      <div class="footer__brand">
+        <a class="brand" href="index.html" aria-label="Hexera home">
+          <svg class="brand__mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            <path d="M12 2v20M3 7l18 10M21 7 3 17" stroke="currentColor" stroke-width="0.8" opacity="0.55"/>
+          </svg>
+          <span class="brand__word">HEXERA</span>
+        </a>
+        <p class="footer__tag">The autonomous meshing engineer for modern aerospace — CAD to simulation-ready mesh in hours, not days.</p>
+      </div>
+      <div class="footer__col">
+        <h4>Product</h4>
+        <a href="technology.html">Technology</a>
+        <a href="aerospace.html">Aerospace</a>
+        <a href="index.html#meshExperience">Mesh viewer</a>
+        <a href="contact.html">Request access</a>
+      </div>
+      <div class="footer__col">
+        <h4>Company</h4>
+        <a href="company.html">About</a>
+        <a href="company.html#team">Team</a>
+        <a href="company.html#careers">Careers</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="footer__col">
+        <h4>Connect</h4>
+        <a href="contact.html">Book a demo</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">X / Twitter</a>
+        <a href="#">Changelog</a>
+      </div>
+    </div>
+    <div class="footer__bar">
+      <span class="footer__copy">© <span data-year>2026</span> Hexera, Inc.</span>
+      <a class="footer__totop" href="#" data-totop>Back to top <span aria-hidden="true">↑</span></a>
+    </div>
+    <div class="footer__word" aria-hidden="true">HEXERA</div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
+  <script src="site.js" defer></script>
+  <script src="pages.js" defer></script>
+</body>
+</html>

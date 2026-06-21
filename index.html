@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hexera — The autonomous meshing engineer</title>
+  <meta name="description" content="Hexera is multi-agent AI that turns aerospace CAD geometry into simulation-ready meshes in hours, not days." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="hero-art" aria-hidden="true"></div>
+  <canvas class="fluid" id="fluidCanvas" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <header class="nav" id="nav">
+    <a class="brand" href="index.html" aria-label="Hexera home">
+      <svg class="brand__mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M12 2v20M3 7l18 10M21 7 3 17" stroke="currentColor" stroke-width="0.8" opacity="0.55"/>
+      </svg>
+      <span class="brand__word">HEXERA</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="technology.html">Technology</a>
+      <a href="aerospace.html">Aerospace</a>
+      <a href="company.html">Company</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <div class="nav__end">
+      <a class="btn btn--ghost nav__cta cta-mono" href="contact.html">Request access <span aria-hidden="true">↗</span></a>
+      <button class="nav__toggle" aria-label="Toggle menu"><span></span></button>
+    </div>
+  </header>
+
+  <main class="hero" id="top">
+    <div class="hero__grid">
+
+      <div class="hero__text">
+        <h1 class="hero__title">
+          The autonomous meshing <em>engineer</em> for modern aerospace.
+        </h1>
+        <p class="hero__sub">
+          Hexera turns aerospace CAD into simulation-ready meshes through a
+          self-correcting agent pipeline — it reads the geometry, translates your
+          simulation intent into meshing parameters, writes and debugs the scripts,
+          then inspects the result the way a senior engineer would. It collapses
+          <span class="num">6&ndash;8&nbsp;days</span> of manual preprocessing into
+          <span class="num">hours</span>.
+        </p>
+        <div class="hero__actions ha-wipe">
+          <a class="btn btn--gold" href="contact.html">Request access <span aria-hidden="true">→</span></a>
+          <a class="btn btn--line" href="technology.html">See the pipeline <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+
+
+      <!-- product window: plays the chat, then renders the real mesh -->
+      <div class="hero__demo">
+        <div class="win" data-demo>
+          <div class="win__bar">
+            <span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="win__url">hexera · mesh studio</span>
+            <span class="win__tag" aria-hidden="true" data-wintag>NACA&nbsp;0012</span>
+          </div>
+
+          <div class="win__stage">
+            <div class="chat" data-chat>
+              <div class="chat__log" data-log></div>
+              <div class="chat__bar">
+                <span class="chat__field" data-field></span>
+                <span class="chat__caret" data-caret></span>
+                <button class="chat__send" data-send aria-label="Send"><span aria-hidden="true">↑</span></button>
+              </div>
+            </div>
+          </div>
+
+          <span class="cursor" data-cursor aria-hidden="true"></span>
+          <button class="demo__replay" data-replay aria-label="Replay walkthrough"><span aria-hidden="true">↻</span> Replay</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero__scroll" aria-hidden="true">
+      <span>SCROLL</span>
+      <span class="hero__scroll-rail"><span class="hero__scroll-dot"></span></span>
+    </div>
+  </main>
+
+  <!-- ===== Interlude: full-page statement that bridges hero → mesh scroll ===== -->
+  <section class="interlude" aria-label="The problem we solve">
+    <p class="interlude__line" data-parallax-fade>Engineers spend <b>countless hours</b> on manual mesh creation. <em>We eliminate that bottleneck.</em></p>
+  </section>
+
+  <!-- ===== The mesh experience: airfoil scroll (ported from HEXARA) ===== -->
+  <section class="mesh-experience" id="meshExperience" aria-label="NACA 0012 mesh — surface to full domain">
+    <div class="mesh-experience-sticky">
+      <canvas id="meshCanvas3D" aria-hidden="true"></canvas>
+      <div class="mesh-loading" id="meshLoading">
+        <div class="mesh-loading-spinner"></div>
+        <div class="mesh-loading-text">Loading mesh data…</div>
+      </div>
+      <div class="mesh-progress" id="meshProgress">
+        <div class="progress-step" id="stepSurface"><div class="progress-dot active"></div><span class="progress-label">Surface</span></div>
+        <div class="progress-step" id="stepMesh"><div class="progress-dot"></div><span class="progress-label">Mesh</span></div>
+        <div class="progress-step" id="stepReveal"><div class="progress-dot"></div><span class="progress-label">Domain</span></div>
+      </div>
+      <div class="mesh-info-card top-center" id="cardTitle"><div class="info-card-label">NACA 0012 Airfoil</div><div class="info-card-value">CFD-Ready<span class="info-card-unit">Mesh</span></div></div>
+      <div class="mesh-info-card left" id="cardNodes"><div class="info-card-label">Total Nodes</div><div class="info-card-value"><span id="nodeCount">0</span></div><div class="info-card-desc">Optimized for boundary-layer resolution</div></div>
+      <div class="mesh-info-card right" id="cardElements"><div class="info-card-label">Elements</div><div class="info-card-value"><span id="elementCount">0</span></div><div class="info-card-desc">Triangular cells with adaptive refinement</div></div>
+      <div class="mesh-info-card bottom-left" id="cardQuality"><div class="info-card-label">Mesh Quality</div><div class="info-card-value">0.94</div><div class="info-card-desc">Orthogonality &amp; aspect ratio validated</div></div>
+      <div class="mesh-info-card bottom-right" id="cardFormat"><div class="info-card-label">Export Ready</div><div class="info-card-value">.msh</div><div class="info-card-desc">Compatible with OpenFOAM, ANSYS, Abaqus</div></div>
+      <div class="view-mode-label" id="viewModeLabel">Solid Surface</div>
+    </div>
+  </section>
+
+  <!-- ===== Everything below the hero/mesh sits on its own studio bg ===== -->
+  <div class="home-flow">
+
+  <!-- ===== Explore: routes into the deeper pages (white band, navier-style) ===== -->
+  <section class="section section--light">
+    <div class="grain-light" aria-hidden="true"></div>
+    <div class="wrap" style="position:relative">
+      <span class="kicker">Explore Hexera</span>
+      <h2 class="h2">From a single part to your whole <em>flight envelope</em>.</h2>
+      <p class="lede">The mesh above is one airfoil. Here's where the agent goes from there.</p>
+      <div class="teaser">
+        <a class="tcard reveal" href="technology.html">
+          <div class="tcard__n">01 · TECHNOLOGY</div>
+          <h3 class="tcard__h">The meshing loop</h3>
+          <p class="tcard__p">How the agent reads geometry, translates intent, writes its own scripts, and inspects the result before you ever see it.</p>
+          <span class="tcard__go">See the pipeline <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="tcard reveal d1" href="aerospace.html">
+          <div class="tcard__n">02 · AEROSPACE</div>
+          <h3 class="tcard__h">Where it's used</h3>
+          <p class="tcard__p">External aero, turbomachinery, hypersonics and space propulsion — the regimes that break automatic meshers.</p>
+          <span class="tcard__go">Explore domains <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="tcard reveal d2" href="company.html">
+          <div class="tcard__n">03 · COMPANY</div>
+          <h3 class="tcard__h">Who's building it</h3>
+          <p class="tcard__p">Aerospace and CFD engineers removing the preprocessing bottleneck — and the principles we mesh by.</p>
+          <span class="tcard__go">Meet the team <span aria-hidden="true">→</span></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--tight" aria-label="Compatible with">
+    <div class="wrap">
+      <p class="kicker" style="justify-content:center;text-align:center;margin-bottom:2rem">Fits your existing stack</p>
+      <div class="marquee">
+        <div class="marquee__track">
+          <span class="marquee__item">OpenFOAM</span><span class="marquee__item">ANSYS Fluent</span><span class="marquee__item">Abaqus</span><span class="marquee__item">STAR-CCM+</span><span class="marquee__item">STEP / IGES</span><span class="marquee__item">Parasolid</span><span class="marquee__item">CGNS</span><span class="marquee__item">Gmsh</span>
+          <span class="marquee__item">OpenFOAM</span><span class="marquee__item">ANSYS Fluent</span><span class="marquee__item">Abaqus</span><span class="marquee__item">STAR-CCM+</span><span class="marquee__item">STEP / IGES</span><span class="marquee__item">Parasolid</span><span class="marquee__item">CGNS</span><span class="marquee__item">Gmsh</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <h2 class="cta-band__h">Stop losing weeks to <em>preprocessing</em>.</h2>
+    <p class="cta-band__p">Bring a real aerospace part. We'll turn it around solver-ready and show you every decision the agent made.</p>
+    <div class="cta-band__actions">
+      <a class="btn btn--gold" href="contact.html">Request access <span aria-hidden="true">→</span></a>
+      <a class="btn btn--line" href="technology.html">See the technology <span aria-hidden="true">↗</span></a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer__top">
+      <div class="footer__brand">
+        <a class="brand" href="index.html" aria-label="Hexera home">
+          <svg class="brand__mark" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2 21 7v10l-9 5-9-5V7l9-5Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            <path d="M12 2v20M3 7l18 10M21 7 3 17" stroke="currentColor" stroke-width="0.8" opacity="0.55"/>
+          </svg>
+          <span class="brand__word">HEXERA</span>
+        </a>
+        <p class="footer__tag">The autonomous meshing engineer for modern aerospace — CAD to simulation-ready mesh in hours, not days.</p>
+      </div>
+      <div class="footer__col">
+        <h4>Product</h4>
+        <a href="technology.html">Technology</a>
+        <a href="aerospace.html">Aerospace</a>
+        <a href="index.html#meshExperience">Mesh viewer</a>
+        <a href="contact.html">Request access</a>
+      </div>
+      <div class="footer__col">
+        <h4>Company</h4>
+        <a href="company.html">About</a>
+        <a href="company.html#team">Team</a>
+        <a href="company.html#careers">Careers</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="footer__col">
+        <h4>Connect</h4>
+        <a href="contact.html">Book a demo</a>
+        <a href="#">LinkedIn</a>
+        <a href="#">X / Twitter</a>
+        <a href="#">Changelog</a>
+      </div>
+    </div>
+    <div class="footer__bar">
+      <span class="footer__copy">© <span data-year>2026</span> Hexera, Inc.</span>
+      <a class="footer__totop" href="#" data-totop>Back to top <span aria-hidden="true">↑</span></a>
+    </div>
+    <div class="footer__word" aria-hidden="true">HEXERA</div>
+  </footer>
+
+  </div><!-- /.home-flow -->
+
+  <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
+  <script src="hero.js" defer></script>
+  <script src="fluid.js" defer></script>
+  <script src="demo.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js" defer></script>
+  <script src="airfoil.js" defer></script>
+  <script src="site.js" defer></script>
+  <script src="pages.js" defer></script>
+</body>
+</html>
