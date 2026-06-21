@@ -42,3 +42,4 @@ tools/
 assets/*
 !assets/hero-bg.jpg
 !assets/airfoil.msh.gz
+!assets/logos/
