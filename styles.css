@@ -120,6 +120,12 @@ a { color: inherit; text-decoration: none; }
   display: grid; place-items: center; align-content: center;
   padding: calc(var(--nav-h) + clamp(1.5rem, 5vh, 3rem)) var(--pad-x) clamp(3rem, 7vh, 5rem);
 }
+/* fade the hero's background down to the section black so there's no hard seam */
+.hero::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 42vh;
+  background: linear-gradient(to bottom, transparent, var(--black));
+  z-index: -1; pointer-events: none;
+}
 .hero__grid {
   width: min(92vw, 1600px);
   display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
