@@ -24,8 +24,7 @@
     </a>
     <nav class="nav__links" aria-label="Primary">
       <a href="technology.html" class="is-current">Technology</a>
-      <a href="aerospace.html">Aerospace</a>
-      <a href="company.html">Company</a>
+      <a href="industries.html">Industries</a>
       <a href="contact.html">Contact</a>
     </nav>
     <div class="nav__end">
@@ -45,6 +44,61 @@
           <div class="phero__stat"><b><span data-count="6" data-suffix="–8 days">0</span></b><span>manual preprocessing, before</span></div>
           <div class="phero__stat"><b><span data-count="4" data-dec="0" data-suffix="h">0</span></b><span>typical turnaround, after</span></div>
           <div class="phero__stat"><b><span data-count="0.94" data-dec="2">0</span></b><span>median mesh quality</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Orbital process ring (scroll-driven) ===== -->
+    <section class="ring-sec" aria-label="Hexera's four-phase meshing process">
+      <div class="ring-sticky">
+        <div class="ring-grid">
+          <div class="ring-copy">
+            <h2 class="h2">Four phases, one&nbsp;agent.</h2>
+            <div class="ring-phase">
+              <div class="ring-phase__item active">
+                <div class="ring-phase__n">01 / INGEST</div>
+                <h3 class="ring-phase__t">Read the geometry</h3>
+                <p class="ring-phase__d">Opens your CAD natively — heals gaps, tags walls, inlets and trailing edges.</p>
+              </div>
+              <div class="ring-phase__item">
+                <div class="ring-phase__n">02 / MESH</div>
+                <h3 class="ring-phase__t">Translate intent to a mesh</h3>
+                <p class="ring-phase__d">Turns plain-language intent into real parameters — y+, prism layers, refinement — then writes and runs the script.</p>
+              </div>
+              <div class="ring-phase__item">
+                <div class="ring-phase__n">03 / VERIFY</div>
+                <h3 class="ring-phase__t">Inspect like a reviewer</h3>
+                <p class="ring-phase__d">Grades every mesh on skewness, orthogonality and aspect ratio — and re-refines failures itself.</p>
+              </div>
+              <div class="ring-phase__item">
+                <div class="ring-phase__n">04 / DELIVER</div>
+                <h3 class="ring-phase__t">Hand off, solver-ready</h3>
+                <p class="ring-phase__d">Exports to OpenFOAM, ANSYS or Abaqus with a full decision report. Days become hours.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="ring-stage">
+            <svg class="ring-svg" viewBox="0 0 400 400" role="img" aria-label="Process ring">
+              <circle class="ring-track" cx="200" cy="200" r="150" />
+              <g transform="rotate(-90 200 200)"><circle class="ring-prog" cx="200" cy="200" r="150" /></g>
+              <circle class="ring-node" data-i="0" cx="200" cy="50" r="7" />
+              <circle class="ring-node" data-i="1" cx="350" cy="200" r="7" />
+              <circle class="ring-node" data-i="2" cx="200" cy="350" r="7" />
+              <circle class="ring-node" data-i="3" cx="50" cy="200" r="7" />
+              <text class="ring-node-label" x="200" y="32" text-anchor="middle">Ingest</text>
+              <text class="ring-node-label" x="368" y="204" text-anchor="start">Mesh</text>
+              <text class="ring-node-label" x="200" y="378" text-anchor="middle">Verify</text>
+              <text class="ring-node-label" x="32" y="204" text-anchor="end">Deliver</text>
+              <circle class="ring-marker" cx="200" cy="50" r="9" />
+            </svg>
+          </div>
+        </div>
+        <div class="ring-tabs">
+          <span class="ring-tab active">Ingest</span>
+          <span class="ring-tab">Mesh</span>
+          <span class="ring-tab">Verify</span>
+          <span class="ring-tab">Deliver</span>
         </div>
       </div>
     </section>
@@ -141,7 +195,7 @@
       <p class="cta-band__p">Bring a real part. We'll turn it around solver-ready and show you every decision the agent made.</p>
       <div class="cta-band__actions">
         <a class="btn btn--gold" href="contact.html">Request access <span aria-hidden="true">→</span></a>
-        <a class="btn btn--line" href="aerospace.html">Where it's used <span aria-hidden="true">↗</span></a>
+        <a class="btn btn--line" href="industries.html">Where it's used <span aria-hidden="true">↗</span></a>
       </div>
     </section>
   </main>
@@ -161,15 +215,14 @@
       <div class="footer__col">
         <h4>Product</h4>
         <a href="technology.html">Technology</a>
-        <a href="aerospace.html">Aerospace</a>
+        <a href="industries.html">Industries</a>
         <a href="index.html#meshExperience">Mesh viewer</a>
         <a href="contact.html">Request access</a>
       </div>
       <div class="footer__col">
-        <h4>Company</h4>
-        <a href="company.html">About</a>
-        <a href="company.html#team">Team</a>
-        <a href="company.html#careers">Careers</a>
+        <h4>Get started</h4>
+        <a href="contact.html">Request access</a>
+        <a href="contact.html">Book a demo</a>
         <a href="contact.html">Contact</a>
       </div>
       <div class="footer__col">

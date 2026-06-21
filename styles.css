@@ -640,6 +640,11 @@ html.lenis, html.lenis body { height: auto; }
 .cta-band__h em { font-style: normal; color: var(--gold); }
 .cta-band__p { color: var(--muted); margin: 1.25rem auto 0; max-width: 50ch; }
 .cta-band__actions { display: flex; flex-wrap: wrap; gap: 0.85rem; justify-content: center; margin-top: clamp(1.75rem, 4vh, 2.5rem); }
+/* light closing CTA (the page's single bright beat) */
+.cta-light { text-align: center; }
+.cta-light__actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1.4rem; margin-top: clamp(1.75rem, 4vh, 2.5rem); }
+.cta-light__link { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--teal-on-light); display: inline-flex; align-items: center; gap: 0.4em; transition: gap 0.25s var(--ease-expo); }
+.cta-light__link:hover { text-decoration: underline; text-underline-offset: 4px; gap: 0.6em; }
 
 .footer { position: relative; z-index: var(--z-content); border-top: 1px solid var(--line); padding: clamp(3rem, 6vh, 4.5rem) var(--pad-x) clamp(2.5rem, 5vh, 4rem); background: var(--black); overflow: hidden; }
 .footer__top { width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 2.5rem; }
