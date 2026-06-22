@@ -112,20 +112,97 @@
   <!-- ===== Everything below the hero/mesh sits on its own studio bg ===== -->
   <div class="home-flow">
 
-  <!-- ===== Closing CTA (light) ===== -->
-  <section class="section section--light cta-light">
-    <div class="grain-light" aria-hidden="true"></div>
-    <div class="wrap wrap--narrow" style="position:relative">
-      <h2 class="h2" style="margin:0 auto; max-width:18ch">Send us a part. Get it back <em>solver-ready</em>.</h2>
-      <p class="lede" style="margin:1.25rem auto 0; max-width:46ch">One real CAD model, meshed and quality-checked in hours — not days.</p>
-      <div class="cta-light__actions">
-        <a class="btn btn--gold" href="contact.html">Request access <span aria-hidden="true">→</span></a>
-        <a class="cta-light__link" href="technology.html">See the technology <span aria-hidden="true">↗</span></a>
+  <!-- ===== Closing block: how it works — dark blueprint panel ===== -->
+  <section class="section pipeline" aria-label="How Hexera works">
+    <div class="wrap pipeline__grid">
+      <div class="pipeline__head reveal">
+        <h2 class="pipeline__h">CAD geometry in. A <em>solver-ready</em> mesh out.</h2>
+        <p class="pipeline__lede">Describe the simulation and share the part. Hexera's agents handle the rest.</p>
+      </div>
+
+      <ol class="pipeline__rail reveal d1">
+        <li class="pstage">
+          <span class="pstage__node" aria-hidden="true"></span>
+          <div class="pstage__body">
+            <span class="pstage__tag">Send</span>
+            <h3 class="pstage__h">Your geometry</h3>
+            <p class="pstage__p">Share a CAD part and describe the simulation you're running.</p>
+          </div>
+        </li>
+        <li class="pstage">
+          <span class="pstage__node" aria-hidden="true"></span>
+          <div class="pstage__body">
+            <span class="pstage__tag">Mesh</span>
+            <h3 class="pstage__h">Autonomous agents</h3>
+            <p class="pstage__p">They build, mesh and quality-check the domain. No manual setup.</p>
+          </div>
+        </li>
+        <li class="pstage">
+          <span class="pstage__node" aria-hidden="true"></span>
+          <div class="pstage__body">
+            <span class="pstage__tag">Export</span>
+            <h3 class="pstage__h">Solver-ready output</h3>
+            <p class="pstage__p">A validated mesh and quality report, built for OpenFOAM, ANSYS or Abaqus.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===== Industries: engineering datasheet / index ===== -->
+  <section class="dsheet" id="industriesHome" aria-label="Industries Hexera serves">
+    <div class="wrap">
+      <h2 class="dsheet__h reveal">Wherever simulation drives the design.</h2>
+
+      <div class="dsheet__table">
+        <div class="dsheet__head" aria-hidden="true">
+          <span>Industry</span>
+          <span>Meshes</span>
+          <span>Simulates</span>
+        </div>
+
+        <a class="dsheet__row is-active reveal" data-i="0" href="industries.html">
+          <span class="dsheet__name">Semiconductor</span>
+          <span class="dsheet__cell"><span class="dsheet__k">Meshes</span>Chip dies, packaging, microfluidic channels</span>
+          <span class="dsheet__cell"><span class="dsheet__k">Simulates</span>Conjugate heat transfer, flow</span>
+        </a>
+        <a class="dsheet__row reveal" data-i="1" href="industries.html">
+          <span class="dsheet__name">Aerospace</span>
+          <span class="dsheet__cell"><span class="dsheet__k">Meshes</span>Airframes, turbomachinery, re-entry bodies</span>
+          <span class="dsheet__cell"><span class="dsheet__k">Simulates</span>External aero, hypersonics, structures</span>
+        </a>
+        <a class="dsheet__row reveal" data-i="2" href="industries.html">
+          <span class="dsheet__name">Automotive</span>
+          <span class="dsheet__cell"><span class="dsheet__k">Meshes</span>Full vehicles, underhood, battery packs</span>
+          <span class="dsheet__cell"><span class="dsheet__k">Simulates</span>Aerodynamics, thermal, crash</span>
+        </a>
+        <a class="dsheet__row reveal" data-i="3" href="industries.html">
+          <span class="dsheet__name">Gaming</span>
+          <span class="dsheet__cell"><span class="dsheet__k">Meshes</span>Real-time assets, destructible bodies</span>
+          <span class="dsheet__cell"><span class="dsheet__k">Simulates</span>In-engine physics, collision</span>
+        </a>
       </div>
     </div>
   </section>
 
+  <!-- ===== Closing CTA — its own section, separate from the footer ===== -->
+  <section class="cta" aria-label="Request access">
+    <div class="wrap cta__inner">
+      <h2 class="cta__h">Send us a part. Get it back <em>solver-ready</em>.</h2>
+      <div class="cta__act">
+        <a class="btn btn--gold" href="contact.html">Request access <span aria-hidden="true">→</span></a>
+        <a class="cta__link" href="contact.html">Book a demo <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Footer: live engineering console ===== -->
   <footer class="footer">
+    <div class="footer__status">
+      <span class="footer__stat"><i class="footer__pulse" aria-hidden="true"></i>All systems nominal</span>
+      <span class="footer__stat footer__clock" data-clock>00:00:00 UTC</span>
+      <span class="footer__stat">Remote · aerospace corridors</span>
+    </div>
     <div class="footer__top">
       <div class="footer__brand">
         <a class="brand" href="index.html" aria-label="Hexera home">
@@ -135,14 +212,13 @@
           </svg>
           <span class="brand__word">HEXERA</span>
         </a>
-        <p class="footer__tag">The autonomous meshing engineer for modern aerospace — CAD to simulation-ready mesh in hours, not days.</p>
+        <p class="footer__tag">The autonomous meshing engineer for modern aerospace. CAD to simulation-ready mesh in hours, not days.</p>
       </div>
       <div class="footer__col">
         <h4>Product</h4>
         <a href="technology.html">Technology</a>
         <a href="industries.html">Industries</a>
         <a href="index.html#meshExperience">Mesh viewer</a>
-        <a href="contact.html">Request access</a>
       </div>
       <div class="footer__col">
         <h4>Get started</h4>
@@ -152,7 +228,6 @@
       </div>
       <div class="footer__col">
         <h4>Connect</h4>
-        <a href="contact.html">Book a demo</a>
         <a href="#">LinkedIn</a>
         <a href="#">X / Twitter</a>
         <a href="#">Changelog</a>

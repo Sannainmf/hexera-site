@@ -142,6 +142,30 @@
     update();
   }
 
+  /* ---------- home industries datasheet: mark the row nearest viewport centre ----------
+     A quiet "reading marker" travels the rows as you scroll; hovering a row
+     marks it directly (CSS handles the hover visuals). */
+  const dsheet = document.querySelector(".dsheet");
+  if (dsheet) {
+    const rows = Array.from(dsheet.querySelectorAll(".dsheet__row"));
+    const setActive = (idx) => rows.forEach((r, i) => r.classList.toggle("is-active", i === idx));
+    const update = () => {
+      const mid = window.innerHeight / 2;
+      let best = 0, bestD = Infinity;
+      rows.forEach((r, i) => {
+        const b = r.getBoundingClientRect();
+        const d = Math.abs(b.top + b.height / 2 - mid);
+        if (d < bestD) { bestD = d; best = i; }
+      });
+      setActive(best);
+    };
+    setActive(0);
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    update();
+    rows.forEach((r, i) => r.addEventListener("mouseenter", () => setActive(i)));
+  }
+
   /* ---------- count-up for [data-count] (fires once when seen) ---------- */
   const counters = Array.from(document.querySelectorAll("[data-count]"));
   if (counters.length) {

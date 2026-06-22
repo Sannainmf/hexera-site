@@ -165,6 +165,8 @@
 
   /* ---------- main run ---------- */
   let token = 0;
+  let replayTimer = null;
+  const REPLAY_DELAY = 5500;   // pause on the finished result, then loop
   async function run() {
     const my = ++token; const alive = () => my === token;
     cursor.classList.add("show"); await moveCursor(70, 280, 0); await wait(300);
@@ -195,10 +197,13 @@
     tiles.forEach((t, i) => setTimeout(() => { if (alive()) t.classList.add("is-in"); }, 90 * i));
     await wait(900); if (!alive()) return;
     replay.classList.add("show");
+    clearTimeout(replayTimer);
+    replayTimer = setTimeout(() => { reset(); run(); }, REPLAY_DELAY);   // auto-loop
   }
 
   function reset() {
     token++;
+    clearTimeout(replayTimer);
     log.innerHTML = ""; field.textContent = ""; caret.classList.remove("on");
     replay.classList.remove("show"); cursor.classList.remove("show");
   }

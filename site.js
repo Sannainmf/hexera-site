@@ -25,6 +25,18 @@
   const yr = document.querySelector("[data-year]");
   if (yr) yr.textContent = String(new Date().getFullYear());
 
+  /* footer live clock — ticking UTC, the console's heartbeat */
+  const clock = document.querySelector("[data-clock]");
+  if (clock) {
+    const p = (n) => String(n).padStart(2, "0");
+    const tick = () => {
+      const d = new Date();
+      clock.textContent = p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + ":" + p(d.getUTCSeconds()) + " UTC";
+    };
+    tick();
+    setInterval(tick, 1000);
+  }
+
   /* scroll reveal — additive only; if anything fails, content still shows */
   const reveals = Array.from(document.querySelectorAll(".reveal"));
   const showAll = () => reveals.forEach((el) => el.classList.add("in"));
