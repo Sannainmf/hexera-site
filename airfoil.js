@@ -185,8 +185,8 @@
 
       // phases stretched to fill the full scroll (no node phase); the
       // solid→wireframe fade is elongated.
-      const rotateEnd = 0.30;
-      const meshEnd = 0.64;
+      const rotateEnd = 0.20;
+      const meshEnd = 0.60;
       const radius = zd * 0.8;
 
       if (p <= rotateEnd) {
@@ -228,15 +228,8 @@
 
     updateUI() {
       const p = this.progress;
-      document.getElementById("meshProgress").classList.toggle("visible", p > 0.02);
-      document.getElementById("viewModeLabel").classList.toggle("visible", p > 0.02);
-
-      const label = document.getElementById("viewModeLabel");
-      switch (this.currentPhase) {
-        case "surface": label.textContent = "Solid Surface"; break;
-        case "mesh": label.textContent = "Wireframe Mesh"; break;
-        case "reveal": label.textContent = "Full Domain"; break;
-      }
+      const mp = document.getElementById("meshProgress");
+      if (mp) mp.classList.toggle("visible", p > 0.02);
 
       const phases = ["surface", "mesh", "reveal"];
       const ids = ["stepSurface", "stepMesh", "stepReveal"];
@@ -249,14 +242,13 @@
         el.classList.toggle("active", idx === ci);
       });
 
-      document.getElementById("cardTitle").classList.toggle("visible", p > 0.03 && p < 0.58);
-      document.getElementById("cardNodes").classList.toggle("visible", p > 0.66);
-      document.getElementById("cardElements").classList.toggle("visible", p > 0.70);
-      document.getElementById("cardQuality").classList.toggle("visible", p > 0.80);
-      document.getElementById("cardFormat").classList.toggle("visible", p > 0.86);
-
-      if (p > 0.66 && !this._na) { this._na = true; this.animateValue("nodeCount", 0, this.meshData.nodeCount, 900); }
-      if (p > 0.70 && !this._ea) { this._ea = true; this.animateValue("elementCount", 0, this.meshData.elementCount, 900); }
+      // embedded process narrative (Send → Mesh → Export)
+      const stepsEl = document.getElementById("meshSteps");
+      if (stepsEl) {
+        stepsEl.classList.toggle("visible", p > 0.02);
+        stepsEl.querySelectorAll(".mstep").forEach((el) =>
+          el.classList.toggle("active", el.dataset.step === this.currentPhase));
+      }
     }
 
     animateValue(id, start, end, dur) {

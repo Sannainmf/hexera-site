@@ -142,28 +142,67 @@
     update();
   }
 
-  /* ---------- home industries datasheet: mark the row nearest viewport centre ----------
-     A quiet "reading marker" travels the rows as you scroll; hovering a row
-     marks it directly (CSS handles the hover visuals). */
-  const dsheet = document.querySelector(".dsheet");
-  if (dsheet) {
-    const rows = Array.from(dsheet.querySelectorAll(".dsheet__row"));
-    const setActive = (idx) => rows.forEach((r, i) => r.classList.toggle("is-active", i === idx));
-    const update = () => {
-      const mid = window.innerHeight / 2;
-      let best = 0, bestD = Infinity;
-      rows.forEach((r, i) => {
-        const b = r.getBoundingClientRect();
-        const d = Math.abs(b.top + b.height / 2 - mid);
-        if (d < bestD) { bestD = d; best = i; }
-      });
-      setActive(best);
+  /* ---------- "Our ambition": scroll the ghosted list through the centre line ----------
+     The tall section pins; scroll progress slides the giant list upward and the
+     item crossing the centre line lights up. Scroll-driven (no rAF needed). */
+  const amb = document.querySelector(".amb");
+  if (amb) {
+    const stage = amb.querySelector(".amb__stage");
+    const list = amb.querySelector(".amb__list");
+    let ambPad = 0, loopH = 0;
+    const measure = () => {
+      ambPad = parseFloat(getComputedStyle(list).paddingLeft) || 0;
+      loopH = list.scrollHeight / 2;   // list is two identical sets of 30 — one set is the seamless loop period
     };
-    setActive(0);
+    measure();
+    const update = () => {
+      const rect = amb.getBoundingClientRect();
+      const vh = window.innerHeight;
+      // UNCOVER: the stage is fixed in the viewport; clip it to the slice of the
+      // section currently on screen. As the edge rises it "uncovers" the fixed
+      // content (line + labels appear once it passes their position), and as the
+      // section leaves the bottom it covers back up.
+      const topCut = clamp(rect.top, 0, vh);
+      const botCut = vh - clamp(rect.bottom, 0, vh);
+      stage.style.clipPath = "inset(" + topCut.toFixed(1) + "px 0 " + botCut.toFixed(1) + "px 0)";
+      // REVEAL: zoom-out, fade-in and centre-drift complete over the first ~1.3
+      // viewports (entry + a touch), then hold while the list keeps scrolling.
+      const scrolled = Math.max(vh - rect.top, 0);
+      // ZOOM + CENTRE-DRIFT both run on WHOLE-SECTION progress, in step with each
+      // other, so they ramp the entire way down — never finishing up front.
+      const pFull = clamp(scrolled / amb.offsetHeight, 0, 1);
+      const zStart = 3.0, zEnd = 0.56;
+      // geometric (constant-ratio) zoom so the shrink reads as EVEN from the very first
+      // scroll, instead of a linear ramp that looks like little happens early then
+      // lurches mid-way once the scale gets small.
+      const zoom = zStart * Math.pow(zEnd / zStart, pFull);
+      const centerShift = pFull * Math.max(window.innerWidth * 0.5 - ambPad, 0) * 0.5;
+      // INFINITE LOOP: a slow, continuous translate that wraps at one set height, so
+      // the list never reaches an end — it keeps scrolling even as the section exits.
+      const loopRate = 0.30;
+      const ty = loopH > 0 ? -(scrolled * loopRate) % loopH : 0;
+      // fade in early (invisible -> visible) so the text is readable while it keeps zooming.
+      const fadeP = clamp(scrolled / (vh * 2), 0, 1);
+      list.style.transform = "translateX(" + centerShift.toFixed(1) + "px) scale(" + zoom.toFixed(3) + ") translateY(" + ty.toFixed(1) + "px)";
+      list.style.opacity = clamp(fadeP / 0.8, 0, 1).toFixed(3);   // invisible → visible, gradual
+    };
     window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
+    window.addEventListener("resize", () => { measure(); update(); });
     update();
-    rows.forEach((r, i) => r.addEventListener("mouseenter", () => setActive(i)));
+  }
+
+  /* ---------- "Inside the pipeline": subtle parallax drift on the heading ---------- */
+  const bizHead = document.querySelector("[data-biz-head]");
+  if (bizHead && !reduce) {
+    const sec = bizHead.closest(".biz");
+    const upd = () => {
+      const r = sec.getBoundingClientRect();
+      const t = clamp((window.innerHeight - r.top) / (window.innerHeight + r.height), 0, 1);
+      bizHead.style.transform = "translateY(" + ((t - 0.5) * 48).toFixed(1) + "px)";
+    };
+    window.addEventListener("scroll", upd, { passive: true });
+    window.addEventListener("resize", upd);
+    upd();
   }
 
   /* ---------- count-up for [data-count] (fires once when seen) ---------- */
