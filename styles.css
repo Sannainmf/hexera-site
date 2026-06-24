@@ -18,7 +18,7 @@
   --gold-ink:  #211800;
   --crimson:      #d83a30;
   --crimson-soft: #ff6b5e;
-  --green:     #0e1215;   /* cool graphite/slate — the "vision" chapter panel (biz + ambition) */
+  --green:     #111315;   /* graphite/slate (slightly grayer/neutral) — vision chapter */
 
   --line:      rgba(238, 235, 225, 0.10);
   --line-2:    rgba(238, 235, 225, 0.20);
@@ -93,6 +93,15 @@ a { color: inherit; text-decoration: none; }
 .nav__links a::after { content: ""; position: absolute; left: 0; bottom: -0.1rem; width: 100%; height: 1px; background: var(--teal); transform: scaleX(0); transform-origin: left; transition: transform 0.35s var(--ease-expo); }
 .nav__links a:hover { color: var(--ink); }
 .nav__links a:hover::after { transform: scaleX(1); }
+/* standalone nav link (Contact), sits in nav__end left of the CTA; visible at all sizes */
+.nav__link {
+  position: relative; padding: 0.4rem 0; color: var(--muted);
+  font-family: var(--font-mono); font-weight: 500; font-size: 0.595rem;
+  letter-spacing: 0.16em; text-transform: uppercase; transition: color 0.25s var(--ease-expo);
+}
+.nav__link::after { content: ""; position: absolute; left: 0; bottom: -0.1rem; width: 100%; height: 1px; background: var(--teal); transform: scaleX(0); transform-origin: left; transition: transform 0.35s var(--ease-expo); }
+.nav__link:hover { color: var(--ink); }
+.nav__link:hover::after { transform: scaleX(1); }
 
 /* ---------- Buttons ---------- */
 .btn {
