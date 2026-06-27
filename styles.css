@@ -375,6 +375,25 @@ a { color: inherit; text-decoration: none; }
 }
 .mstep__p { margin: 0.85rem 0 0; color: var(--muted); font-size: clamp(0.9rem, 0.86rem + 0.2vw, 1rem); line-height: 1.55; max-width: 30ch; }
 
+/* ---- live mesh tally (nodes / elements), middle-right — counts up as the mesh forms ---- */
+.mesh-tally {
+  position: absolute; right: var(--pad-x); top: 50%; z-index: 20;
+  transform: translateY(-50%) translateX(14px); text-align: right; pointer-events: none;
+  display: flex; flex-direction: column; gap: clamp(1rem, 3vh, 1.9rem);
+  opacity: 0; transition: opacity 0.55s ease, transform 0.6s var(--ease-expo);
+}
+.mesh-tally.visible { opacity: 1; transform: translateY(-50%) translateX(0); }
+.mtally__row { display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem; }
+.mtally__label {
+  font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold);
+}
+.mtally__num {
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 500;
+  font-size: clamp(1.6rem, 1rem + 1.9vw, 2.5rem); line-height: 0.95; letter-spacing: -0.01em; color: var(--ink);
+}
+.mtally__desc { font-family: var(--font-body); font-size: 0.8rem; line-height: 1.45; color: var(--muted); max-width: 24ch; }
+@media (max-width: 880px) { .mesh-tally { display: none; } }
+
 /* ---- autonomous agents, revealed during the mesh beat, middle-right ---- */
 .mesh-agents {
   position: absolute; right: var(--pad-x); top: 50%; transform: translateY(-50%);
@@ -495,6 +514,12 @@ html.lenis, html.lenis body { height: auto; }
 }
 .interlude__line b { color: var(--ink); font-weight: 600; }
 .interlude__line em { color: var(--gold); font-style: normal; font-weight: 600; }
+
+/* interlude statement — instrument-readout typeset: display setup + mono answer line */
+.il2 { max-width: min(92vw, 52rem); margin: 0 auto; text-align: center; text-wrap: balance; will-change: opacity, transform; }
+.il2__pre { display: block; font-family: var(--font-display); font-weight: 300; line-height: 1.04; letter-spacing: 0; color: var(--ink); font-size: clamp(1.8rem, calc(1.4rem + 2.6vw), 3.4rem); }
+.il2__pre b { font-weight: 500; color: var(--gold-soft); }
+.il2__punch { display: block; margin-top: 1.05em; font-family: var(--font-mono); font-weight: 500; text-transform: uppercase; letter-spacing: 0.14em; color: var(--gold); font-size: clamp(0.85rem, calc(0.72rem + 0.6vw), 1.05rem); }
 
 /* ---- "Inside the pipeline" — Hut8-style index on a dark-green panel ---- */
 .biz {
@@ -686,28 +711,30 @@ html.lenis, html.lenis body { height: auto; }
 .ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
 .ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); }
 .ring-grid { width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
-.ring-copy { max-width: 44ch; }
-.ring-phase { position: relative; min-height: 11rem; margin-top: 1.5rem; }
-.ring-phase__item { position: absolute; inset: 0; opacity: 0; transform: translateY(12px); transition: opacity 0.5s var(--ease-expo), transform 0.5s var(--ease-expo); pointer-events: none; }
-.ring-phase__item.active { opacity: 1; transform: none; }
-.ring-phase__n { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.2em; color: var(--gold); }
-.ring-phase__t { font-family: var(--font-display); font-weight: 400; font-size: clamp(1.8rem, 1.4rem + 1.4vw, 2.6rem); margin: 0.4rem 0 0; color: var(--ink); }
-.ring-phase__d { margin: 0.7rem 0 0; color: var(--muted); line-height: 1.55; }
+.ring-copy { max-width: 30ch; }
+.ring-lede { margin: 1.25rem 0 0; color: var(--muted); line-height: 1.6; font-size: clamp(1rem, 0.95rem + 0.3vw, 1.12rem); }
 .ring-stage { position: relative; display: grid; place-items: center; }
-.ring-svg { width: min(100%, 460px); height: auto; overflow: visible; }
+.ring-dial { position: relative; width: min(100%, 360px); margin-inline: auto; }
+.ring-svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+/* four labels around the dial — exactly two type sizes: a title and a description */
+.ring-label { position: absolute; display: flex; flex-direction: column; gap: 0.35rem; width: 11rem; opacity: 0.4; transition: opacity 0.45s var(--ease-expo); pointer-events: none; }
+.ring-label.active { opacity: 1; }
+.ring-label__t { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; line-height: 1.05; color: var(--ink); }
+.ring-label.active .ring-label__t { color: var(--gold); }
+.ring-label__d { font-size: 0.9rem; line-height: 1.5; color: var(--muted); }
+.ring-label--top    { left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 0.6rem; align-items: center; text-align: center; }
+.ring-label--bottom { left: 50%; top: 100%; transform: translateX(-50%); margin-top: 0.6rem; align-items: center; text-align: center; }
+.ring-label--right  { left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0.6rem; align-items: flex-start; text-align: left; }
+.ring-label--left   { right: 100%; top: 50%; transform: translateY(-50%); margin-right: 0.6rem; align-items: flex-end; text-align: right; }
 .ring-track { fill: none; stroke: var(--line-2); stroke-width: 1; }
-.ring-prog { fill: none; stroke: var(--teal); stroke-width: 2; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(15,182,172,0.6)); transition: stroke-dashoffset 0.3s linear; }
+.ring-prog { fill: none; stroke: var(--teal-deep); stroke-width: 2; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(10,139,132,0.55)); transition: stroke-dashoffset 0.3s linear; }
 .ring-node { fill: var(--bg); stroke: var(--line-2); stroke-width: 1.5; transition: stroke 0.4s, fill 0.4s; }
 .ring-node.active { stroke: var(--teal); fill: rgba(15,182,172,0.15); }
 .ring-node-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; fill: var(--faint); text-transform: uppercase; transition: fill 0.4s; }
 .ring-node-label.active { fill: var(--ink); }
 .ring-marker { fill: var(--gold); filter: drop-shadow(0 0 8px rgba(255,186,0,0.8)); }
 .ring-center { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.3em; fill: var(--faint); text-transform: uppercase; }
-.ring-tabs { position: absolute; left: 0; right: 0; bottom: clamp(1.5rem, 4vh, 3rem); display: flex; justify-content: center; gap: clamp(1.5rem, 4vw, 3rem); }
-.ring-tab { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); position: relative; padding-bottom: 0.5rem; }
-.ring-tab.active { color: var(--gold); }
-.ring-tab::after { content: ""; position: absolute; left: 0; bottom: 0; height: 1px; width: 100%; background: var(--gold); transform: scaleX(0); transform-origin: left; transition: transform 0.4s var(--ease-expo); }
-.ring-tab.active::after { transform: scaleX(1); }
 
 /* ============================================================
    NUMBERED INDUSTRIES — zigzag rows, big ghost numbers.
@@ -1024,7 +1051,11 @@ html.lenis, html.lenis body { height: auto; }
   .ring-sec { height: auto; }
   .ring-sticky { position: static; min-height: auto; }
   .ring-stage { margin-top: 2.5rem; }
-  .ring-tabs { position: static; margin-top: 2rem; flex-wrap: wrap; }
+  .ring-dial { width: min(100%, 300px); }
+  /* no room to orbit on narrow screens: the four phases drop below the ring as a stacked legend */
+  .ring-label { position: static; transform: none; width: 100%; opacity: 1; margin: 1.25rem 0 0; text-align: left; align-items: flex-start; }
+  .ring-label__t { font-size: 1.2rem; }
+  .ring-label__d { font-size: 0.88rem; }
   .contact-grid { grid-template-columns: 1fr; }
   .footer__top { grid-template-columns: 1fr 1fr; }
   .teaser { grid-template-columns: 1fr; }
@@ -1040,4 +1071,67 @@ html.lenis, html.lenis body { height: auto; }
   .marquee__track { animation: none; }
   .reveal { opacity: 1; transform: none; }
   .footer__pulse { animation: none; }
+}
+
+/* the process ring sits on the warm canvas on the home page (covers the fixed hero
+   art); taller than the inner-page default so the wheel loop scrubs slower */
+.home-flow .ring-sec { background: var(--bg); height: 600vh; }
+
+/* dial detailing on the home ring: minor/major ticks, motion arrows, live centre word */
+.ring-tick { stroke-linecap: round; }
+.ring-tick--min { stroke: var(--teal); stroke-width: 1.4; opacity: 0.45; }
+.ring-tick--maj { stroke: var(--gold); stroke-width: 2; opacity: 0.85; }
+.ring-arrow { fill: none; stroke: var(--faint); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0.55; }
+.ring-center-word { font-family: var(--font-mono); font-weight: 500; font-size: 21px; letter-spacing: 0.24em; fill: var(--ink); text-transform: uppercase; }
+.ring-center-count { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.28em; fill: var(--gold); }
+
+/* ============================================================
+   INDUSTRIES — alternating bordered panels (the "box" reference):
+   each row is a framed two-cell box with a centre divider. Odd rows
+   show the industry on the left, even rows flip it to the right.
+   Both cells rise from below on scroll at slightly different rates
+   (parallax) via [data-ind-rows] [data-rise] in pages.js.
+   ============================================================ */
+.indx { position: relative; z-index: var(--z-content); background: var(--bg); padding: clamp(5rem, 13vh, 9rem) var(--pad-x); }
+.indx__head { width: min(100%, 1280px); margin-inline: auto; max-width: 42ch; margin-bottom: clamp(5rem, 10vh, 8rem); }
+.indx__eyebrow { font-family: var(--font-mono); font-weight: 500; font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+.indx__title { margin: 1rem 0 0; font-family: var(--font-display); font-weight: 500; font-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); line-height: 1.02; color: var(--ink); text-wrap: balance; }
+.indx__title em { font-style: normal; color: var(--gold); }
+.indx__lede { margin: 1.1rem 0 0; color: var(--muted); font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1rem); line-height: 1.6; text-wrap: pretty; }
+
+.indx__rows { width: min(100%, 1280px); margin-inline: auto; display: flex; flex-direction: column; gap: clamp(1.75rem, 4.5vh, 3.25rem); }
+
+/* one row = a bordered box split into two equal cells with a centre divider */
+/* the row is one connected frame: top + bottom run straight across, a single edge
+   down the middle joins the two halves, and the outer left/right ends stay open.
+   The frame stays put while the content rises inside it (parallax). */
+.indrow { position: relative; display: grid; grid-template-columns: 1fr 1fr; border-top: 4px solid #2a2319; border-bottom: 4px solid #2a2319; overflow: hidden; will-change: transform, opacity; }
+.indrow::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 4px; transform: translateX(-50%); background: #2a2319; pointer-events: none; }
+/* flip: industry box jumps to the right on even rows (the centre edge stays put) */
+.indrow:nth-child(even) .indrow__cell--industry { order: 2; }
+
+.indrow__cell { display: flex; flex-direction: column; min-height: clamp(29rem, 52vh, 38rem); padding: clamp(2.5rem, 4.2vw, 4.25rem); }
+.indrow__eyebrow { align-self: flex-start; font-family: var(--font-mono); font-weight: 600; font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); padding-bottom: 0.5em; border-bottom: 1.5px solid var(--gold); }
+
+/* industry cell: a big ghosted index number fills the middle, name pinned at the foot */
+/* industry box: a centred nameplate — sector name set large, descriptor carried by the eyebrow above */
+.indrow__cell--industry { justify-content: center; }
+.indrow__name { margin: clamp(1.1rem, 3vh, 1.9rem) 0 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(2.4rem, 1.7rem + 2.8vw, 3.9rem); line-height: 0.98; letter-spacing: -0.01em; color: var(--ink); }
+
+/* explanation cell: numbered outline (gold numbers) up top, heading + paragraph at the foot */
+.indrow__list { list-style: none; margin: 0; padding: 0; }
+.indrow__list li { display: grid; grid-template-columns: 2.2rem 1fr; align-items: baseline; gap: 0.6rem; padding: clamp(0.75rem, 1.8vh, 1.05rem) 0; border-bottom: 3px solid #2a2319; color: var(--ink); font-size: clamp(0.9rem, 0.85rem + 0.2vw, 1.02rem); line-height: 1.4; }
+.indrow__list li:last-child { border-bottom: 0; }
+.indrow__n { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; color: var(--teal); }
+.indrow__foot { margin-top: auto; margin-bottom: auto; }
+.indrow__h { margin: 0; font-family: var(--font-body); font-weight: 700; letter-spacing: -0.01em; font-size: clamp(1.25rem, 1.05rem + 0.7vw, 1.6rem); line-height: 1.18; color: var(--ink); }
+.indrow__p { margin: 0.7rem 0 0; color: var(--muted); font-size: clamp(0.85rem, 0.82rem + 0.18vw, 0.95rem); line-height: 1.6; max-width: 42ch; text-wrap: pretty; }
+
+@media (max-width: 820px) {
+  .indrow { grid-template-columns: 1fr; }
+  .indrow::after { display: none; }                               /* no vertical edge when stacked */
+  .indrow__cell:first-child { border-bottom: 4px solid #2a2319; } /* the joining edge becomes horizontal */
+  .indrow:nth-child(even) .indrow__cell--industry { order: 0; }
+  .indrow__cell { min-height: auto; }
+  .indrow__cell--industry { min-height: 15rem; }
 }

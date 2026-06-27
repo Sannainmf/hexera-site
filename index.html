@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hexera — The autonomous meshing engineer</title>
   <meta name="description" content="Hexera is multi-agent AI that turns aerospace CAD geometry into simulation-ready meshes in hours, not days." />
+  <link rel="canonical" href="https://hexera.so/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://hexera.so/" />
+  <meta property="og:title" content="Hexera — The autonomous meshing engineer" />
+  <meta property="og:description" content="Hexera is multi-agent AI that turns aerospace CAD geometry into simulation-ready meshes in hours, not days." />
+  <meta property="og:image" content="https://hexera.so/assets/hero-bg.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Hexera — The autonomous meshing engineer" />
+  <meta name="twitter:description" content="Hexera is multi-agent AI that turns aerospace CAD geometry into simulation-ready meshes in hours, not days." />
+  <meta name="twitter:image" content="https://hexera.so/assets/hero-bg.jpg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -42,7 +52,7 @@
         </p>
         <div class="hero__actions ha-wipe">
           <a class="btn btn--gold" href="contact.html">Request access <span aria-hidden="true">→</span></a>
-          <a class="btn btn--line" href="technology.html">See the pipeline <span aria-hidden="true">↗</span></a>
+          <a class="btn btn--line" href="#meshExperience">See the pipeline <span aria-hidden="true">↓</span></a>
         </div>
       </div>
 
@@ -78,7 +88,7 @@
   <!-- ===== Interlude: full-page statement that bridges hero → mesh scroll ===== -->
   <section class="interlude" aria-label="The problem we solve">
 
-    <p class="interlude__line" data-parallax-fade>Engineers spend <b>countless hours</b> on manual mesh creation. <em>We eliminate that bottleneck.</em></p>
+    <p class="il2" data-parallax-fade=""><span class="il2__pre">Engineers spend <b>countless hours</b> on manual mesh creation.</span><span class="il2__punch">We eliminate that bottleneck.</span></p>
 
   </section>
 
@@ -109,183 +119,185 @@
         </div>
       </div>
 
+      <!-- live mesh tally: total nodes / elements build as the wireframe forms -->
+      <div class="mesh-tally" id="meshTally" aria-hidden="true">
+        <div class="mtally__row">
+          <span class="mtally__label">Total nodes</span>
+          <span class="mtally__num" data-mesh-nodes>0</span>
+          <span class="mtally__desc">Optimized for boundary-layer resolution</span>
+        </div>
+        <div class="mtally__row">
+          <span class="mtally__label">Elements</span>
+          <span class="mtally__num" data-mesh-elems>0</span>
+          <span class="mtally__desc">Triangular cells with adaptive refinement</span>
+        </div>
+      </div>
+
     </div>
   </section>
 
   <!-- ===== Everything below the hero/mesh sits on its own studio bg ===== -->
   <div class="home-flow">
 
-  <!-- ===== The pipeline, in detail — Hut8-style index on a dark-green panel ===== -->
-  <section class="biz" aria-label="How Hexera works, in detail">
-    <div class="biz__blend biz__blend--top" data-biz-parallax aria-hidden="true"></div>
-    <div class="biz__inner">
-      <header class="biz__head" data-biz-head>
-        <h2 class="biz__title">Inside the pipeline</h2>
-        <p class="biz__lede">From a single CAD part to a solver-ready mesh. Every step runs automatically, and every decision is logged.</p>
-      </header>
+  <!-- ===== Process ring: scroll-driven 4-phase wheel (tech) ===== -->
+  <section class="ring-sec" aria-label="Hexera's four-phase meshing process">
+    <div class="ring-sticky">
+      <div class="ring-grid">
+        <div class="ring-copy">
+          <h2 class="h2">Four phases,<br><em>one&nbsp;pipeline.</em></h2>
+          <p class="ring-lede">A multi-agent pipeline takes each part from raw CAD to solver-ready — specialised agents read the geometry, mesh to intent, check their own work, and hand off.</p>
+        </div>
 
-      <div class="biz__list">
-        <article class="biz__cat">
-          <p class="biz__note">Built by engineers. The pipeline runs end to end, so you keep the judgment and skip the busywork.</p>
-          <div class="biz__cathead">
-            <span class="biz__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M4 21h16"/></svg>
-            </span>
-            <h3 class="biz__catname">Send</h3>
-          </div>
-          <ol class="biz__items">
-            <li class="biz__item">
-              <span class="biz__num">1.1</span>
-              <div class="biz__itembody">
-                <h4 class="biz__itemh">Geometry intake</h4>
-                <p class="biz__itemp">Drop a STEP, IGES or Parasolid part. Hexera reads the solid, its faces and edges.</p>
-              </div>
-            </li>
-            <li class="biz__item">
-              <span class="biz__num">1.2</span>
-              <div class="biz__itembody">
-                <h4 class="biz__itemh">Simulation intent</h4>
-                <p class="biz__itemp">Describe the flow, the conditions and the quantities you care about, in plain language.</p>
-              </div>
-            </li>
-          </ol>
-        </article>
+        <div class="ring-stage">
+          <div class="ring-dial">
+          <svg class="ring-svg" viewBox="0 0 400 400" role="img" aria-label="Process ring">
+            <circle class="ring-track" cx="200" cy="200" r="150" />
+            <g transform="rotate(-90 200 200)"><circle class="ring-prog" cx="200" cy="200" r="150" /></g>
+            <g class="ring-ticks">
+              <line class="ring-tick ring-tick--min" x1="344.9" y1="238.8" x2="353.6" y2="241.2"/>
+              <line class="ring-tick ring-tick--min" x1="329.9" y1="275.0" x2="337.7" y2="279.5"/>
+              <line class="ring-tick ring-tick--min" x1="306.1" y1="306.1" x2="312.4" y2="312.4"/>
+              <line class="ring-tick ring-tick--min" x1="275.0" y1="329.9" x2="279.5" y2="337.7"/>
+              <line class="ring-tick ring-tick--min" x1="238.8" y1="344.9" x2="241.2" y2="353.6"/>
+              <line class="ring-tick ring-tick--min" x1="161.2" y1="344.9" x2="158.8" y2="353.6"/>
+              <line class="ring-tick ring-tick--min" x1="125.0" y1="329.9" x2="120.5" y2="337.7"/>
+              <line class="ring-tick ring-tick--min" x1="93.9" y1="306.1" x2="87.6" y2="312.4"/>
+              <line class="ring-tick ring-tick--min" x1="70.1" y1="275.0" x2="62.3" y2="279.5"/>
+              <line class="ring-tick ring-tick--min" x1="55.1" y1="238.8" x2="46.4" y2="241.2"/>
+              <line class="ring-tick ring-tick--min" x1="55.1" y1="161.2" x2="46.4" y2="158.8"/>
+              <line class="ring-tick ring-tick--min" x1="70.1" y1="125.0" x2="62.3" y2="120.5"/>
+              <line class="ring-tick ring-tick--min" x1="93.9" y1="93.9" x2="87.6" y2="87.6"/>
+              <line class="ring-tick ring-tick--min" x1="125.0" y1="70.1" x2="120.5" y2="62.3"/>
+              <line class="ring-tick ring-tick--min" x1="161.2" y1="55.1" x2="158.8" y2="46.4"/>
+              <line class="ring-tick ring-tick--min" x1="238.8" y1="55.1" x2="241.2" y2="46.4"/>
+              <line class="ring-tick ring-tick--min" x1="275.0" y1="70.1" x2="279.5" y2="62.3"/>
+              <line class="ring-tick ring-tick--min" x1="306.1" y1="93.9" x2="312.4" y2="87.6"/>
+              <line class="ring-tick ring-tick--min" x1="329.9" y1="125.0" x2="337.7" y2="120.5"/>
+              <line class="ring-tick ring-tick--min" x1="344.9" y1="161.2" x2="353.6" y2="158.8"/>
+              <line class="ring-tick ring-tick--maj" x1="344.0" y1="200.0" x2="363.0" y2="200.0"/>
+              <line class="ring-tick ring-tick--maj" x1="200.0" y1="344.0" x2="200.0" y2="363.0"/>
+              <line class="ring-tick ring-tick--maj" x1="56.0" y1="200.0" x2="37.0" y2="200.0"/>
+              <line class="ring-tick ring-tick--maj" x1="200.0" y1="56.0" x2="200.0" y2="37.0"/>
+            </g>
+            <g class="ring-arrows">
+              <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(323.0 323.0) rotate(135.0)"/>
+              <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(77.0 323.0) rotate(225.0)"/>
+              <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(77.0 77.0) rotate(315.0)"/>
+              <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(323.0 77.0) rotate(405.0)"/>
+            </g>
+            <circle class="ring-node" data-i="0" cx="200" cy="50" r="5" />
+            <circle class="ring-node" data-i="1" cx="350" cy="200" r="5" />
+            <circle class="ring-node" data-i="2" cx="200" cy="350" r="5" />
+            <circle class="ring-node" data-i="3" cx="50" cy="200" r="5" />
+            <text class="ring-center-word" data-ring-word x="200" y="200" text-anchor="middle" dominant-baseline="middle">Ingest</text>
+            <text class="ring-center-count" data-ring-count x="200" y="226" text-anchor="middle" dominant-baseline="middle">01 / 04</text>
+            <circle class="ring-marker" cx="200" cy="50" r="9" />
+          </svg>
 
-        <article class="biz__cat">
-          <div class="biz__cathead">
-            <span class="biz__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 20 7v10l-8 4.5L4 17V7z"/><path d="M12 12 20 7M12 12 4 7M12 12v9.5"/></svg>
-            </span>
-            <h3 class="biz__catname">Mesh</h3>
+            <div class="ring-label ring-label--top active" data-i="0">
+              <span class="ring-label__t" data-phase-name>Ingest</span>
+              <span class="ring-label__d">Opens the CAD, heals gaps, tags the walls that matter.</span>
+            </div>
+            <div class="ring-label ring-label--right" data-i="1">
+              <span class="ring-label__t" data-phase-name>Mesh</span>
+              <span class="ring-label__d">Turns plain-language intent into real y+ and prism layers.</span>
+            </div>
+            <div class="ring-label ring-label--bottom" data-i="2">
+              <span class="ring-label__t" data-phase-name>Verify</span>
+              <span class="ring-label__d">Grades skewness and orthogonality, re-refines the failures.</span>
+            </div>
+            <div class="ring-label ring-label--left" data-i="3">
+              <span class="ring-label__t" data-phase-name>Deliver</span>
+              <span class="ring-label__d">Exports solver-ready to OpenFOAM, ANSYS or Abaqus.</span>
+            </div>
           </div>
-          <ol class="biz__items">
-            <li class="biz__item">
-              <span class="biz__num">2.1</span>
-              <div class="biz__itembody">
-                <h4 class="biz__itemh">Builder</h4>
-                <p class="biz__itemp">Translates the intent into a meshing strategy and writes the geometry script.</p>
-              </div>
-            </li>
-            <li class="biz__item">
-              <span class="biz__num">2.2</span>
-              <div class="biz__itembody">
-                <h4 class="biz__itemh">Executor</h4>
-                <p class="biz__itemp">Runs blockMesh and snappyHexMesh to generate the volume mesh.</p>
-              </div>
-            </li>
-            <li class="biz__item">
-              <span class="biz__num">2.3</span>
-              <div class="biz__itembody">
-                <h4 class="biz__itemh">Reviewer</h4>
-                <p class="biz__itemp">Checks skewness, orthogonality and y+, refining locally until it passes.</p>
-              </div>
-            </li>
-          </ol>
-        </article>
-
-        <article class="biz__cat">
-          <div class="biz__cathead">
-            <span class="biz__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
-            </span>
-            <h3 class="biz__catname">Export</h3>
-          </div>
-          <ol class="biz__items">
-            <li class="biz__item">
-              <span class="biz__num">3.1</span>
-              <div class="biz__itembody">
-                <h4 class="biz__itemh">Solver-ready formats</h4>
-                <p class="biz__itemp">OpenFOAM, ANSYS Fluent and Abaqus, with CGNS and Gmsh interchange.</p>
-              </div>
-            </li>
-            <li class="biz__item">
-              <span class="biz__num">3.2</span>
-              <div class="biz__itembody">
-                <h4 class="biz__itemh">Quality report</h4>
-                <p class="biz__itemp">Every mesh ships with its metrics and a reproducible script you can re-run.</p>
-              </div>
-            </li>
-          </ol>
-        </article>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ===== Our ambition: ghosted scrolling list of the simulation frontier ===== -->
-  <section class="amb" id="ambition" aria-label="Our ambition">
-    <div class="amb__stage">
-      <ul class="amb__list" id="ambList" aria-hidden="true">
-        <li class="amb__item">Aeroacoustics</li>
-        <li class="amb__item">Aerospace Structures</li>
-        <li class="amb__item">Battery Thermal Runaway</li>
-        <li class="amb__item">Boundary-Layer Transition</li>
-        <li class="amb__item">Cabin HVAC</li>
-        <li class="amb__item">Cavitation</li>
-        <li class="amb__item">Combustion</li>
-        <li class="amb__item">Conjugate Heat Transfer</li>
-        <li class="amb__item">Crash &amp; Impact</li>
-        <li class="amb__item">Cryogenic Flow</li>
-        <li class="amb__item">Electric Motor Cooling</li>
-        <li class="amb__item">Electronics Cooling</li>
-        <li class="amb__item">External Aerodynamics</li>
-        <li class="amb__item">Fluid-Structure Interaction</li>
-        <li class="amb__item">Heat Exchangers</li>
-        <li class="amb__item">Hypersonic Re-Entry</li>
-        <li class="amb__item">Icing &amp; Anti-Icing</li>
-        <li class="amb__item">Manifold Flow</li>
-        <li class="amb__item">Marine Hydrodynamics</li>
-        <li class="amb__item">Microfluidics</li>
-        <li class="amb__item">Multiphase Flow</li>
-        <li class="amb__item">Pump &amp; Valve Internals</li>
-        <li class="amb__item">Rotor &amp; Propeller Aero</li>
-        <li class="amb__item">Semiconductor Packaging</li>
-        <li class="amb__item">Sloshing</li>
-        <li class="amb__item">Spray &amp; Atomization</li>
-        <li class="amb__item">Thermal Management</li>
-        <li class="amb__item">Turbomachinery</li>
-        <li class="amb__item">Underhood Thermal</li>
-        <li class="amb__item">Wind Loading</li>
-        <li class="amb__item">Aeroacoustics</li>
-        <li class="amb__item">Aerospace Structures</li>
-        <li class="amb__item">Battery Thermal Runaway</li>
-        <li class="amb__item">Boundary-Layer Transition</li>
-        <li class="amb__item">Cabin HVAC</li>
-        <li class="amb__item">Cavitation</li>
-        <li class="amb__item">Combustion</li>
-        <li class="amb__item">Conjugate Heat Transfer</li>
-        <li class="amb__item">Crash &amp; Impact</li>
-        <li class="amb__item">Cryogenic Flow</li>
-        <li class="amb__item">Electric Motor Cooling</li>
-        <li class="amb__item">Electronics Cooling</li>
-        <li class="amb__item">External Aerodynamics</li>
-        <li class="amb__item">Fluid-Structure Interaction</li>
-        <li class="amb__item">Heat Exchangers</li>
-        <li class="amb__item">Hypersonic Re-Entry</li>
-        <li class="amb__item">Icing &amp; Anti-Icing</li>
-        <li class="amb__item">Manifold Flow</li>
-        <li class="amb__item">Marine Hydrodynamics</li>
-        <li class="amb__item">Microfluidics</li>
-        <li class="amb__item">Multiphase Flow</li>
-        <li class="amb__item">Pump &amp; Valve Internals</li>
-        <li class="amb__item">Rotor &amp; Propeller Aero</li>
-        <li class="amb__item">Semiconductor Packaging</li>
-        <li class="amb__item">Sloshing</li>
-        <li class="amb__item">Spray &amp; Atomization</li>
-        <li class="amb__item">Thermal Management</li>
-        <li class="amb__item">Turbomachinery</li>
-        <li class="amb__item">Underhood Thermal</li>
-        <li class="amb__item">Wind Loading</li>
-      </ul>
+  <!-- ===== Industries: alternating bordered panels that rise on scroll ===== -->
+  <section class="indx" id="industries" aria-label="Industries Hexera meshes for">
+    <header class="indx__head">
+      <span class="indx__eyebrow">/ Industries</span>
+      <h2 class="indx__title">Where the physics<br><em>gets&nbsp;hard.</em></h2>
+      <p class="indx__lede">One meshing core, pointed at the geometry and physics each field actually ships.</p>
+    </header>
 
-      <div class="amb__line">
-        <div class="amb__label">
-          <span class="amb__label-t">Meshing the frontier</span>
+    <div class="indx__rows" data-ind-rows>
+      <article class="indrow" data-rise>
+        <div class="indrow__cell indrow__cell--industry">
+          <span class="indrow__eyebrow">/External aerodynamics</span>
+          <h3 class="indrow__name">Aerospace</h3>
         </div>
-        <div class="amb__ambition">
-          <span class="amb__eyebrow">Our ambition</span>
-          <p class="amb__copy">A meshing engine that, over the years and decades ahead, keeps pace with engineering itself: every geometry, every regime, including the simulations no one has attempted yet.</p>
+        <div class="indrow__cell indrow__cell--explain">
+          <ol class="indrow__list">
+            <li><span class="indrow__n">01</span><span>Prism layers to y+ &asymp; 1</span></li>
+            <li><span class="indrow__n">02</span><span>Refinement at the trailing edge</span></li>
+            <li><span class="indrow__n">03</span><span>A far field that frees the wake</span></li>
+          </ol>
+
+          <div class="indrow__foot">
+            <h3 class="indrow__h">Wings, wakes, whole aircraft.</h3>
+            <p class="indrow__p">Boundary layers and separation over lifting surfaces and full airframes — the regime Hexera meshes today.</p>
+          </div>
+
         </div>
-      </div>
+      </article>
+
+      <article class="indrow" data-rise>
+        <div class="indrow__cell indrow__cell--industry">
+          <span class="indrow__eyebrow">/Flow inside the body</span>
+          <h3 class="indrow__name">Biomedical</h3>
+        </div>
+        <div class="indrow__cell indrow__cell--explain">
+          <ol class="indrow__list">
+            <li><span class="indrow__n">01</span><span>Patient-specific vasculature</span></li>
+            <li><span class="indrow__n">02</span><span>Thin, compliant walls</span></li>
+            <li><span class="indrow__n">03</span><span>Pulsatile, conjugate heat</span></li>
+          </ol>
+          <div class="indrow__foot">
+            <h3 class="indrow__h">Vessels, valves, airways.</h3>
+            <p class="indrow__p">Blood through stents and aneurysms, air through the lung — with tissue heat coupled across walls a cell thick.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="indrow" data-rise>
+        <div class="indrow__cell indrow__cell--industry">
+          <span class="indrow__eyebrow">/Physics you can ship</span>
+          <h3 class="indrow__name">Gaming</h3>
+        </div>
+        <div class="indrow__cell indrow__cell--explain">
+          <ol class="indrow__list">
+            <li><span class="indrow__n">01</span><span>Watertight collision shells</span></li>
+            <li><span class="indrow__n">02</span><span>Fluid and smoke volumes</span></li>
+            <li><span class="indrow__n">03</span><span>LODs that hold their silhouette</span></li>
+          </ol>
+          <div class="indrow__foot">
+            <h3 class="indrow__h">Real-time, baked, or both.</h3>
+            <p class="indrow__p">Raw geometry becomes watertight meshes and fluid volumes for live engines and pre-baked VFX, with no hand cleanup.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="indrow" data-rise>
+        <div class="indrow__cell indrow__cell--industry">
+          <span class="indrow__eyebrow">/Drag, heat, downforce</span>
+          <h3 class="indrow__name">Automotive</h3>
+        </div>
+        <div class="indrow__cell indrow__cell--explain">
+          <ol class="indrow__list">
+            <li><span class="indrow__n">01</span><span>Full-vehicle external aero</span></li>
+            <li><span class="indrow__n">02</span><span>Underhood and brake cooling</span></li>
+            <li><span class="indrow__n">03</span><span>Conjugate thermal in the pack</span></li>
+          </ol>
+          <div class="indrow__foot">
+            <h3 class="indrow__h">Every panel, every duct.</h3>
+            <p class="indrow__p">Complete vehicle assemblies in one pass — external drag and downforce, underhood airflow, and battery-pack thermal.</p>
+          </div>
+        </div>
+      </article>
     </div>
   </section>
 
@@ -305,7 +317,6 @@
         <div class="fend__col">
           <span class="fend__col-h">Product</span>
           <a href="technology.html">Technology</a>
-          <a href="industries.html">Industries</a>
           <a href="index.html#meshExperience">Mesh viewer</a>
         </div>
         <div class="fend__col">

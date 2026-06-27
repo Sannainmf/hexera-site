@@ -107,9 +107,12 @@
     const prog = ring.querySelector(".ring-prog");
     const nodes = Array.from(ring.querySelectorAll(".ring-node"));
     const nodeLabels = Array.from(ring.querySelectorAll(".ring-node-label"));
-    const phaseItems = Array.from(ring.querySelectorAll(".ring-phase__item"));
+    const phaseItems = Array.from(ring.querySelectorAll(".ring-label"));
     const tabs = Array.from(ring.querySelectorAll(".ring-tab"));
     const N = phaseItems.length || 4;
+    const centerWord = ring.querySelector("[data-ring-word]");
+    const centerCount = ring.querySelector("[data-ring-count]");
+    const phaseNames = phaseItems.map((el) => (el.querySelector("[data-phase-name]") || el).textContent.trim());
 
     const CX = 200, CY = 200, R = 150;
     const CIRC = 2 * Math.PI * R;
@@ -120,6 +123,8 @@
       tabs.forEach((el, i) => el.classList.toggle("active", i === idx));
       nodes.forEach((el, i) => el.classList.toggle("active", i === idx));
       nodeLabels.forEach((el, i) => el.classList.toggle("active", i === idx));
+      if (centerWord && phaseNames[idx]) centerWord.textContent = phaseNames[idx];
+      if (centerCount) centerCount.textContent = String(idx + 1).padStart(2, "0") + " / " + String(N).padStart(2, "0");
     };
 
     const update = () => {
@@ -203,6 +208,30 @@
     window.addEventListener("scroll", upd, { passive: true });
     window.addEventListener("resize", upd);
     upd();
+  }
+
+  /* ---------- Industries: scroll-linked parallax rise ----------
+     Each row's two cells rise from below and fade in as the row moves up through
+     the viewport, at slightly different rates (parallax). Scroll-driven (not the
+     reveal timeout), so it always plays when you reach it, however far down. */
+  const riseEls = Array.from(document.querySelectorAll("[data-ind-rows] [data-rise]"));
+  if (riseEls.length && !reduce) {
+    const updInd = () => {
+      const vh = window.innerHeight;
+      riseEls.forEach((el, i) => {
+        const r = el.getBoundingClientRect();
+        // 0 when the cell's top sits at the bottom of the viewport, 1 once it has risen ~half up
+        const p = clamp((vh - r.top) / (vh * 0.5), 0, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        const slack = 1 - eased;
+        const depth = (i % 2 === 0) ? 64 : 100;   // alternate -> subtle parallax across the pair
+        el.style.transform = "translate3d(0," + (slack * depth).toFixed(1) + "px,0)";
+        el.style.opacity = (0.05 + eased * 0.95).toFixed(3);
+      });
+    };
+    updInd();
+    window.addEventListener("scroll", updInd, { passive: true });
+    window.addEventListener("resize", updInd);
   }
 
   /* ---------- count-up for [data-count] (fires once when seen) ---------- */

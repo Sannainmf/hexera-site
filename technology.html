@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Technology — Hexera</title>
   <meta name="description" content="How Hexera turns aerospace CAD into simulation-ready meshes: a self-correcting agent pipeline that reads geometry, translates intent, writes and inspects the mesh." />
+  <link rel="canonical" href="https://hexera.so/technology.html" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://hexera.so/technology.html" />
+  <meta property="og:title" content="Technology — Hexera" />
+  <meta property="og:description" content="How Hexera turns aerospace CAD into simulation-ready meshes: a self-correcting agent pipeline that reads geometry, translates intent, writes and inspects the mesh." />
+  <meta property="og:image" content="https://hexera.so/assets/hero-bg.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Technology — Hexera" />
+  <meta name="twitter:description" content="How Hexera turns aerospace CAD into simulation-ready meshes: a self-correcting agent pipeline that reads geometry, translates intent, writes and inspects the mesh." />
+  <meta name="twitter:image" content="https://hexera.so/assets/hero-bg.jpg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -48,32 +58,12 @@
       <div class="ring-sticky">
         <div class="ring-grid">
           <div class="ring-copy">
-            <h2 class="h2">Four phases, one&nbsp;agent.</h2>
-            <div class="ring-phase">
-              <div class="ring-phase__item active">
-                <div class="ring-phase__n">01 / INGEST</div>
-                <h3 class="ring-phase__t">Read the geometry</h3>
-                <p class="ring-phase__d">Opens your CAD natively — heals gaps, tags walls, inlets and trailing edges.</p>
-              </div>
-              <div class="ring-phase__item">
-                <div class="ring-phase__n">02 / MESH</div>
-                <h3 class="ring-phase__t">Translate intent to a mesh</h3>
-                <p class="ring-phase__d">Turns plain-language intent into real parameters — y+, prism layers, refinement — then writes and runs the script.</p>
-              </div>
-              <div class="ring-phase__item">
-                <div class="ring-phase__n">03 / VERIFY</div>
-                <h3 class="ring-phase__t">Inspect like a reviewer</h3>
-                <p class="ring-phase__d">Grades every mesh on skewness, orthogonality and aspect ratio — and re-refines failures itself.</p>
-              </div>
-              <div class="ring-phase__item">
-                <div class="ring-phase__n">04 / DELIVER</div>
-                <h3 class="ring-phase__t">Hand off, solver-ready</h3>
-                <p class="ring-phase__d">Exports to OpenFOAM, ANSYS or Abaqus with a full decision report. Days become hours.</p>
-              </div>
-            </div>
+            <h2 class="h2">Four phases,<br><em>one&nbsp;pipeline.</em></h2>
+            <p class="ring-lede">A multi-agent pipeline takes each part from raw CAD to solver-ready — specialised agents read the geometry, mesh to intent, check their own work, and hand off.</p>
           </div>
 
           <div class="ring-stage">
+            <div class="ring-dial">
             <svg class="ring-svg" viewBox="0 0 400 400" role="img" aria-label="Process ring">
               <circle class="ring-track" cx="200" cy="200" r="150" />
               <g transform="rotate(-90 200 200)"><circle class="ring-prog" cx="200" cy="200" r="150" /></g>
@@ -81,19 +71,27 @@
               <circle class="ring-node" data-i="1" cx="350" cy="200" r="7" />
               <circle class="ring-node" data-i="2" cx="200" cy="350" r="7" />
               <circle class="ring-node" data-i="3" cx="50" cy="200" r="7" />
-              <text class="ring-node-label" x="200" y="32" text-anchor="middle">Ingest</text>
-              <text class="ring-node-label" x="368" y="204" text-anchor="start">Mesh</text>
-              <text class="ring-node-label" x="200" y="378" text-anchor="middle">Verify</text>
-              <text class="ring-node-label" x="32" y="204" text-anchor="end">Deliver</text>
               <circle class="ring-marker" cx="200" cy="50" r="9" />
             </svg>
+
+              <div class="ring-label ring-label--top active" data-i="0">
+                <span class="ring-label__t" data-phase-name>Ingest</span>
+                <span class="ring-label__d">Opens the CAD, heals gaps, tags the walls that matter.</span>
+              </div>
+              <div class="ring-label ring-label--right" data-i="1">
+                <span class="ring-label__t" data-phase-name>Mesh</span>
+                <span class="ring-label__d">Turns plain-language intent into real y+ and prism layers.</span>
+              </div>
+              <div class="ring-label ring-label--bottom" data-i="2">
+                <span class="ring-label__t" data-phase-name>Verify</span>
+                <span class="ring-label__d">Grades skewness and orthogonality, re-refines the failures.</span>
+              </div>
+              <div class="ring-label ring-label--left" data-i="3">
+                <span class="ring-label__t" data-phase-name>Deliver</span>
+                <span class="ring-label__d">Exports solver-ready to OpenFOAM, ANSYS or Abaqus.</span>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="ring-tabs">
-          <span class="ring-tab active">Ingest</span>
-          <span class="ring-tab">Mesh</span>
-          <span class="ring-tab">Verify</span>
-          <span class="ring-tab">Deliver</span>
         </div>
       </div>
     </section>
@@ -190,7 +188,6 @@
       <p class="cta-band__p">Bring a real part. We'll turn it around solver-ready and show you every decision the agent made.</p>
       <div class="cta-band__actions">
         <a class="btn btn--gold" href="contact.html">Request access <span aria-hidden="true">→</span></a>
-        <a class="btn btn--line" href="industries.html">Where it's used <span aria-hidden="true">↗</span></a>
       </div>
     </section>
   </main>
@@ -227,7 +224,6 @@
       <div class="footer__col">
         <h4>Product</h4>
         <a href="technology.html">Technology</a>
-        <a href="industries.html">Industries</a>
         <a href="index.html#meshExperience">Mesh viewer</a>
       </div>
       <div class="footer__col">

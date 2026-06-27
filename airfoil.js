@@ -97,6 +97,9 @@
 
       this.progress = 0;
       this.currentPhase = "surface";
+      // demo NACA 0012 mesh size — the tally counts up to these as the wireframe forms
+      this.NODE_TOTAL = 86747;
+      this.ELEM_TOTAL = 172874;
       this.meshData = meshData;
 
       this.buildScene();
@@ -248,6 +251,23 @@
         stepsEl.classList.toggle("visible", p > 0.02);
         stepsEl.querySelectorAll(".mstep").forEach((el) =>
           el.classList.toggle("active", el.dataset.step === this.currentPhase));
+      }
+
+      // live mesh tally — total nodes / elements count up as the wireframe forms,
+      // synced to the same smoothstep as the camera, then lock when the mesh completes
+      const tally = document.getElementById("meshTally");
+      if (tally) {
+        const rotEnd = 0.20, mEnd = 0.60;
+        let frac;
+        if (p <= rotEnd) frac = 0;
+        else if (p <= mEnd) { const t = (p - rotEnd) / (mEnd - rotEnd); frac = t * t * (3 - 2 * t); }
+        else frac = 1;
+        // only once the mesh starts forming (not during the CAD/surface phase)
+        tally.classList.toggle("visible", p > rotEnd);
+        const nEl = tally.querySelector("[data-mesh-nodes]");
+        const eEl = tally.querySelector("[data-mesh-elems]");
+        if (nEl) nEl.textContent = Math.round(this.NODE_TOTAL * frac).toLocaleString();
+        if (eEl) eEl.textContent = Math.round(this.ELEM_TOTAL * frac).toLocaleString();
       }
     }
 
