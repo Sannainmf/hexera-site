@@ -1135,3 +1135,8 @@ html.lenis, html.lenis body { height: auto; }
   .indrow__cell { min-height: auto; }
   .indrow__cell--industry { min-height: 15rem; }
 }
+
+/* nav: secondary links collapse on small screens so the bar never overflows */
+@media (max-width: 640px) {
+  .nav__link--sec { display: none; }
+}
