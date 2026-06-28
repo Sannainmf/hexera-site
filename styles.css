@@ -18,7 +18,7 @@
   --gold-ink:  #211800;
   --crimson:      #d83a30;
   --crimson-soft: #ff6b5e;
-  --green:     #111315;   /* graphite/slate (slightly grayer/neutral) — vision chapter */
+  --green:     #15120b;   /* warm raised panel — a sibling of --bg, not cool graphite (kept name for compatibility) */
 
   --line:      rgba(238, 235, 225, 0.10);
   --line-2:    rgba(238, 235, 225, 0.20);
