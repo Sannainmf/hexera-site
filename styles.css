@@ -1140,3 +1140,83 @@ html.lenis, html.lenis body { height: auto; }
 @media (max-width: 640px) {
   .nav__link--sec { display: none; }
 }
+
+/* ============================================================
+   Waitlist modal — intake panel (name + email → Supabase).
+   Styled as a Hexera instrument: mono header readout, corner
+   registration marks, ruled field lines. Injected by waitlist.js.
+   ============================================================ */
+html.wl-lock, html.wl-lock body { overflow: hidden; }
+
+.wl-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center; padding: var(--pad-x);
+  background: rgba(4, 3, 1, 0.6);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  opacity: 0; transition: opacity 0.24s var(--ease-expo);
+}
+.wl-overlay.is-open { opacity: 1; }
+.wl-overlay[hidden] { display: none; }
+
+.wl-panel {
+  position: relative; width: min(92vw, 26rem);
+  background:
+    linear-gradient(rgba(238, 235, 225, 0.022) 1px, transparent 1px) 0 0 / 100% 28px,
+    var(--bg-2);
+  border: 1px solid var(--line-2); border-radius: 10px;
+  padding: 2.2rem 2rem 1.9rem; box-shadow: 0 40px 90px rgba(0, 0, 0, 0.65);
+  transform: translateY(14px); transition: transform 0.3s var(--ease-expo);
+}
+.wl-overlay.is-open .wl-panel { transform: none; }
+
+/* corner registration marks — the CAD-viewport frame */
+.wl-corner { position: absolute; width: 13px; height: 13px; border: 0 solid rgba(15, 182, 172, 0.55); transition: transform 0.45s var(--ease-expo) 0.05s; }
+.wl-corner--tl { top: 8px; left: 8px; border-top-width: 1px; border-left-width: 1px; transform: translate(4px, 4px); }
+.wl-corner--tr { top: 8px; right: 8px; border-top-width: 1px; border-right-width: 1px; transform: translate(-4px, 4px); }
+.wl-corner--bl { bottom: 8px; left: 8px; border-bottom-width: 1px; border-left-width: 1px; transform: translate(4px, -4px); }
+.wl-corner--br { bottom: 8px; right: 8px; border-bottom-width: 1px; border-right-width: 1px; transform: translate(-4px, -4px); }
+.wl-overlay.is-open .wl-corner { transform: none; }
+
+.wl-close {
+  position: absolute; top: 0.75rem; right: 0.9rem; z-index: 1;
+  background: none; border: none; cursor: pointer;
+  font-size: 1.35rem; line-height: 1; color: var(--faint); padding: 0.2rem 0.5rem;
+}
+.wl-close:hover { color: var(--ink); }
+
+.wl-title { margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 1.9rem; line-height: 1.05; color: var(--ink); text-wrap: balance; }
+.wl-title em { font-style: normal; color: var(--gold); }
+.wl-sub { margin: 0.6rem 0 1.8rem; font-size: 0.88rem; line-height: 1.6; color: var(--muted); text-wrap: pretty; }
+
+/* ruled fields — instrument form lines, not boxes */
+.wl-label { display: block; margin: 0 0 0.1rem; font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.wl-input {
+  display: block; width: 100%; margin-bottom: 1.35rem;
+  background: transparent; border: none; border-bottom: 1px solid var(--line-2); border-radius: 0;
+  padding: 0.5em 0; font-family: var(--font-body); font-size: 1rem; color: var(--ink);
+  caret-color: var(--teal); transition: border-color 0.2s ease;
+}
+.wl-input::placeholder { color: var(--faint); }
+.wl-input:focus { outline: none; border-bottom-color: var(--teal); }
+.wl-label:has(+ .wl-input:focus) { color: var(--teal); }
+.wl-input:disabled { opacity: 0.45; }
+
+.wl-submit {
+  display: block; width: 100%; margin-top: 0.4rem;
+  background: var(--gold); color: var(--gold-ink); border: none; border-radius: 8px;
+  font-family: var(--font-body); font-weight: 600; font-size: 0.95rem;
+  padding: 0.85em; cursor: pointer; transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.wl-submit:hover { background: var(--gold-soft); box-shadow: 0 10px 40px rgba(221, 171, 70, 0.28); }
+.wl-submit:disabled { opacity: 0.6; cursor: default; box-shadow: none; }
+
+.wl-note { margin: 0.85rem 0 0; min-height: 1.2em; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.5; }
+.wl-note[data-state="ok"] { color: var(--teal); }
+.wl-note[data-state="err"] { color: var(--crimson-soft); }
+
+@media (max-width: 480px) {
+  .wl-panel { padding: 1.25rem 1.4rem 1.6rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wl-overlay, .wl-panel, .wl-corner { transition: none; }
+}

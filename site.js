@@ -54,26 +54,5 @@
     setTimeout(showAll, 3000);
   }
 
-  /* request-access form — validates and confirms locally; sends nothing */
-  const form = document.querySelector("[data-access-form]");
-  if (form) {
-    const note = document.querySelector("[data-access-note]");
-    const input = form.querySelector('input[type="email"]');
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const v = (input.value || "").trim();
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) {
-        note.textContent = "Please enter a valid work email.";
-        note.dataset.state = "err";
-        input.focus();
-        return;
-      }
-      note.textContent = "You're on the list — we'll be in touch shortly.";
-      note.dataset.state = "ok";
-      form.reset();
-      input.disabled = true;
-      const btn = form.querySelector("button");
-      if (btn) btn.disabled = true;
-    });
-  }
+  /* request-access forms are handled by waitlist.js (Supabase capture) */
 })();
