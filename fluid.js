@@ -1263,7 +1263,7 @@ function generateColor () {
     const gold = { r: 1.00, g: 0.72, b: 0.10 };
     const c = nextGold ? gold : teal;
     nextGold = !nextGold;
-    const i = 0.09; // brighter ember — still restrained, not a spotlight
+    const i = 0.3; // vivid — bright, saturated glow
     return { r: c.r * i, g: c.g * i, b: c.b * i };
 }
 
