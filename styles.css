@@ -710,7 +710,7 @@ html.lenis, html.lenis body { height: auto; }
    ============================================================ */
 .ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
 .ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); }
-.ring-grid { width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+.ring-grid { width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: minmax(240px, 340px) 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
 .ring-copy { max-width: 30ch; }
 .ring-lede { margin: 1.25rem 0 0; color: var(--muted); line-height: 1.6; font-size: clamp(1rem, 0.95rem + 0.3vw, 1.12rem); }
 .ring-stage { position: relative; display: grid; place-items: center; }
@@ -725,7 +725,7 @@ html.lenis, html.lenis body { height: auto; }
 .ring-label__d { font-size: 0.9rem; line-height: 1.5; color: var(--muted); }
 .ring-label--top    { left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 0.6rem; align-items: center; text-align: center; }
 .ring-label--bottom { left: 50%; top: 100%; transform: translateX(-50%); margin-top: 0.6rem; align-items: center; text-align: center; }
-.ring-label--right  { left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0.6rem; align-items: flex-start; text-align: left; }
+.ring-label--right  { left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0.6rem; align-items: flex-start; text-align: left; width: clamp(7.5rem, 43vw - 19.7rem, 11rem); }
 .ring-label--left   { right: 100%; top: 50%; transform: translateY(-50%); margin-right: 0.6rem; align-items: flex-end; text-align: right; }
 .ring-track { fill: none; stroke: var(--line-2); stroke-width: 1; }
 .ring-prog { fill: none; stroke: var(--teal-deep); stroke-width: 2; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(10,139,132,0.55)); transition: stroke-dashoffset 0.3s linear; }
