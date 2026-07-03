@@ -114,6 +114,11 @@
     const centerCount = ring.querySelector("[data-ring-count]");
     const centerTele = ring.querySelector("[data-ring-tele]");
     const trailDots = Array.from(ring.querySelectorAll(".ring-trail"));
+    const glyphs = Array.from(ring.querySelectorAll(".ring-glyph .glyph"));
+    const nodePulse = ring.querySelector(".ring-nodepulse");
+    const spoke = ring.querySelector(".ring-spoke");
+    const logLines = Array.from(ring.querySelectorAll(".ring-log__ln"));
+    const NODE_POS = [[200, 50], [350, 200], [200, 350], [50, 200]];
     const phaseNames = phaseItems.map((el) => (el.querySelector("[data-phase-name]") || el).textContent.trim());
 
     const CX = 200, CY = 200, R = 150;
@@ -127,12 +132,13 @@
       return { el, deg: (a + 90 + 360) % 360 };
     });
 
-    /* one-line instrument readout per phase, under the counter */
+    /* one-line instrument readout per phase, under the counter —
+       each reads as "what the agent just did" */
     const TELE = [
-      "heal gaps · tag walls",
-      "y+ 1.0 · 28 prism layers",
-      "skew 0.84 · ortho 0.96",
-      "export .cgns · .msh · .su2",
+      "gaps healed · walls tagged",
+      "boundary layers grown · y+ 1.0",
+      "skew graded · weak cells re-meshed",
+      "packed solver-ready · .cgns",
     ];
 
     /* terminal-style decode: characters resolve left-to-right into the target */
@@ -140,7 +146,9 @@
     const scrambleTo = (el, str) => {
       if (reduce) { el.textContent = str; return; }
       const t0 = performance.now(), dur = 420;
+      const gen = (el._scrambleGen = (el._scrambleGen || 0) + 1);
       const tick = (t) => {
+        if (el._scrambleGen !== gen) return;   // superseded by a newer decode
         const k = Math.min((t - t0) / dur, 1);
         const n = Math.floor(k * str.length);
         let tail = "";
@@ -149,6 +157,8 @@
         if (k < 1) requestAnimationFrame(tick);
       };
       requestAnimationFrame(tick);
+      // rAF stalls in throttled/background tabs — guarantee the final text lands
+      setTimeout(() => { if (el._scrambleGen === gen) el.textContent = str; }, dur + 80);
     };
 
     let phaseIdx = -1;
@@ -162,6 +172,15 @@
       if (centerWord && phaseNames[idx]) scrambleTo(centerWord, phaseNames[idx]);
       if (centerCount) centerCount.textContent = String(idx + 1).padStart(2, "0") + " / " + String(N).padStart(2, "0");
       if (centerTele && TELE[idx]) scrambleTo(centerTele, TELE[idx]);
+      glyphs.forEach((el, i) => el.classList.toggle("on", i === idx));
+      logLines.forEach((el, i) => {
+        el.classList.toggle("on", i <= idx);
+        el.classList.toggle("cur", i === idx);
+      });
+      if (nodePulse && NODE_POS[idx]) {
+        nodePulse.setAttribute("cx", NODE_POS[idx][0]);
+        nodePulse.setAttribute("cy", NODE_POS[idx][1]);
+      }
     };
 
     const update = () => {
@@ -175,6 +194,12 @@
         svgMarker.setAttribute("cy", CY + R * Math.sin(ang));
       }
       if (prog) prog.style.strokeDashoffset = CIRC * (1 - p);
+      if (spoke) {
+        spoke.setAttribute("x1", (CX + 96 * Math.cos(ang)).toFixed(2));
+        spoke.setAttribute("y1", (CY + 96 * Math.sin(ang)).toFixed(2));
+        spoke.setAttribute("x2", (CX + 142 * Math.cos(ang)).toFixed(2));
+        spoke.setAttribute("y2", (CY + 142 * Math.sin(ang)).toFixed(2));
+      }
       const sweep = p * 360;
       tickEls.forEach((t) => t.el.classList.toggle("lit", sweep > 0.5 && t.deg <= sweep));
       // comet trail: ghost dots lag the marker at increasing angles, fading out

@@ -142,6 +142,13 @@
         <div class="ring-copy">
           <h2 class="h2">Four phases,<br><em>one&nbsp;pipeline.</em></h2>
           <p class="ring-lede">A multi-agent pipeline takes each part from raw CAD to solver-ready — specialised agents read the geometry, mesh to intent, check their own work, and hand off.</p>
+          <!-- build log: one line lands as each phase completes -->
+          <div class="ring-log" aria-hidden="true">
+            <p class="ring-log__ln"><span class="idx">01</span><span class="nm">ingest</span>geometry sealed · walls tagged</p>
+            <p class="ring-log__ln"><span class="idx">02</span><span class="nm">mesh</span>boundary layers grown to spec</p>
+            <p class="ring-log__ln"><span class="idx">03</span><span class="nm">verify</span>weak cells caught · re-meshed</p>
+            <p class="ring-log__ln"><span class="idx">04</span><span class="nm">deliver</span>solver deck exported</p>
+          </div>
         </div>
 
         <div class="ring-stage">
@@ -181,13 +188,62 @@
               <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(77.0 77.0) rotate(315.0)"/>
               <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(323.0 77.0) rotate(405.0)"/>
             </g>
+            <!-- radar spoke: faint radius that tracks the orbiting marker -->
+            <line class="ring-spoke" x1="200" y1="104" x2="200" y2="58" />
+            <!-- centre story: one airfoil carried through all four phases -->
+            <g class="ring-glyph" aria-hidden="true">
+              <!-- 01 · ingest: broken CAD outline heals itself shut -->
+              <g class="glyph glyph--0">
+                <path class="g0-broken" d="M 283 151 C 240 127 172 122 137 140 C 123 147 122 156 135 161 C 172 174 240 166 283 151 Z" />
+                <path class="g0-heal" pathLength="100" d="M 283 151 C 240 127 172 122 137 140 C 123 147 122 156 135 161 C 172 174 240 166 283 151 Z" />
+                <circle class="g0-gap" cx="228" cy="130" r="2.6"/>
+                <circle class="g0-gap" cx="160" cy="128" r="2.6"/>
+                <circle class="g0-gap" cx="196" cy="169" r="2.6"/>
+              </g>
+              <!-- 02 · mesh: boundary-layer shells + normals grow off the skin -->
+              <g class="glyph glyph--1">
+                <path class="g-foil" d="M 283 151 C 240 127 172 122 137 140 C 123 147 122 156 135 161 C 172 174 240 166 283 151 Z" />
+                <path class="g1-layer" style="--i:0" d="M 285 150 C 240 121 168 116 133 136 C 117 144 116 158 133 165 C 172 180 242 171 285 150" />
+                <path class="g1-layer" style="--i:1" d="M 288 149 C 241 115 164 109 128 132 C 110 142 109 161 130 170 C 172 187 245 176 288 149" />
+                <g class="g1-normals">
+                  <line style="--i:0" x1="156" y1="127" x2="152" y2="116"/>
+                  <line style="--i:1" x1="196" y1="122" x2="194" y2="110"/>
+                  <line style="--i:2" x1="236" y1="127" x2="238" y2="115"/>
+                  <line style="--i:3" x1="160" y1="166" x2="156" y2="177"/>
+                  <line style="--i:4" x1="200" y1="170" x2="199" y2="182"/>
+                  <line style="--i:5" x1="240" y1="164" x2="243" y2="176"/>
+                </g>
+              </g>
+              <!-- 03 · verify: scan gate sweeps the foil, grading cells -->
+              <g class="glyph glyph--2">
+                <path class="g-foil" d="M 283 151 C 240 127 172 122 137 140 C 123 147 122 156 135 161 C 172 174 240 166 283 151 Z" />
+                <g class="g2-cells">
+                  <rect style="--i:0" x="142" y="141" width="11" height="14" rx="1.5"/>
+                  <rect style="--i:1" x="156" y="139" width="11" height="17" rx="1.5"/>
+                  <rect style="--i:2" x="170" y="137" width="11" height="20" rx="1.5"/>
+                  <rect class="flag" style="--i:3" x="184" y="136" width="11" height="21" rx="1.5"/>
+                  <rect style="--i:4" x="198" y="136" width="11" height="21" rx="1.5"/>
+                  <rect style="--i:5" x="212" y="137" width="11" height="19" rx="1.5"/>
+                  <rect class="flag" style="--i:6" x="226" y="139" width="11" height="16" rx="1.5"/>
+                  <rect style="--i:7" x="240" y="141" width="11" height="12" rx="1.5"/>
+                </g>
+                <line class="g2-scan" x1="0" y1="118" x2="0" y2="184"/>
+              </g>
+              <!-- 04 · deliver: export brackets close around it, shipped out -->
+              <g class="glyph glyph--3">
+                <path class="g-foil" d="M 283 151 C 240 127 172 122 137 140 C 123 147 122 156 135 161 C 172 174 240 166 283 151 Z" />
+                <path class="g3-crate" pathLength="100" d="M 118 130 L 118 116 L 132 116 M 272 116 L 286 116 L 286 130 M 286 172 L 286 186 L 272 186 M 132 186 L 118 186 L 118 172" />
+                <path class="g3-arrow" pathLength="100" d="M 294 151 L 316 151 M 309 145 L 316 151 L 309 157" />
+              </g>
+            </g>
             <circle class="ring-node" data-i="0" cx="200" cy="50" r="5" />
             <circle class="ring-node" data-i="1" cx="350" cy="200" r="5" />
             <circle class="ring-node" data-i="2" cx="200" cy="350" r="5" />
             <circle class="ring-node" data-i="3" cx="50" cy="200" r="5" />
-            <text class="ring-center-word" data-ring-word x="200" y="200" text-anchor="middle" dominant-baseline="middle">Ingest</text>
-            <text class="ring-center-count" data-ring-count x="200" y="226" text-anchor="middle" dominant-baseline="middle">01 / 04</text>
-            <text class="ring-center-tele" data-ring-tele x="200" y="246" text-anchor="middle" dominant-baseline="middle">heal gaps · tag walls</text>
+            <circle class="ring-nodepulse" cx="200" cy="50" r="6" />
+            <text class="ring-center-word" data-ring-word x="200" y="245" text-anchor="middle" dominant-baseline="middle">Ingest</text>
+            <text class="ring-center-count" data-ring-count x="200" y="268" text-anchor="middle" dominant-baseline="middle">01 / 04</text>
+            <text class="ring-center-tele" data-ring-tele x="200" y="286" text-anchor="middle" dominant-baseline="middle">gaps healed · walls tagged</text>
             <circle class="ring-trail" cx="200" cy="50" r="6.5" />
             <circle class="ring-trail" cx="200" cy="50" r="5" />
             <circle class="ring-trail" cx="200" cy="50" r="3.8" />
