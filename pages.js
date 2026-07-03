@@ -112,19 +112,56 @@
     const N = phaseItems.length || 4;
     const centerWord = ring.querySelector("[data-ring-word]");
     const centerCount = ring.querySelector("[data-ring-count]");
+    const centerTele = ring.querySelector("[data-ring-tele]");
+    const trailDots = Array.from(ring.querySelectorAll(".ring-trail"));
     const phaseNames = phaseItems.map((el) => (el.querySelector("[data-phase-name]") || el).textContent.trim());
 
     const CX = 200, CY = 200, R = 150;
     const CIRC = 2 * Math.PI * R;
     if (prog) { prog.style.strokeDasharray = CIRC; prog.style.strokeDashoffset = CIRC; }
 
+    /* each minor tick's position as degrees clockwise from the top, so the
+       sweep can light them up in its wake */
+    const tickEls = Array.from(ring.querySelectorAll(".ring-tick--min")).map((el) => {
+      const a = Math.atan2(parseFloat(el.getAttribute("y1")) - CY, parseFloat(el.getAttribute("x1")) - CX) * 180 / Math.PI;
+      return { el, deg: (a + 90 + 360) % 360 };
+    });
+
+    /* one-line instrument readout per phase, under the counter */
+    const TELE = [
+      "heal gaps · tag walls",
+      "y+ 1.0 · 28 prism layers",
+      "skew 0.84 · ortho 0.96",
+      "export .cgns · .msh · .su2",
+    ];
+
+    /* terminal-style decode: characters resolve left-to-right into the target */
+    const SCRAMBLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+·/";
+    const scrambleTo = (el, str) => {
+      if (reduce) { el.textContent = str; return; }
+      const t0 = performance.now(), dur = 420;
+      const tick = (t) => {
+        const k = Math.min((t - t0) / dur, 1);
+        const n = Math.floor(k * str.length);
+        let tail = "";
+        for (let i = n; i < str.length; i++) tail += SCRAMBLE[(Math.random() * SCRAMBLE.length) | 0];
+        el.textContent = str.slice(0, n) + tail;
+        if (k < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+
+    let phaseIdx = -1;
     const setPhase = (idx) => {
+      if (idx === phaseIdx) return;
+      phaseIdx = idx;
       phaseItems.forEach((el, i) => el.classList.toggle("active", i === idx));
       tabs.forEach((el, i) => el.classList.toggle("active", i === idx));
       nodes.forEach((el, i) => el.classList.toggle("active", i === idx));
       nodeLabels.forEach((el, i) => el.classList.toggle("active", i === idx));
-      if (centerWord && phaseNames[idx]) centerWord.textContent = phaseNames[idx];
+      if (centerWord && phaseNames[idx]) scrambleTo(centerWord, phaseNames[idx]);
       if (centerCount) centerCount.textContent = String(idx + 1).padStart(2, "0") + " / " + String(N).padStart(2, "0");
+      if (centerTele && TELE[idx]) scrambleTo(centerTele, TELE[idx]);
     };
 
     const update = () => {
@@ -138,6 +175,15 @@
         svgMarker.setAttribute("cy", CY + R * Math.sin(ang));
       }
       if (prog) prog.style.strokeDashoffset = CIRC * (1 - p);
+      const sweep = p * 360;
+      tickEls.forEach((t) => t.el.classList.toggle("lit", sweep > 0.5 && t.deg <= sweep));
+      // comet trail: ghost dots lag the marker at increasing angles, fading out
+      trailDots.forEach((el, k) => {
+        const tAng = (-90 + Math.max(sweep - (k + 1) * 6, 0)) * (Math.PI / 180);
+        el.setAttribute("cx", (CX + R * Math.cos(tAng)).toFixed(2));
+        el.setAttribute("cy", (CY + R * Math.sin(tAng)).toFixed(2));
+        el.style.opacity = sweep <= 0.5 ? "0" : (0.5 * (1 - k / (trailDots.length + 1))).toFixed(2);
+      });
       const idx = clamp(Math.floor(p * N - 1e-6), 0, N - 1);
       setPhase(idx);
     };

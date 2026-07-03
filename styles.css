@@ -1078,12 +1078,16 @@ html.lenis, html.lenis body { height: auto; }
 .home-flow .ring-sec { background: var(--bg); height: 600vh; }
 
 /* dial detailing on the home ring: minor/major ticks, motion arrows, live centre word */
-.ring-tick { stroke-linecap: round; }
+.ring-tick { stroke-linecap: round; transition: stroke 0.35s, opacity 0.35s; }
 .ring-tick--min { stroke: var(--teal); stroke-width: 1.4; opacity: 0.45; }
+.ring-tick--min.lit { stroke: var(--gold); opacity: 0.9; }
 .ring-tick--maj { stroke: var(--gold); stroke-width: 2; opacity: 0.85; }
 .ring-arrow { fill: none; stroke: var(--faint); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0.55; }
 .ring-center-word { font-family: var(--font-mono); font-weight: 500; font-size: 21px; letter-spacing: 0.24em; fill: var(--ink); text-transform: uppercase; }
 .ring-center-count { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.28em; fill: var(--gold); }
+.ring-center-tele { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.2em; fill: var(--teal); opacity: 0.85; text-transform: uppercase; }
+/* comet trail behind the orbiting marker — ghost dots placed by pages.js */
+.ring-trail { fill: var(--gold); opacity: 0; }
 
 /* ============================================================
    INDUSTRIES — alternating bordered panels (the "box" reference):
