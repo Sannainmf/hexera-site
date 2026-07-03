@@ -572,7 +572,7 @@
         trunk.map((g) => g.c).concat(up.slice(1).map((g) => g.c)),
         trunk.map((g) => g.c).concat(lo.slice(1).map((g) => g.c)),
       ];
-      return { outline, rings, paths };
+      return { outline, rings, paths, spines: [trunk, up, lo] };
     })();
     // 03 · low-poly fortress — the hero environment asset, Blender-style:
     //      interior gets a real Delaunay tri mesh, plus edit-mode vertex
@@ -719,7 +719,7 @@
       y: H * (0.05 + 0.90 * Math.random()),
       trail: [],
     });
-    const initFlow = () => { FP.length = 0; for (let i = 0; i < 30; i++) FP.push(newFP(true)); };
+    const initFlow = () => { FP.length = 0; for (let i = 0; i < 38; i++) FP.push(newFP(true)); };
     // pulsatile blood particles riding the bifurcation centrelines
     const BLOOD = Array.from({ length: 10 }, (_, i) => ({ u: i / 10 }));
     // buoyant heat plumes rising off the brake disc
@@ -756,6 +756,7 @@
         chord: [tfs[0].map([0, 0.5]), tfs[0].map([1, 0.5])],
         bif: {
           rings: BIF.rings.map((g2) => ({ c: tfs[1].map(g2.c), n: g2.n, r: g2.r * tfs[1].s })),
+          spines: BIF.spines.map((S) => S.map((g2) => ({ c: tfs[1].map(g2.c), n: g2.n, r: g2.r * tfs[1].s }))),
           paths: BIF.paths.map(pathFit),
         },
         fort: { gizmo: tfs[2].map(FORT.gizmo), handles: FORT.handles.map((v) => tfs[2].map(v)) },
@@ -798,14 +799,21 @@
           (m[a][1] + m[b][1] + m[c][1]) / 3 - deco.fort.gizmo[1]
         );
       });
+      deco.mesh2.selR = deco.mesh2.diag * 0.15;    // edit-mode "selected faces" patch
       deco.mesh3 = buildMesh(3, sref * 0.062);
+      /* pad heating, physically placed: the friction band peaks radially,
+         and the hot spot sits AT the caliper with a comet tail decaying
+         downstream of the rotation — heat is generated at the pad and the
+         spinning disc carries it away */
+      const PAD_ANG = -0.625;                      // caliper pad centre angle
       deco.mesh3.temp = deco.mesh3.tris.map(([a, b, c]) => {
         const m = deco.mesh3.pts;
-        const rr = Math.hypot(
-          (m[a][0] + m[b][0] + m[c][0]) / 3 - deco.disc.c[0],
-          (m[a][1] + m[b][1] + m[c][1]) / 3 - deco.disc.c[1]
-        ) / deco.disc.rOut;
-        return Math.exp(-Math.pow((rr - 0.70) / 0.30, 2));
+        const mx = (m[a][0] + m[b][0] + m[c][0]) / 3 - deco.disc.c[0];
+        const my = (m[a][1] + m[b][1] + m[c][1]) / 3 - deco.disc.c[1];
+        const rr = Math.hypot(mx, my) / deco.disc.rOut;
+        const band = Math.exp(-Math.pow((rr - 0.70) / 0.26, 2));
+        const dRev = ((Math.atan2(my, mx) - PAD_ANG) / (Math.PI * 2) % 1 + 1) % 1;
+        return band * (0.16 + 0.84 * Math.exp(-dRev * 2.8));
       });
       initFlow();
     };
@@ -977,15 +985,15 @@
         ctx.stroke();
       }
 
-      /* CFD phases: structured boundary-layer mesh — thin first cell,
-         geometric growth outward, radial connectors → real quad cells.
-         Drawn on BOTH faces so the mesh turns with the body in 3D. */
+      /* CFD phases: a REAL prism boundary layer — 7 layers with geometric
+         growth (thin first cell at the wall, y+ ≈ 1 look), quad connectors
+         every 3rd node, drawn on BOTH faces so the mesh turns with the body */
       const blA = Math.max(dA[0], dA[3]) * (1 - 0.85 * morphAct);
+      const SH = [0.0045, 0.0107, 0.0193, 0.0311, 0.0474, 0.0699, 0.1009];
       if (blA > 0.01) {
-        const SH = [0.013, 0.024, 0.040, 0.062];
-        const AL = [0.34, 0.25, 0.17, 0.10];
+        const AL = [0.38, 0.32, 0.26, 0.21, 0.16, 0.11, 0.07];
         ctx.lineWidth = 1;
-        for (const [zz, fA] of [[-hz, 0.38], [hz, 1]]) {
+        for (const [zz, fA] of [[-hz, 0.35], [hz, 1]]) {
           for (let sh = 0; sh < SH.length; sh++) {
             ctx.strokeStyle = "rgba(" + TEAL + "," + (AL[sh] * blA * fA).toFixed(3) + ")";
             ctx.beginPath();
@@ -997,23 +1005,68 @@
             ctx.closePath();
             ctx.stroke();
           }
-          ctx.strokeStyle = "rgba(" + TEAL + "," + (0.13 * blA * fA).toFixed(3) + ")";
-          const dOut = SH[SH.length - 1] * sref;
-          for (let i = 0; i < N; i += 5) {
-            const p0 = proj(PTS[i][0], PTS[i][1], zz);
-            const p2 = proj(PTS[i][0] + NRM[i][0] * dOut, PTS[i][1] + NRM[i][1] * dOut, zz);
-            ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+          if (fA === 1) {                      // quad walls only on the near face
+            ctx.strokeStyle = "rgba(" + TEAL + "," + (0.14 * blA).toFixed(3) + ")";
+            const dOut = SH[SH.length - 1] * sref;
+            for (let i = 0; i < N; i += 3) {
+              const p0 = proj(PTS[i][0], PTS[i][1], zz);
+              const p2 = proj(PTS[i][0] + NRM[i][0] * dOut, PTS[i][1] + NRM[i][1] * dOut, zz);
+              ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+            }
           }
         }
       }
+      /* aero only: C-grid wake refinement trailing the TE — the layer lines
+         continue downstream and relax, tied by a few cross-divisions */
+      if (dA[0] > 0.01 && !morph) {
+        const teX = deco.chord[1][0], teY = deco.chord[1][1];
+        const wakeL = W * 0.17;
+        ctx.lineWidth = 1;
+        for (let k = -7; k <= 7; k++) {
+          if (k === 0) continue;
+          const off = Math.sign(k) * SH[Math.abs(k) - 1] * sref;
+          const p0 = proj(teX, teY + off, hz);
+          const p1 = proj(teX + wakeL, teY + off * 1.9, hz);
+          ctx.strokeStyle = "rgba(" + TEAL + "," + ((0.16 - Math.abs(k) * 0.018) * dA[0]).toFixed(3) + ")";
+          ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
+        }
+        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.08 * dA[0]).toFixed(3) + ")";
+        for (const fx of [0.35, 0.68, 1.0]) {
+          const spread = SH[6] * sref * (1 + 0.9 * fx);
+          const p0 = proj(teX + wakeL * fx, teY - spread, hz);
+          const p1 = proj(teX + wakeL * fx, teY + spread, hz);
+          ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
+        }
+      }
 
-      /* bio: swept vascular mesh — hoop rings around each centreline (the
-         way real vessel meshes are swept) + the thin compliant inner wall */
+      /* bio: swept vascular mesh — hoop rings × longitudinal rails along
+         every centreline, exactly how real vessel hex meshes are swept.
+         Rings and rails cross to form surface quads that turn in 3D. */
       const wallA = dA[1] * (1 - 0.85 * morphAct);
       if (wallA > 0.01) {
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.30 * wallA).toFixed(3) + ")";
         const rz = hz * 0.92;
+        ctx.lineWidth = 1;
+        // rails: 8 longitudinal lines per branch, spaced around the tube
+        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.20 * wallA).toFixed(3) + ")";
+        for (const spine of deco.bif.spines) {
+          for (let j = 0; j < 8; j++) {
+            const a3 = (j / 8) * Math.PI * 2;
+            const ca = Math.cos(a3), sa = Math.sin(a3);
+            ctx.beginPath();
+            for (let k = 0; k < spine.length; k++) {
+              const g2 = spine[k];
+              const p2 = proj(
+                g2.c[0] + g2.n[0] * g2.r * ca,
+                g2.c[1] + g2.n[1] * g2.r * ca,
+                Math.min(rz, g2.r) * sa
+              );
+              k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+            }
+            ctx.stroke();
+          }
+        }
+        // rings: hoop cross-sections that close the quads
+        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.32 * wallA).toFixed(3) + ")";
         for (const g2 of deco.bif.rings) {
           ctx.beginPath();
           for (let k = 0; k <= 14; k++) {
@@ -1021,7 +1074,7 @@
             const p2 = proj(
               g2.c[0] + g2.n[0] * g2.r * Math.cos(a3),
               g2.c[1] + g2.n[1] * g2.r * Math.cos(a3),
-              rz * Math.sin(a3)
+              Math.min(rz, g2.r) * Math.sin(a3)
             );
             k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
           }
@@ -1054,19 +1107,24 @@
           const tcx = (a2[0] + b2[0] + c2[0]) / 3;
           if (mClip === -1 && tcx > gxNow - 14) continue;
           if (mClip === 1 && tcx < gxNow + 14) continue;
-          let hot = 0;
+          let hot = 0, fillA = 0;
           if (thermal) {
-            // conjugate-heat contour: friction band glows, breathing slowly
+            // conjugate-heat contour: pad hot spot + downstream tail, breathing
             hot = mesh.temp[ti] * (0.72 + 0.28 * Math.sin(t * 0.0011 - mesh.temp[ti] * 5));
-          } else if (rippleR >= 0) {
-            const dd = Math.abs(mesh.rippleD[ti] - rippleR);
-            if (dd < band) hot = 1 - dd / band;
+            fillA = 0.28 * hot;
+          } else {
+            if (mesh.selR && mesh.rippleD[ti] < mesh.selR) fillA = 0.10;   // "selected faces"
+            if (rippleR >= 0) {
+              const dd = Math.abs(mesh.rippleD[ti] - rippleR);
+              if (dd < band) hot = 1 - dd / band;
+            }
+            fillA += 0.20 * hot;
           }
           ctx.beginPath();
           ctx.moveTo(a2[0], a2[1]); ctx.lineTo(b2[0], b2[1]); ctx.lineTo(c2[0], c2[1]);
           ctx.closePath();
-          if (hot > 0.03) {
-            ctx.fillStyle = "rgba(" + GOLD + "," + ((thermal ? 0.26 : 0.20) * hot * mA).toFixed(3) + ")";
+          if (fillA > 0.01) {
+            ctx.fillStyle = "rgba(" + GOLD + "," + (fillA * mA).toFixed(3) + ")";
             ctx.fill();
           }
           ctx.strokeStyle = "rgba(" + TEAL + "," + ((0.12 + 0.24 * hot) * mA).toFixed(3) + ")";
@@ -1140,6 +1198,16 @@
         ctx.beginPath(); ctx.moveTo(gz[0] + L - 6, gz[1] - 4); ctx.lineTo(gz[0] + L, gz[1]); ctx.lineTo(gz[0] + L - 6, gz[1] + 4); ctx.stroke();
         ctx.strokeStyle = "rgba(236,234,229," + (0.8 * fortA).toFixed(3) + ")";
         ctx.strokeRect(gz[0] - 3, gz[1] - 3, 6, 6);
+        // marching ants around the selection — pure edit-mode
+        ctx.strokeStyle = "rgba(236,234,229," + (0.30 * fortA).toFixed(3) + ")";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.lineDashOffset = -((t * 0.02) % 8);
+        ctx.beginPath();
+        for (let i = 0; i < N; i++) (i ? ctx.lineTo(FRONT[i][0], FRONT[i][1]) : ctx.moveTo(FRONT[i][0], FRONT[i][1]));
+        ctx.closePath();
+        ctx.stroke();
+        ctx.setLineDash([]); ctx.lineDashOffset = 0;
       }
       // 04 · auto thermal: hub + bolt ring, spinning vanes, breathing
       //      isotherms in the friction band, the fixed caliper, heat plumes
@@ -1195,10 +1263,24 @@
           const p1 = proj(dc.c[0] + Math.cos(a3) * dc.rOut * 0.80, dc.c[1] + Math.sin(a3) * dc.rOut * 0.80, hz);
           ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
         }
-        // buoyant heat plumes rising off the rim — the CFD half of the case
+        // pad contact patch: the friction interface itself glows and flickers
+        const flick = 0.65 + 0.35 * Math.sin(t * 0.013) * Math.sin(t * 0.0047);
+        for (const rq of [dc.band[0] * 1.04, (dc.band[0] + dc.band[1]) / 2, dc.band[1] * 0.97]) {
+          ctx.strokeStyle = "rgba(" + GOLD + "," + (0.22 * flick * thA).toFixed(3) + ")";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          for (let k = 0; k <= 8; k++) {
+            const a3 = -1.0 + (k / 8) * 0.75;
+            const p2 = proj(dc.c[0] + Math.cos(a3) * rq, dc.c[1] + Math.sin(a3) * rq, hz);
+            k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+          }
+          ctx.stroke();
+        }
+        ctx.lineWidth = 1.2;
+        // buoyant heat plumes rising off the rim, densest over the hot side
         for (const pl of PL) {
           pl.life -= dt * 0.30;
-          if (pl.life <= 0) { pl.life = 1; pl.x = Math.random(); }
+          if (pl.life <= 0) { pl.life = 1; pl.x = 0.30 + 0.70 * Math.random(); }
           const rise = (1 - pl.life) * dc.rOut * 1.4;
           const px = dc.c[0] + (pl.x - 0.5) * dc.rOut * 1.7 + Math.sin(t * 0.003 + pl.x * 21) * 7;
           const py = dc.c[1] - dc.rOut * 0.55 - rise;
