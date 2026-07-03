@@ -113,12 +113,96 @@
     const centerWord = ring.querySelector("[data-ring-word]");
     const centerCount = ring.querySelector("[data-ring-count]");
     const centerTele = ring.querySelector("[data-ring-tele]");
-    const trailDots = Array.from(ring.querySelectorAll(".ring-trail"));
+    const tails = Array.from(ring.querySelectorAll(".ring-tail"));
+    const TAIL_DEG = [30, 19, 9];   // arc length per tail layer, in degrees
     const glyphs = Array.from(ring.querySelectorAll(".ring-glyph .glyph"));
     const nodePulse = ring.querySelector(".ring-nodepulse");
     const spoke = ring.querySelector(".ring-spoke");
     const logLines = Array.from(ring.querySelectorAll(".ring-log__ln"));
     const NODE_POS = [[200, 50], [350, 200], [200, 350], [50, 200]];
+
+    /* ---- centre glyph geometry: a true NACA 0012, computed not drawn ----
+       cosine-spaced stations, thickness from the NACA formula, boundary-layer
+       shells offset along exact vertex normals — the same recipe a real
+       structured mesher uses, so nothing crosses or misaligns */
+    const glyphRoot = ring.querySelector(".ring-glyph");
+    if (glyphRoot) {
+      const SVGNS = "http://www.w3.org/2000/svg";
+      const CHX = 126, CHY = 152, CHORD = 154, THICK = 1.9;
+      const M = 36;
+      const yt = (t) => 5 * 0.12 * (0.2969 * Math.sqrt(t) - 0.1260 * t - 0.3516 * t * t + 0.2843 * t * t * t - 0.1036 * t * t * t * t);
+      const upper = [], lower = [];
+      for (let i = 0; i <= M; i++) {
+        const xc = 0.5 * (1 - Math.cos(Math.PI * i / M));   // cosine spacing packs points at LE/TE
+        const y = yt(xc) * CHORD * THICK;
+        upper.push([CHX + xc * CHORD, CHY - y]);
+        lower.push([CHX + xc * CHORD, CHY + y]);
+      }
+      // closed loop: TE → upper surface → LE → lower surface (Z closes back to TE)
+      const outline = upper.slice().reverse().concat(lower.slice(1, M));
+      const toPath = (pts) => pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ") + " Z";
+      const nrm = outline.map((p, i) => {
+        const a = outline[(i - 1 + outline.length) % outline.length];
+        const b = outline[(i + 1) % outline.length];
+        const tx = b[0] - a[0], ty = b[1] - a[1];
+        const l = Math.hypot(tx, ty) || 1;
+        return [-ty / l, tx / l];   // tangent rotated to point outward for this winding
+      });
+      const shellPts = (d) => outline.map((p, i) => [p[0] + nrm[i][0] * d, p[1] + nrm[i][1] * d]);
+      const foilD = toPath(outline);
+      glyphRoot.querySelectorAll(".g-foil, .g0-broken, .g0-heal").forEach((el) => el.setAttribute("d", foilD));
+      // ingest: gap markers sit exactly on the skin
+      const gapsG = glyphRoot.querySelector(".g0-gaps");
+      if (gapsG) [10, 28, 52].forEach((i) => {
+        const c = document.createElementNS(SVGNS, "circle");
+        c.setAttribute("class", "g0-gap");
+        c.setAttribute("cx", outline[i][0].toFixed(1));
+        c.setAttribute("cy", outline[i][1].toFixed(1));
+        c.setAttribute("r", "2.6");
+        gapsG.appendChild(c);
+      });
+      // mesh: three exact offset shells + normals through them
+      const SHELLS = [4, 8.5, 14];
+      const shells = SHELLS.map(shellPts);
+      const shellsG = glyphRoot.querySelector(".g1-shells");
+      if (shellsG) shells.forEach((pts, k) => {
+        const path = document.createElementNS(SVGNS, "path");
+        path.setAttribute("d", toPath(pts));
+        path.style.setProperty("--i", k);
+        shellsG.appendChild(path);
+      });
+      const normalsG = glyphRoot.querySelector(".g1-normals");
+      if (normalsG) {
+        let n = 0;
+        for (let i = 2; i < outline.length - 1; i += 3) {
+          const ln = document.createElementNS(SVGNS, "line");
+          ln.setAttribute("x1", outline[i][0].toFixed(1));
+          ln.setAttribute("y1", outline[i][1].toFixed(1));
+          ln.setAttribute("x2", shells[2][i][0].toFixed(1));
+          ln.setAttribute("y2", shells[2][i][1].toFixed(1));
+          ln.style.setProperty("--i", n++);
+          normalsG.appendChild(ln);
+        }
+      }
+      // verify: real mesh cells — quads between the first two shells
+      const cellsG = glyphRoot.querySelector(".g2-cells");
+      if (cellsG) {
+        const quads = [];
+        for (let i = 4; i <= 30; i += 4) quads.push(i);          // upper surface
+        for (let i = 40; i <= 66; i += 4) quads.push(i);         // lower surface
+        const cells = quads.map((i) => {
+          const pts = [shells[0][i], shells[1][i], shells[1][i + 2], shells[0][i + 2]];
+          return { pts, x: (pts[0][0] + pts[2][0]) / 2 };
+        }).sort((a, b) => a.x - b.x);                            // grade in behind the scan gate
+        cells.forEach((cell, k) => {
+          const poly = document.createElementNS(SVGNS, "polygon");
+          poly.setAttribute("points", cell.pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" "));
+          poly.style.setProperty("--i", k);
+          if (k === 4 || k === 9) poly.setAttribute("class", "flag");
+          cellsG.appendChild(poly);
+        });
+      }
+    }
     const phaseNames = phaseItems.map((el) => (el.querySelector("[data-phase-name]") || el).textContent.trim());
 
     const CX = 200, CY = 200, R = 150;
@@ -202,12 +286,12 @@
       }
       const sweep = p * 360;
       tickEls.forEach((t) => t.el.classList.toggle("lit", sweep > 0.5 && t.deg <= sweep));
-      // comet trail: ghost dots lag the marker at increasing angles, fading out
-      trailDots.forEach((el, k) => {
-        const tAng = (-90 + Math.max(sweep - (k + 1) * 6, 0)) * (Math.PI / 180);
-        el.setAttribute("cx", (CX + R * Math.cos(tAng)).toFixed(2));
-        el.setAttribute("cy", (CY + R * Math.sin(tAng)).toFixed(2));
-        el.style.opacity = sweep <= 0.5 ? "0" : (0.5 * (1 - k / (trailDots.length + 1))).toFixed(2);
+      // comet tail: position each arc layer's dash segment to end at the marker
+      tails.forEach((el, k) => {
+        const seg = Math.max(Math.min(TAIL_DEG[k], sweep), 0.01);
+        el.style.strokeDasharray = seg + " " + (360 - seg);
+        el.style.strokeDashoffset = String(seg + 90 - sweep);
+        el.classList.toggle("live", sweep > 1);
       });
       const idx = clamp(Math.floor(p * N - 1e-6), 0, N - 1);
       setPhase(idx);

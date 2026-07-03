@@ -1086,8 +1086,15 @@ html.lenis, html.lenis body { height: auto; }
 .ring-center-word { font-family: var(--font-mono); font-weight: 500; font-size: 21px; letter-spacing: 0.24em; fill: var(--ink); text-transform: uppercase; }
 .ring-center-count { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.28em; fill: var(--gold); }
 .ring-center-tele { font-family: var(--font-mono); font-size: 8px; letter-spacing: 0.2em; fill: var(--teal); opacity: 0.85; text-transform: uppercase; }
-/* comet trail behind the orbiting marker — ghost dots placed by pages.js */
-.ring-trail { fill: var(--gold); opacity: 0; }
+/* comet tail behind the orbiting marker — three tapered arc layers hugging the
+   ring; pages.js positions the dash segment so each layer ends at the marker */
+.ring-tail { fill: none; stroke: var(--gold); stroke-linecap: round; opacity: 0; }
+.ring-tail--1 { stroke-width: 6.5; }
+.ring-tail--2 { stroke-width: 4; }
+.ring-tail--3 { stroke-width: 2.2; }
+.ring-tail--1.live { opacity: 0.10; }
+.ring-tail--2.live { opacity: 0.22; }
+.ring-tail--3.live { opacity: 0.45; }
 
 /* radar spoke: faint radius that follows the marker (endpoints set by pages.js) */
 .ring-spoke { stroke: var(--teal); stroke-width: 1; opacity: 0.2; stroke-linecap: round; }
@@ -1108,19 +1115,19 @@ html.lenis, html.lenis body { height: auto; }
 .g0-gap { fill: var(--gold); animation: gapPulse 1.3s ease-in-out infinite; }
 .glyph--0.on .g0-gap { animation: none; opacity: 0; transition: opacity 0.5s 1s; }
 @keyframes gapPulse { 50% { opacity: 0.25; } }
-/* 02 · mesh: boundary-layer shells + surface normals cascade in */
-.g1-layer { fill: none; stroke: var(--teal); stroke-width: 1; opacity: 0; }
-.glyph--1.on .g1-layer { opacity: 0.7; transition: opacity 0.5s calc(0.25s + var(--i) * 0.22s); }
-.g1-normals line { stroke: var(--teal); stroke-width: 1; opacity: 0; }
-.glyph--1.on .g1-normals line { opacity: 0.5; transition: opacity 0.4s calc(0.6s + var(--i) * 0.08s); }
+/* 02 · mesh: exact boundary-layer shells + surface normals cascade in */
+.g1-shells path { fill: none; stroke: var(--teal); stroke-width: 1; opacity: 0; }
+.glyph--1.on .g1-shells path { opacity: 0.65; transition: opacity 0.5s calc(0.25s + var(--i) * 0.22s); }
+.g1-normals line { stroke: var(--teal); stroke-width: 0.8; opacity: 0; }
+.glyph--1.on .g1-normals line { opacity: 0.45; transition: opacity 0.4s calc(0.7s + var(--i) * 0.045s); }
 /* 03 · verify: scan gate sweeps across, cells grade in behind it; flagged ones flash gold then settle */
-.g2-cells rect { fill: var(--teal); fill-opacity: 0; stroke: var(--teal); stroke-width: 0.8; stroke-opacity: 0.35; }
-.glyph--2.on .g2-cells rect { fill-opacity: 0.3; transition: fill-opacity 0.35s calc(0.2s + var(--i) * 0.11s); }
-.glyph--2.on .g2-cells rect.flag { animation: cellFlag 1.1s calc(0.2s + var(--i) * 0.11s) both; }
+.g2-cells polygon { fill: var(--teal); fill-opacity: 0; stroke: var(--teal); stroke-width: 0.7; stroke-opacity: 0.35; }
+.glyph--2.on .g2-cells polygon { fill-opacity: 0.3; transition: fill-opacity 0.35s calc(0.2s + var(--i) * 0.09s); }
+.glyph--2.on .g2-cells polygon.flag { animation: cellFlag 1.1s calc(0.2s + var(--i) * 0.09s) both; }
 @keyframes cellFlag { 0% { fill: var(--gold); fill-opacity: 0; } 40% { fill: var(--gold); fill-opacity: 0.85; } 100% { fill: var(--teal); fill-opacity: 0.3; } }
 .g2-scan { stroke: var(--gold); stroke-width: 1.2; opacity: 0; stroke-linecap: round; }
 .glyph--2.on .g2-scan { animation: scanGate 1.5s 0.15s var(--ease-expo) both; }
-@keyframes scanGate { 0% { transform: translateX(132px); opacity: 0.9; } 100% { transform: translateX(262px); opacity: 0; } }
+@keyframes scanGate { 0% { transform: translateX(118px); opacity: 0.9; } 100% { transform: translateX(288px); opacity: 0; } }
 /* 04 · deliver: export brackets draw closed, then the ship-out arrow */
 .g3-crate, .g3-arrow { fill: none; stroke: var(--gold); stroke-width: 1.4; stroke-dasharray: 100; stroke-dashoffset: 100; stroke-linecap: round; stroke-linejoin: round; }
 .glyph--3.on .g3-crate { stroke-dashoffset: 0; transition: stroke-dashoffset 0.9s 0.25s var(--ease-expo); }
@@ -1139,7 +1146,7 @@ html.lenis, html.lenis body { height: auto; }
 @media (prefers-reduced-motion: reduce) {
   .g0-gap, .ring-nodepulse, .ring-log__ln.cur::after { animation: none; }
   .glyph--2.on .g2-scan { animation: none; opacity: 0; }
-  .glyph--2.on .g2-cells rect.flag { animation: none; fill-opacity: 0.3; }
+  .glyph--2.on .g2-cells polygon.flag { animation: none; fill-opacity: 0.3; }
 }
 
 /* ============================================================
