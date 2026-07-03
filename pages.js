@@ -120,6 +120,17 @@
     const spoke = ring.querySelector(".ring-spoke");
     const logLines = Array.from(ring.querySelectorAll(".ring-log__ln"));
     const NODE_POS = [[200, 50], [350, 200], [200, 350], [50, 200]];
+    /* run log copy: present-tense while running, past-tense result + duration once done */
+    const LOG = [
+      { run: "opening cad · sealing gaps", done: "geometry sealed · walls tagged · 2.4s" },
+      { run: "growing boundary layers", done: "prisms grown to y+ 1.0 · 14.9s" },
+      { run: "grading skew & orthogonality", done: "2 weak cells re-meshed · 6.1s" },
+      { run: "packing solver deck", done: "exported .cgns · solver-ready · 1.8s" },
+    ];
+    const statBar = ring.querySelector("[data-ring-bar]");
+    const statCells = ring.querySelector("[data-ring-cells]");
+    const statQual = ring.querySelector("[data-ring-quality]");
+    const statTime = ring.querySelector("[data-ring-time]");
 
     /* ---- centre glyph geometry: a true NACA 0012, computed not drawn ----
        cosine-spaced stations, thickness from the NACA formula, boundary-layer
@@ -258,8 +269,14 @@
       if (centerTele && TELE[idx]) scrambleTo(centerTele, TELE[idx]);
       glyphs.forEach((el, i) => el.classList.toggle("on", i === idx));
       logLines.forEach((el, i) => {
-        el.classList.toggle("on", i <= idx);
-        el.classList.toggle("cur", i === idx);
+        el.classList.toggle("done", i < idx);
+        el.classList.toggle("run", i === idx);
+        const st = el.querySelector(".st"), tx = el.querySelector(".tx");
+        if (st) st.textContent = i < idx ? "✓" : i === idx ? "▶" : "·";
+        if (tx && LOG[i]) {
+          const target = i < idx ? LOG[i].done : i === idx ? LOG[i].run : "queued";
+          if (tx.textContent !== target) scrambleTo(tx, target);
+        }
       });
       if (nodePulse && NODE_POS[idx]) {
         nodePulse.setAttribute("cx", NODE_POS[idx][0]);
@@ -293,6 +310,29 @@
         el.style.strokeDashoffset = String(seg + 90 - sweep);
         el.classList.toggle("live", sweep > 1);
       });
+      // run telemetry: cells climb during meshing, quality grades in during verify
+      if (statBar) statBar.style.transform = "scaleX(" + p.toFixed(4) + ")";
+      if (statCells) {
+        let cells;
+        if (p < 0.25) cells = Math.round(84200 * (p / 0.25));
+        else {
+          const q = clamp((p - 0.25) / 0.4, 0, 1);
+          const s = q * q * (3 - 2 * q);
+          cells = Math.round(84200 + (12418304 - 84200) * s);
+        }
+        statCells.textContent = cells.toLocaleString("en-US");
+      }
+      if (statQual) {
+        if (p < 0.5) statQual.textContent = "—";
+        else {
+          const q = clamp((p - 0.5) / 0.2, 0, 1);
+          statQual.textContent = (91 + 8.8 * q).toFixed(1) + "% pass";
+        }
+      }
+      if (statTime) {
+        const secs = Math.round(p * 47);
+        statTime.textContent = "00:" + String(secs).padStart(2, "0");
+      }
       const idx = clamp(Math.floor(p * N - 1e-6), 0, N - 1);
       setPhase(idx);
     };

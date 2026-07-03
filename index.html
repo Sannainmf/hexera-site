@@ -142,12 +142,20 @@
         <div class="ring-copy">
           <h2 class="h2">Four phases,<br><em>one&nbsp;pipeline.</em></h2>
           <p class="ring-lede">A multi-agent pipeline takes each part from raw CAD to solver-ready — specialised agents read the geometry, mesh to intent, check their own work, and hand off.</p>
-          <!-- build log: one line lands as each phase completes -->
+          <!-- live run log: phases queue, execute, and land like CI output (pages.js drives states) -->
           <div class="ring-log" aria-hidden="true">
-            <p class="ring-log__ln"><span class="idx">01</span><span class="nm">ingest</span>geometry sealed · walls tagged</p>
-            <p class="ring-log__ln"><span class="idx">02</span><span class="nm">mesh</span>boundary layers grown to spec</p>
-            <p class="ring-log__ln"><span class="idx">03</span><span class="nm">verify</span>weak cells caught · re-meshed</p>
-            <p class="ring-log__ln"><span class="idx">04</span><span class="nm">deliver</span>solver deck exported</p>
+            <p class="ring-log__ln"><span class="st">·</span><span class="idx">01</span><span class="nm">ingest</span><span class="tx">queued</span></p>
+            <p class="ring-log__ln"><span class="st">·</span><span class="idx">02</span><span class="nm">mesh</span><span class="tx">queued</span></p>
+            <p class="ring-log__ln"><span class="st">·</span><span class="idx">03</span><span class="nm">verify</span><span class="tx">queued</span></p>
+            <p class="ring-log__ln"><span class="st">·</span><span class="idx">04</span><span class="nm">deliver</span><span class="tx">queued</span></p>
+          </div>
+          <!-- run telemetry: live counters driven by scroll progress -->
+          <div class="ring-stats" aria-hidden="true">
+            <div class="ring-stats__bar"><span data-ring-bar></span></div>
+            <div class="ring-stats__row"><span class="k">run</span><span class="v">042 · naca 0012</span></div>
+            <div class="ring-stats__row"><span class="k">cells</span><span class="v" data-ring-cells>0</span></div>
+            <div class="ring-stats__row"><span class="k">quality</span><span class="v" data-ring-quality>—</span></div>
+            <div class="ring-stats__row"><span class="k">elapsed</span><span class="v" data-ring-time>00:00</span></div>
           </div>
         </div>
 
