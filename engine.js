@@ -3,23 +3,21 @@
    Scroll-scrubbed 3D wireframe story, hand-rolled perspective
    projection on 2D canvas. No WebGL, no libraries.
 
-   The specimen: a transport-style wing built like real CAD —
-   cambered NACA 2412 sections, taper, 24° LE sweep, dihedral,
-   washout twist, closed rounded tip caps, flap + aileron panel
-   break lines, and internal structure (front/rear spars with
-   rib webs). Rendering uses per-segment surface normals for
-   view-dependent backface dimming and a two-tier line
-   hierarchy: bright feature edges, faint interior lines.
-
-   Five acts, scrubbed by scroll:
-     00 READ   · point cloud converges; feature edges draw first
-     01 TAG    · skin / flaps / ailerons / tips classified
-     02 MESH   · structured surface grid sweeps LE → TE with real
-                 clustering, then an 8-layer prism stack (growth
-                 1.35) builds at an inspection rib
-     03 PROVE  · a quality gate sweeps the span; failures flash
-                 and re-refine
-     04 SHIP   · the export crate draws itself closed
+   The specimen: a transport-aircraft half-wing modelled like the
+   real thing —
+     · Yehudi kink planform: straight inboard trailing edge,
+       kinked at 35% semispan, swept outboard
+     · 24° LE sweep, taper 0.24, straight 6° dihedral, 3° washout
+     · cambered sections, t/c 14% → 10% root to tip
+     · blended winglet: curved transition to 78° cant
+     · LE slat + dividers, flap with hinge + kink split, aileron,
+       three spoiler panels, two flap-track canoe fairings
+     · front/rear spars with rib webs, closed root rib
+   The mesh follows real multiblock rules: spanwise stations land
+   exactly on the root / kink / tip / winglet block boundaries
+   with Chebyshev clustering into each; chordwise cosine
+   clustering at LE and TE; 8 prism layers at 1.35 growth
+   totalling ~8% of local chord at the inspection rib.
    ============================================================ */
 (() => {
   "use strict";
@@ -34,248 +32,299 @@
   const sstep = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
   const lerp = (a, b, t) => a + (b - a) * t;
 
-  /* ================= wing definition ================= */
-  const SEMI = 1.3;                 // semispan
-  const CROOT = 1.0, CTIP = 0.38;   // chords
-  const SWEEP = 0.46;               // LE sweep (x shift at tip)
-  const DIHED = 0.085;              // dihedral rise at tip
-  const TWIST = -0.06;              // washout (rad at tip)
-  const XSHIFT = -0.52;             // recenter the planform on the origin
+  /* ================= planform (all lengths in chords of the root) ================= */
+  const S = 2.0;                        // semispan
+  const KINK = 0.70;                    // Yehudi kink station
+  const CR = 0.85;                      // root chord
+  const SWEEP_LE = 0.44;                // LE x at tip
+  const XTE_TIP = 0.64;                 // TE x at tip
+  const DIHED = 0.105;                  // tan(6°)
+  const TWIST = -0.052;                 // 3° washout at tip
+  const xLE = (z) => SWEEP_LE * (z / S);
+  const xTE = (z) => z <= KINK ? CR : lerp(CR, XTE_TIP, (z - KINK) / (S - KINK));
+  const chordAtZ = (z) => xTE(z) - xLE(z);
+  const dihedY = (z) => DIHED * z;
+  const thickScale = (z) => lerp(1.17, 0.83, z / S);   // t/c 14% → 10%
 
-  // NACA 2412: camber m=0.02 @ p=0.4, thickness 12%
+  // model recentring so it orbits nicely
+  const XO = -0.46, YO = -0.15, ZO = -1.06;
+
+  /* ================= section loop: cambered airfoil, cosine spacing =================
+     NACA 2412 family camber; loop runs TE → upper → LE → lower → (TE) */
+  const P = 56, H = P / 2;
   const M2 = 0.02, P4 = 0.4;
-  const yc = (x) => x < P4 ? (M2 / (P4 * P4)) * (2 * P4 * x - x * x)
-                           : (M2 / ((1 - P4) * (1 - P4))) * ((1 - 2 * P4) + 2 * P4 * x - x * x);
-  const yt = (x) => 5 * 0.12 * (0.2969 * Math.sqrt(x) - 0.1260 * x - 0.3516 * x * x + 0.2843 * x ** 3 - 0.1036 * x ** 4);
-
-  /* section loop in unit chord space: TE → upper → LE → lower → (TE)
-     P points, cosine-clustered at LE and TE (real chordwise clustering) */
-  const P = 48, H = P / 2;
-  const loopXY = [], loopN = [];
+  const ycam = (x) => x < P4 ? (M2 / (P4 * P4)) * (2 * P4 * x - x * x)
+                             : (M2 / ((1 - P4) * (1 - P4))) * ((1 - 2 * P4) + 2 * P4 * x - x * x);
+  const ythk = (x) => 5 * 0.12 * (0.2969 * Math.sqrt(x) - 0.1260 * x - 0.3516 * x * x + 0.2843 * x ** 3 - 0.1036 * x ** 4);
+  const LX = [], LC = [], LT = [], LN = [];            // x/c, camber, ±thickness, 2D normal
   {
     const pts = [];
-    for (let i = 0; i <= H; i++) {                     // upper TE→LE
-      const x = 0.5 * (1 + Math.cos(Math.PI * i / H));
-      pts.push([x, yc(x) + yt(x)]);
-    }
-    for (let i = 1; i < H; i++) {                      // lower LE→TE
-      const x = 0.5 * (1 - Math.cos(Math.PI * i / H));
-      pts.push([x, yc(x) - yt(x)]);
-    }
-    pts.forEach((p) => loopXY.push(p));
+    for (let i = 0; i <= H; i++) { const x = 0.5 * (1 + Math.cos(Math.PI * i / H)); pts.push([x, 1]); }
+    for (let i = 1; i < H; i++) { const x = 0.5 * (1 - Math.cos(Math.PI * i / H)); pts.push([x, -1]); }
+    pts.forEach(([x, sd]) => { LX.push(x); LC.push(ycam(x)); LT.push(sd * ythk(x)); });
     for (let i = 0; i < P; i++) {
-      const a = loopXY[(i - 1 + P) % P], b = loopXY[(i + 1) % P];
-      const tx = b[0] - a[0], ty = b[1] - a[1];
+      const a = (i - 1 + P) % P, b = (i + 1) % P;
+      const tx = (LX[b] - LX[a]), ty = (LC[b] + LT[b]) - (LC[a] + LT[a]);
       const l = Math.hypot(tx, ty) || 1;
-      loopN.push([-ty / l, tx / l]);                   // outward for this winding
+      LN.push([-ty / l, tx / l]);
     }
   }
-  const LEI = H;                                       // loop index of the leading edge
-  const chordAt = (j) => loopXY[j][0];                 // x/c of loop point
-  const distLE = (j) => Math.abs(j - LEI) / H;         // 0 at LE → 1 at TE
-
-  /* spanwise stations: clustered at root and tips, plus closing cap stations */
-  const stF = [];
-  {
-    const NHALF = 12;
-    for (let k = -NHALF; k <= NHALF; k++) {
-      const u = k / NHALF;
-      stF.push(Math.tanh(1.6 * u) / Math.tanh(1.6) * 0.955);
-    }
-  }
-  const CAPS = [[0.965, 0.72], [0.978, 0.42], [0.988, 0.16]]; // [f, thickness+chord scale]
-
-  /* build one section: returns P points [x,y,z] */
-  const buildSec = (f, scale) => {
-    const af = Math.abs(f);
-    const chord = lerp(CROOT, CTIP, af) * (scale || 1);
-    const xle = SWEEP * af;
-    const dy = DIHED * af * af * 2.2;
-    const tw = TWIST * af;
-    const cosW = Math.cos(tw), sinW = Math.sin(tw);
-    const out = [];
+  const LEI = H;
+  const jFor = (xc, upper) => {
+    let best = upper ? 0 : P - 1, bd = 9;
     for (let j = 0; j < P; j++) {
-      let x = loopXY[j][0] * chord, y = loopXY[j][1] * chord * (scale ? lerp(1, 0.55, 1 - scale) : 1);
-      const qx = x - 0.25 * chord;                     // twist about quarter chord
-      x = 0.25 * chord + qx * cosW - y * sinW;
-      y = qx * sinW + y * cosW;
-      out.push([xle + x + XSHIFT + (scale ? (1 - scale) * chord * 0.35 : 0), y + dy, f * SEMI]);
-    }
-    return out;
-  };
-  const sections = stF.map((f) => buildSec(f, 1));
-  const NST = sections.length, MID = (NST - 1) / 2;
-  // closed tips: cap sections shrinking to a point
-  const capsL = CAPS.map(([f, s]) => buildSec(-f, s));
-  const capsR = CAPS.map(([f, s]) => buildSec(f, s));
-
-  /* segment store: {a, b, n(3)|0, cls, tag, st, dle}
-     cls: 0 feature · 1 skin · 2 internal · 3 finegrid
-     tag: 0 skin · 1 flap · 2 aileron · 3 tips */
-  const segs = [];
-  const nrm3 = (j) => [loopN[j][0], loopN[j][1], 0];
-  const tagAt = (j, f) => {
-    const af = Math.abs(f);
-    if (af > 0.9) return 3;
-    if (chordAt(j) > 0.7 && j < H) {                   // rear upper panel region
-      if (af >= 0.5 && af <= 0.9) return 2;            // aileron
-      if (af <= 0.42) return 1;                        // flap
-    }
-    return 0;
-  };
-  const add = (a, b, n, cls, tag, st, dle) => segs.push({ a, b, n, cls, tag, st, dle });
-
-  /* skin rings (CAD density: every 2nd station) */
-  for (let s = 0; s < NST; s += 2) {
-    for (let j = 0; j < P; j++) {
-      add(sections[s][j], sections[s][(j + 1) % P], nrm3(j), 1, tagAt(j, stF[s]), s, distLE(j));
-    }
-  }
-  /* spanwise lines (CAD density: every 4th loop point) */
-  for (let j = 0; j < P; j += 4) {
-    for (let s = 0; s < NST - 1; s++) {
-      add(sections[s][j], sections[s + 1][j], nrm3(j), 1, tagAt(j, stF[s]), s, distLE(j));
-    }
-  }
-  /* tip caps: rings + closers */
-  [[capsL, sections[0]], [capsR, sections[NST - 1]]].forEach(([caps, last]) => {
-    let prev = last;
-    caps.forEach((sec, ci) => {
-      for (let j = 0; j < P; j += 2) {
-        add(sec[j], sec[(j + 2) % P], nrm3(j), 1, 3, 0, distLE(j));
-        add(prev[j], sec[j], nrm3(j), 1, 3, 0, distLE(j));
-      }
-      prev = sec;
-    });
-  });
-  /* feature edges: LE, TE (upper+lower rim), spar caps, panel breaks */
-  const featureLine = (jList, sRange, tag) => {
-    jList.forEach((j) => {
-      for (let s = sRange[0]; s < sRange[1]; s++) {
-        add(sections[s][j], sections[s + 1][j], 0, 0, tag, s, distLE(j));
-      }
-    });
-  };
-  featureLine([LEI], [0, NST - 1], 0);                            // leading edge
-  featureLine([0, P - 1], [0, NST - 1], 0);                       // trailing edge rims
-  // spar caps at x/c ≈ 0.25 and 0.68 (nearest loop indices, upper + lower)
-  const jNear = (xc, upper) => {
-    let best = upper ? 0 : H, bd = 9;
-    for (let j = 0; j < P; j++) {
-      const isUp = j < H;
-      if (isUp !== upper) continue;
-      const d = Math.abs(chordAt(j) - xc);
+      if ((j <= H) !== !!upper) continue;
+      const d = Math.abs(LX[j] - xc);
       if (d < bd) { bd = d; best = j; }
     }
     return best;
   };
-  const sparJ = [[jNear(0.25, true), jNear(0.25, false)], [jNear(0.68, true), jNear(0.68, false)]];
-  sparJ.forEach(([ju, jl]) => featureLine([ju, jl], [0, NST - 1], 0));
-  /* internal structure: spar webs (verticals at each station) + rib outlines */
-  for (let s = 0; s < NST; s++) {
-    sparJ.forEach(([ju, jl]) => add(sections[s][ju], sections[s][jl], 0, 2, 0, s, 0.5));
-    if (s % 4 === 2) {
-      for (let j = 0; j < P; j += 3) add(sections[s][j], sections[s][(j + 3) % P], 0, 2, 0, s, distLE(j));
+
+  /* main-wing section at spanwise z */
+  const secMain = (z) => {
+    const ch = chordAtZ(z), xle = xLE(z), dy = dihedY(z), ts = thickScale(z);
+    const tw = TWIST * (z / S), cw = Math.cos(tw), sw = Math.sin(tw);
+    const out = [];
+    for (let j = 0; j < P; j++) {
+      let x = LX[j] * ch, y = (LC[j] + LT[j] * ts) * ch;
+      const dx = x - 0.25 * ch;
+      x = 0.25 * ch + dx * cw - y * sw; y = dx * sw + y * cw;
+      out.push([xle + x + XO, dy + y + YO, z + ZO]);
+    }
+    return out;
+  };
+
+  /* blended winglet: circular-arc cant transition then straight extension.
+     s ∈ [0,1] along the winglet; returns { pts, chi } */
+  const CANT = 1.36, RB = 0.24, LEXT = 0.16;
+  const ARCL = RB * CANT;
+  const WTOT = ARCL + LEXT;
+  const secWing = (s, capScale) => {
+    const al = s * WTOT;
+    let chi, py, pz;
+    if (al <= ARCL) {
+      chi = al / RB;
+      py = dihedY(S) + RB * (1 - Math.cos(chi));
+      pz = S + RB * Math.sin(chi);
+    } else {
+      chi = CANT;
+      const e = al - ARCL;
+      py = dihedY(S) + RB * (1 - Math.cos(CANT)) + Math.sin(CANT) * e;
+      pz = S + RB * Math.sin(CANT) + Math.cos(CANT) * e;
+    }
+    const ch = lerp(chordAtZ(S), 0.10, s) * (capScale || 1);
+    const xle = SWEEP_LE + 0.17 * s + (capScale ? (1 - capScale) * ch * 0.3 : 0);
+    const ts = lerp(0.83, 0.72, s);
+    const cc = Math.cos(chi), sc = Math.sin(chi);
+    const out = [];
+    for (let j = 0; j < P; j++) {
+      const x = LX[j] * ch, y = (LC[j] + LT[j] * ts) * ch;
+      out.push([xle + x + XO, py + y * cc + YO, pz - y * sc + ZO]);
+    }
+    return { pts: out, chi };
+  };
+
+  /* ================= CAD stations ================= */
+  const mainZ = [0, 0.08, 0.18, 0.30, 0.42, 0.55, KINK, 0.85, 1.0, 1.15, 1.30, 1.45, 1.60, 1.75, 1.88, 2.0];
+  const wingS = [0.16, 0.34, 0.52, 0.70, 0.86, 1.0];
+  const stations = [];                     // {pts, z, chi, wing:bool}
+  mainZ.forEach((z) => stations.push({ pts: secMain(z), z, chi: 0, wing: false }));
+  wingS.forEach((s) => { const w = secWing(s); stations.push({ pts: w.pts, z: S + s, chi: w.chi, wing: true }); });
+  const capA = secWing(1.005, 0.55), capB = secWing(1.01, 0.22);
+  const NSTA = stations.length;
+
+  /* segment store: {a,b,n,cls,tag,z}
+     cls: 0 feature(ink) · 1 skin(teal) · 2 internal ghost · tag groups:
+     0 skin · 1 high-lift (slat+flap) · 2 controls (aileron+spoilers) · 3 winglet */
+  const segs = [];
+  const n3 = (j, chi) => [LN[j][0], LN[j][1] * Math.cos(chi || 0), -(LN[j][1]) * Math.sin(chi || 0)];
+  const tagOf = (j, z, wing) => {
+    if (wing) return 3;
+    const xc = LX[j], up = j <= H;
+    if (xc < 0.13 && z > 0.05 && z < 1.92) return 1;                       // slat
+    if (xc > 0.72 && z < 1.26) return 1;                                   // flap
+    if (xc > 0.75 && z >= 1.32 && z <= 1.90) return 2;                     // aileron
+    if (up && xc > 0.50 && xc < 0.70 && z > 0.22 && z < 1.22) return 2;    // spoilers
+    return 0;
+  };
+  const add = (a, b, n, cls, tag, z) => segs.push({ a, b, n, cls, tag, z });
+
+  /* skin rings (every station) + spanwise lines (every 4th loop point) */
+  stations.forEach((st) => {
+    for (let j = 0; j < P; j++) {
+      add(st.pts[j], st.pts[(j + 1) % P], n3(j, st.chi), 1, tagOf(j, st.z, st.wing), st.z);
+    }
+  });
+  for (let j = 0; j < P; j += 4) {
+    for (let s = 0; s < NSTA - 1; s++) {
+      const a = stations[s], b = stations[s + 1];
+      add(a.pts[j], b.pts[j], n3(j, a.chi), 1, tagOf(j, a.z, a.wing), a.z);
     }
   }
-  /* panel break lines: aileron + flap boxes (span edges chordwise, chord edges spanwise) */
-  const jPanelU = [];
-  for (let j = 0; j < H; j++) if (chordAt(j) > 0.7) jPanelU.push(j);
-  const panelBox = (f0, f1) => {
-    const s0 = stF.findIndex((f) => f >= f0), s1 = stF.findIndex((f) => f >= f1);
-    // spanwise hinge line at x/c 0.7 upper
-    const jh = jNear(0.7, true);
-    for (let s = s0; s < s1; s++) add(sections[s][jh], sections[s + 1][jh], 0, 0, 0, s, distLE(jh));
-    // side edges: chordwise from hinge to TE at s0 and s1
-    [s0, s1].forEach((s) => {
-      for (let j = 0; j < jh; j++) add(sections[s][j], sections[s][j + 1], 0, 0, 0, s, distLE(j));
-    });
-  };
-  panelBox(0.52, 0.9);        // right aileron
-  panelBox(-0.9, -0.52);      // left aileron  (findIndex works on ascending stF)
-  panelBox(-0.4, 0.4);        // center flap span (reads as two flap panels split by root)
+  /* winglet cap */
+  [capA, capB].forEach((cap, ci) => {
+    const prev = ci === 0 ? stations[NSTA - 1].pts : capA.pts;
+    for (let j = 0; j < P; j += 2) {
+      add(cap.pts[j], cap.pts[(j + 2) % P], n3(j, cap.chi), 1, 3, S + 1);
+      add(prev[j], cap.pts[j], n3(j, cap.chi), 1, 3, S + 1);
+    }
+  });
 
-  /* ---------------- fine structured surface grid (act 02) ----------------
-     denser spanwise stations (tanh-clustered) + full chordwise loops:
-     the real thing — cells pack at LE/TE and at root/tips */
-  const fineF = [];
-  { const NF = 20; for (let k = -NF; k <= NF; k++) { const u = k / NF; fineF.push(Math.tanh(1.9 * u) / Math.tanh(1.9) * 0.955); } }
-  const fineSecs = fineF.map((f) => buildSec(f, 1));
+  /* ---- feature edges (bright ink) ---- */
+  const featAlong = (j, s0, s1) => {
+    for (let s = s0; s < s1; s++) add(stations[s].pts[j], stations[s + 1].pts[j], 0, 0, 0, stations[s].z);
+  };
+  featAlong(LEI, 0, NSTA - 1);                          // leading edge, root → winglet tip
+  featAlong(0, 0, NSTA - 1);                            // TE upper rim
+  featAlong(P - 1, 0, NSTA - 1);                        // TE lower rim
+  /* root rib: closed ring + spar webs (symmetry-plane cut) */
+  for (let j = 0; j < P; j++) add(stations[0].pts[j], stations[0].pts[(j + 1) % P], 0, 0, 0, 0);
+  /* spar caps at x/c 0.22 / 0.68, upper + lower, main wing only */
+  const sparXC = [0.22, 0.68];
+  const sparJs = [];
+  sparXC.forEach((xc) => {
+    const ju = jFor(xc, true), jl = jFor(xc, false);
+    sparJs.push([ju, jl]);
+    featAlong(ju, 0, mainZ.length - 1);
+    featAlong(jl, 0, mainZ.length - 1);
+  });
+  /* slat spanwise break (x/c 0.12 upper · 0.06 lower) + 3 slat dividers */
+  const jSlatU = jFor(0.12, true), jSlatL = jFor(0.06, false);
+  const stIdxAt = (z) => { let b = 0, bd = 9; mainZ.forEach((mz, i) => { const d = Math.abs(mz - z); if (d < bd) { bd = d; b = i; } }); return b; };
+  featAlong(jSlatU, stIdxAt(0.08), stIdxAt(1.88));
+  featAlong(jSlatL, stIdxAt(0.08), stIdxAt(1.88));
+  [0.55, 1.15, 1.6].forEach((z) => {
+    const sec = secMain(z);
+    for (let j = jSlatU; j < jSlatL; j++) add(sec[j], sec[j + 1], 0, 0, 1, z);
+  });
+  /* flap hinge (x/c 0.72 upper) root→0.62S with a split at the kink; side edges to TE */
+  const jFlap = jFor(0.72, true);
+  featAlong(jFlap, stIdxAt(0.08), stIdxAt(1.26));
+  [0.08, KINK, 1.26].forEach((z) => {
+    const sec = secMain(z);
+    for (let j = 0; j < jFlap; j++) add(sec[j], sec[j + 1], 0, 0, 1, z);
+  });
+  /* aileron box (x/c 0.75 upper) 1.32 → 1.90 */
+  const jAil = jFor(0.75, true);
+  featAlong(jAil, stIdxAt(1.30), stIdxAt(1.88));
+  [1.32, 1.90].forEach((z) => {
+    const sec = secMain(z);
+    for (let j = 0; j < jAil; j++) add(sec[j], sec[j + 1], 0, 0, 2, z);
+  });
+  /* spoiler panels: upper x/c 0.50–0.68, z 0.22–1.22, two dividers */
+  const jSp0 = jFor(0.50, true);
+  featAlong(jSp0, stIdxAt(0.22), stIdxAt(1.22));
+  [0.22, 0.55, 0.88, 1.22].forEach((z) => {
+    const sec = secMain(z);
+    for (let j = sparJs[1][0]; j < jSp0; j++) add(sec[j], sec[j + 1], 0, 0, 2, z);
+  });
+  /* flap-track canoe fairings under the TE at z 0.36 / 0.62 */
+  [0.36, 0.62].forEach((zc) => {
+    const ch = chordAtZ(zc), xle = xLE(zc), dy = dihedY(zc);
+    const yb = dy + (ycam(0.8) - ythk(0.8) * thickScale(zc)) * ch;
+    const x0 = xle + 0.58 * ch, x1 = xTE(zc) + 0.20, xm = xle + 0.95 * ch;
+    const keel = [[x0, yb - 0.005], [xm, yb - 0.052], [x1, yb - 0.012]];
+    [-0.016, 0.016].forEach((dz) => {
+      for (let i = 0; i < keel.length - 1; i++) {
+        add([keel[i][0] + XO, keel[i][1] + YO, zc + dz + ZO], [keel[i + 1][0] + XO, keel[i + 1][1] + YO, zc + dz + ZO], 0, 0, 0, zc);
+      }
+      add([x0 + XO, yb + YO, zc + ZO], [x0 + 0.1 + XO, yb - 0.045 + YO, zc + dz + ZO], 0, 0, 0, zc);
+      add([xm + XO, yb - 0.052 + YO, zc + dz + ZO], [x1 + XO, yb - 0.012 + YO, zc + ZO], 0, 0, 0, zc);
+    });
+  });
+  /* internal structure: spar webs + rib outlines (ghosted) */
+  for (let s = 0; s < mainZ.length; s++) {
+    sparJs.forEach(([ju, jl]) => add(stations[s].pts[ju], stations[s].pts[jl], 0, 2, 0, stations[s].z));
+    if (s % 2 === 1) {
+      for (let j = 0; j < P; j += 4) add(stations[s].pts[j], stations[s].pts[(j + 4) % P], 0, 2, 0, stations[s].z);
+    }
+  }
+
+  /* ================= fine mesh: multiblock surface grid =================
+     spanwise stations land exactly on block boundaries (root · kink · tip ·
+     winglet) with Chebyshev clustering into each — real topology rules */
+  const cheb = (a, b, n, skipFirst) => {
+    const out = [];
+    for (let i = skipFirst ? 1 : 0; i <= n; i++) out.push(lerp(a, b, 0.5 - 0.5 * Math.cos(Math.PI * i / n)));
+    return out;
+  };
+  const fineStations = [];
+  cheb(0, KINK, 11).forEach((z) => fineStations.push({ pts: secMain(z), chi: 0, z }));
+  cheb(KINK, S, 15, true).forEach((z) => fineStations.push({ pts: secMain(z), chi: 0, z }));
+  cheb(0, 1, 9, true).forEach((s) => { const w = secWing(s); fineStations.push({ pts: w.pts, chi: w.chi, z: S + s }); });
+  const NF = fineStations.length;
   const fineSegs = [];
-  for (let s = 0; s < fineSecs.length; s++) {
+  for (let s = 0; s < NF; s++) {
+    const st = fineStations[s];
     for (let j = 0; j < P; j++) {
-      fineSegs.push({ a: fineSecs[s][j], b: fineSecs[s][(j + 1) % P], n: nrm3(j), dle: distLE(j) });
+      fineSegs.push({ a: st.pts[j], b: st.pts[(j + 1) % P], n: n3(j, st.chi), dle: Math.abs(j - LEI) / H });
     }
   }
   for (let j = 0; j < P; j++) {
-    for (let s = 0; s < fineSecs.length - 1; s++) {
-      fineSegs.push({ a: fineSecs[s][j], b: fineSecs[s + 1][j], n: nrm3(j), dle: distLE(j) });
+    for (let s = 0; s < NF - 1; s++) {
+      const a = fineStations[s], b = fineStations[s + 1];
+      fineSegs.push({ a: a.pts[j], b: b.pts[j], n: n3(j, a.chi), dle: Math.abs(j - LEI) / H });
     }
   }
 
-  /* ---------------- prism stack at the inspection rib (act 02b) ----------------
-     8 layers, geometric growth 1.35 — drawn as layer arcs + cell walls so the
-     actual quads read. Placed at f = +0.42, the station the camera dives to. */
-  const INS_F = 0.42;
-  const insSec = buildSec(INS_F, 1);
-  const insChord = lerp(CROOT, CTIP, INS_F);
-  /* stack totals ~8% of local chord — slightly exaggerated from a real BL for
-     legibility, but the right order of magnitude, so layers hug the skin */
+  /* ================= prism stack at the inspection rib =================
+     8 layers, growth 1.35, total ~8% of local chord — correct BL scaling */
+  const INS_Z = 1.10;
+  const insSec = secMain(INS_Z);
+  const insCh = chordAtZ(INS_Z);
   const NLAY = 8, GROW = 1.35;
-  const TOTAL_D = 0.08 * insChord;
-  const D0 = TOTAL_D * (GROW - 1) / (Math.pow(GROW, NLAY) - 1);
+  const TOT = 0.08 * insCh;
+  const D0 = TOT * (GROW - 1) / (Math.pow(GROW, NLAY) - 1);
   const layD = []; { let acc = 0; for (let k = 0; k < NLAY; k++) { acc += D0 * Math.pow(GROW, k); layD.push(acc); } }
-  const prism = [];   // {a,b,layer, wall:bool}
+  const prism = [];
   for (let k = 0; k < NLAY; k++) {
     const d = layD[k];
     for (let j = 0; j < P; j++) {
-      const a = insSec[j], b = insSec[(j + 1) % P];
-      const na = loopN[j], nb = loopN[(j + 1) % P];
-      prism.push({ a: [a[0] + na[0] * d, a[1] + na[1] * d, a[2]], b: [b[0] + nb[0] * d, b[1] + nb[1] * d, b[2]], k, wall: false });
+      const na = LN[j], nb = LN[(j + 1) % P];
+      prism.push({ a: [insSec[j][0] + na[0] * d, insSec[j][1] + na[1] * d, insSec[j][2]],
+                   b: [insSec[(j + 1) % P][0] + nb[0] * d, insSec[(j + 1) % P][1] + nb[1] * d, insSec[(j + 1) % P][2]], k, wall: false });
     }
     for (let j = 0; j < P; j += 2) {
-      const a = insSec[j], n = loopN[j];
-      const d0 = k === 0 ? 0 : layD[k - 1];
-      prism.push({ a: [a[0] + n[0] * d0, a[1] + n[1] * d0, a[2]], b: [a[0] + n[0] * d, a[1] + n[1] * d, a[2]], k, wall: true });
+      const n = LN[j], d0 = k === 0 ? 0 : layD[k - 1];
+      prism.push({ a: [insSec[j][0] + n[0] * d0, insSec[j][1] + n[1] * d0, insSec[j][2]],
+                   b: [insSec[j][0] + n[0] * d, insSec[j][1] + n[1] * d, insSec[j][2]], k, wall: true });
     }
   }
-  const insMid = [insSec[LEI][0] * 0.4 + insSec[0][0] * 0.6, insSec[LEI][1] + 0.03, insSec[0][2]];
+  const insMid = [insSec[Math.floor(H * 0.55)][0], insSec[Math.floor(H * 0.55)][1] + 0.02, insSec[0][2]];
 
-  /* ---------------- assemble cloud (act 00) ---------------- */
+  /* ================= assemble cloud + export crate ================= */
   const cloud = [];
   let seed = 20260703;
   const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-  for (let s = 0; s < NST; s++) {
+  stations.forEach((st) => {
     for (let j = 0; j < P; j += 2) {
-      const p = sections[s][j];
-      const th = rnd() * Math.PI * 2, ph = Math.acos(rnd() * 2 - 1), r = 2.0 + rnd() * 1.5;
+      const p = st.pts[j];
+      const th = rnd() * Math.PI * 2, ph = Math.acos(rnd() * 2 - 1), r = 1.9 + rnd() * 1.4;
       cloud.push({ tx: p[0], ty: p[1], tz: p[2],
         sx: Math.sin(ph) * Math.cos(th) * r, sy: Math.cos(ph) * r * 0.75, sz: Math.sin(ph) * Math.sin(th) * r,
         st: rnd() * 0.55 });
     }
-  }
-
-  /* ---------------- export crate (act 04) ---------------- */
+  });
   let bb = [9, 9, 9, -9, -9, -9];
-  sections.flat().forEach((p) => {
+  stations.forEach((st) => st.pts.forEach((p) => {
     bb = [Math.min(bb[0], p[0]), Math.min(bb[1], p[1]), Math.min(bb[2], p[2]),
           Math.max(bb[3], p[0]), Math.max(bb[4], p[1]), Math.max(bb[5], p[2])];
-  });
-  const MG = 0.16;
+  }));
+  const MG = 0.15;
   const corners = [
-    [bb[0]-MG, bb[1]-MG*1.5, bb[2]-MG], [bb[3]+MG, bb[1]-MG*1.5, bb[2]-MG], [bb[3]+MG, bb[4]+MG*1.5, bb[2]-MG], [bb[0]-MG, bb[4]+MG*1.5, bb[2]-MG],
-    [bb[0]-MG, bb[1]-MG*1.5, bb[5]+MG], [bb[3]+MG, bb[1]-MG*1.5, bb[5]+MG], [bb[3]+MG, bb[4]+MG*1.5, bb[5]+MG], [bb[0]-MG, bb[4]+MG*1.5, bb[5]+MG],
+    [bb[0]-MG, bb[1]-MG, bb[2]-MG], [bb[3]+MG, bb[1]-MG, bb[2]-MG], [bb[3]+MG, bb[4]+MG, bb[2]-MG], [bb[0]-MG, bb[4]+MG, bb[2]-MG],
+    [bb[0]-MG, bb[1]-MG, bb[5]+MG], [bb[3]+MG, bb[1]-MG, bb[5]+MG], [bb[3]+MG, bb[4]+MG, bb[5]+MG], [bb[0]-MG, bb[4]+MG, bb[5]+MG],
   ];
   const crateEdges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
 
-  /* ================= camera timeline (with 3D targets) ================= */
+  /* ================= camera timeline ================= */
   const KEYS = [
-    { p: 0.00, th: 0.55, ph: 0.34, d: 3.9, t: [0, 0, 0] },
-    { p: 0.20, th: 1.25, ph: 0.44, d: 2.7, t: [0, 0, 0] },
-    { p: 0.40, th: 2.05, ph: 0.58, d: 2.5, t: [0, 0, 0.15] },
-    { p: 0.60, th: 2.75, ph: 0.26, d: 1.1, t: [insMid[0], insMid[1], insMid[2] * 0.9] },
-    { p: 0.80, th: 3.55, ph: 0.72, d: 2.9, t: [0, 0, 0] },
-    { p: 1.00, th: 4.25, ph: 0.30, d: 3.9, t: [0, 0, 0] },
+    { p: 0.00, th: 0.85, ph: 0.24, d: 3.7, t: [0, 0, 0] },
+    { p: 0.20, th: 1.55, ph: 0.40, d: 2.55, t: [0, 0.02, 0.05] },
+    { p: 0.40, th: 2.30, ph: 0.52, d: 2.3, t: [0, 0, 0.1] },
+    { p: 0.60, th: 2.95, ph: 0.22, d: 1.05, t: [insMid[0], insMid[1], insMid[2] * 0.9] },
+    { p: 0.80, th: 3.60, ph: 0.85, d: 2.75, t: [0, 0, 0.05] },
+    { p: 1.00, th: 4.30, ph: 0.24, d: 3.8, t: [0, 0, 0] },
   ];
   const cam = (p) => {
     let i = 0;
@@ -315,12 +364,12 @@
     (b.pts || (b.pts = [])).push(x, y);
   };
 
-  let cth = 0, cph = 0, cd = 3, ctx3 = [0, 0, 0], sref = 300;
+  let cth = 0, cph = 0, cd = 3, TGT = [0, 0, 0], sref = 300;
   let sinT = 0, cosT = 1, sinP = 0, cosP = 1;
-  let CX = 0, CY = 0, CZ = 0;                          // camera position in model space
+  let CXp = 0, CYp = 0, CZp = 0;
   const FL = 2.0;
   const proj = (x, y, z) => {
-    x -= ctx3[0]; y -= ctx3[1]; z -= ctx3[2];
+    x -= TGT[0]; y -= TGT[1]; z -= TGT[2];
     const x1 = x * cosT + z * sinT, z1 = -x * sinT + z * cosT;
     const y2 = y * cosP - z1 * sinP, z2 = y * sinP + z1 * cosP;
     const zc = z2 + cd;
@@ -329,26 +378,24 @@
     return [W / 2 + x1 * s * sref, Hh / 2 - y2 * s * sref, zc];
   };
   const dfade = (zc) => clamp(1.7 - zc / cd, 0.15, 1);
-  /* view-dependent facing weight: front surface bright, far side recedes */
   const facing = (mx, my, mz, n) => {
     if (!n) return 1;
-    const dx = CX - mx, dy = CY - my, dz = CZ - mz;
+    const dx = CXp - mx, dy = CYp - my, dz = CZp - mz;
     const il = 1 / (Math.hypot(dx, dy, dz) || 1);
     const dot = (n[0] * dx + n[1] * dy + n[2] * dz) * il;
-    return 0.13 + 0.87 * sstep(dot * 2.4 + 0.42);
+    return 0.12 + 0.88 * sstep(dot * 2.4 + 0.42);
   };
 
-  /* ================= acts ================= */
   const actWin = (p, i) => clamp((p - i * 0.2) / 0.2, 0, 1);
 
   const draw = (p, t) => {
     const c = cam(p);
-    cth = c.th + (reduce ? 0 : Math.sin(t / 5600) * 0.03);
-    cph = c.ph + (reduce ? 0 : Math.sin(t / 7300) * 0.018);
-    cd = c.d; ctx3 = [c.tx, c.ty, c.tz];
+    cth = c.th + (reduce ? 0 : Math.sin(t / 5600) * 0.028);
+    cph = c.ph + (reduce ? 0 : Math.sin(t / 7300) * 0.016);
+    cd = c.d; TGT = [c.tx, c.ty, c.tz];
     sinT = Math.sin(cth); cosT = Math.cos(cth); sinP = Math.sin(cph); cosP = Math.cos(cph);
-    CX = ctx3[0] + cd * cosP * sinT; CY = ctx3[1] - cd * sinP; CZ = ctx3[2] - cd * cosP * cosT;
-    sref = Math.min(W, Hh) * 0.40;
+    CXp = TGT[0] + cd * cosP * sinT; CYp = TGT[1] - cd * sinP; CZp = TGT[2] - cd * cosP * cosT;
+    sref = Math.min(W, Hh) * 0.42;
 
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, W, Hh);
@@ -359,7 +406,7 @@
     const meshOn = sstep(a2 / 0.5);
     const shipDim = 1 - 0.35 * sstep(a4);
 
-    /* act 00 · assemble cloud */
+    /* act 00 · assemble */
     if (a0 < 1) {
       for (const q of cloud) {
         const k = sstep((a0 * 1.5 - q.st) / 0.5);
@@ -369,9 +416,9 @@
       }
     }
 
-    /* CAD wireframe: features bright, skin faint+culled, internals ghost */
+    /* CAD wireframe */
     if (wingA > 0.01) {
-      const order = [0, 1, 2, 3];                 // skin → flap → aileron → tips
+      const order = [0, 1, 2, 3];
       for (let i = 0; i < segs.length; i++) {
         const g = segs[i];
         const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
@@ -380,23 +427,20 @@
         const mx = (g.a[0] + g.b[0]) / 2, my = (g.a[1] + g.b[1]) / 2, mz = (g.a[2] + g.b[2]) / 2;
         let a, w = 1, col = "t";
         if (g.cls === 0) { a = 0.72 * wingA * dfade(zc) * shipDim; w = 1.5; col = "i"; }
-        else if (g.cls === 2) { a = 0.10 * wingA * dfade(zc) * shipDim; }
-        else { a = 0.30 * wingA * dfade(zc) * facing(mx, my, mz, g.n) * (1 - 0.45 * meshOn) * shipDim; }
-        /* act 01 · classification pulse */
+        else if (g.cls === 2) { a = 0.09 * wingA * dfade(zc) * shipDim; }
+        else { a = 0.26 * wingA * dfade(zc) * facing(mx, my, mz, g.n) * (1 - 0.5 * meshOn) * shipDim; }
         if (a1 > 0 && g.cls !== 2) {
           const at = clamp(a1 * 4.4 - order.indexOf(g.tag) * 1.05, 0, 1);
           if (at > 0 && at < 1) {
             const pulse = Math.sin(at * Math.PI);
             if (pulse > 0.25) { col = "g"; a = Math.max(a, (0.5 + 0.4 * pulse) * dfade(zc)); }
-          } else if (at >= 1 && g.tag > 0) {
-            a *= 1.25;
-          }
+          } else if (at >= 1 && g.tag > 0) a *= 1.25;
         }
         put(A[0], A[1], B[0], B[1], col, a, w);
       }
     }
 
-    /* act 02a · structured surface grid sweeps LE → TE */
+    /* act 02a · multiblock surface grid sweeps LE → TE */
     if (a2 > 0) {
       const gt = sstep(a2 / 0.62);
       for (let i = 0; i < fineSegs.length; i++) {
@@ -405,13 +449,12 @@
         if (on <= 0.01) continue;
         const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
         const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
-        const zc = (A[2] + B[2]) / 2;
         const mx = (g.a[0] + g.b[0]) / 2, my = (g.a[1] + g.b[1]) / 2, mz = (g.a[2] + g.b[2]) / 2;
-        put(A[0], A[1], B[0], B[1], "t", 0.30 * on * dfade(zc) * facing(mx, my, mz, g.n) * shipDim, 1);
+        put(A[0], A[1], B[0], B[1], "t", 0.30 * on * dfade((A[2] + B[2]) / 2) * facing(mx, my, mz, g.n) * shipDim, 1);
       }
     }
 
-    /* act 02b · prism stack at the inspection rib (persists through PROVE) */
+    /* act 02b · prism stack at the inspection rib */
     if (a2 > 0.45) {
       const bt = (a2 - 0.45) / 0.55;
       for (let i = 0; i < prism.length; i++) {
@@ -420,37 +463,35 @@
         if (kt <= 0) continue;
         const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
         const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
-        const zc = (A[2] + B[2]) / 2;
-        put(A[0], A[1], B[0], B[1], "t", (g.wall ? 0.34 : 0.55) * kt * dfade(zc) * shipDim, 1);
+        put(A[0], A[1], B[0], B[1], "t", (g.wall ? 0.34 : 0.6) * kt * dfade((A[2] + B[2]) / 2) * shipDim, 1);
       }
     }
 
-    /* act 03 · quality gate sweeps the span */
+    /* act 03 · quality gate sweeps root → winglet */
     if (a3 > 0 && a3 < 1.15) {
-      const scanZ = lerp(-SEMI - 0.2, SEMI + 0.2, sstep(a3));
-      const gy0 = bb[1] - 0.22, gy1 = bb[4] + 0.22, gx0 = bb[0] - 0.12, gx1 = bb[3] + 0.12;
+      const scanZ = lerp(bb[2] - 0.12, bb[5] + 0.12, sstep(a3));
+      const gy0 = bb[1] - 0.15, gy1 = bb[4] + 0.15, gx0 = bb[0] - 0.1, gx1 = bb[3] + 0.1;
       const frame = [[gx0, gy0], [gx1, gy0], [gx1, gy1], [gx0, gy1]];
       for (let e = 0; e < 4; e++) {
         const A = proj(frame[e][0], frame[e][1], scanZ), B = proj(frame[(e + 1) % 4][0], frame[(e + 1) % 4][1], scanZ);
-        if (A && B) put(A[0], A[1], B[0], B[1], "g", 0.45 * (1 - Math.abs(a3 - 0.5) * 0.7), 1);
+        if (A && B) put(A[0], A[1], B[0], B[1], "g", 0.42 * (1 - Math.abs(a3 - 0.5) * 0.7), 1);
       }
       for (let i = 0; i < fineSegs.length; i++) {
         const g = fineSegs[i];
         const mz = (g.a[2] + g.b[2]) / 2;
-        const near = Math.exp(-Math.pow((mz - scanZ) / 0.09, 2));
+        const near = Math.exp(-Math.pow((mz - scanZ) / 0.085, 2));
         if (near < 0.04) continue;
         const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
         const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
         const mx = (g.a[0] + g.b[0]) / 2, my = (g.a[1] + g.b[1]) / 2;
         put(A[0], A[1], B[0], B[1], "t", 0.55 * near * dfade((A[2] + B[2]) / 2) * facing(mx, my, mz, g.n), 1);
       }
-      /* flagged stations flash gold as the gate passes, then settle */
-      [-0.62, 0.31].forEach((ff) => {
-        const fz = ff * SEMI;
-        const passed = scanZ - fz;
+      /* flagged at the geometric breaks — kink and aileron junction */
+      [KINK, 1.32].forEach((fz) => {
+        const passed = scanZ - (fz + ZO);
         if (passed > 0 && passed < 0.4) {
           const pulse = Math.sin(passed / 0.4 * Math.PI);
-          const sec = buildSec(ff, 1);
+          const sec = secMain(fz);
           for (let j = 0; j < P; j++) {
             const A = proj(sec[j][0], sec[j][1], sec[j][2]), B = proj(sec[(j + 1) % P][0], sec[(j + 1) % P][1], sec[(j + 1) % P][2]);
             if (A && B) put(A[0], A[1], B[0], B[1], "g", 0.7 * pulse * dfade((A[2] + B[2]) / 2), 1.5);
@@ -459,7 +500,7 @@
       });
     }
 
-    /* act 04 · export crate draws in */
+    /* act 04 · export crate */
     if (a4 > 0) {
       for (let e = 0; e < crateEdges.length; e++) {
         const et = clamp(a4 * 2.2 - e * 0.085, 0, 1);
@@ -472,7 +513,6 @@
       }
     }
 
-    /* flush */
     for (const b of buckets.values()) {
       if (b.seg.length) {
         ctx.strokeStyle = "rgba(" + COL[b.col] + "," + b.a + ")";
