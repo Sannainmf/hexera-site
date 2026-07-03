@@ -515,62 +515,95 @@
       }
       return up.slice().reverse().concat(lo.slice(1, M));
     };
-    // 02 · aortic arch: ascending limb, arch crown with three branch stubs,
-    //      descending limb — the classic vascular-CFD geometry, instantly read
-    const rawAorta = () => [
-      [0.070, 0.960], [0.055, 0.780], [0.050, 0.600], [0.055, 0.440], [0.075, 0.300],
-      [0.115, 0.180], [0.175, 0.095], [0.245, 0.052],
-      [0.315, 0.045], [0.315, 0.012], [0.385, 0.012], [0.385, 0.042],   // brachiocephalic
-      [0.455, 0.038], [0.455, 0.006], [0.525, 0.006], [0.525, 0.036],   // left carotid
-      [0.595, 0.036], [0.595, 0.004], [0.665, 0.004], [0.665, 0.042],   // left subclavian
-      [0.730, 0.060], [0.795, 0.100], [0.845, 0.170], [0.875, 0.260],
-      [0.885, 0.380], [0.885, 0.560], [0.880, 0.760], [0.875, 0.960],
-      [0.720, 0.960], [0.725, 0.720], [0.720, 0.520], [0.705, 0.400],
-      [0.665, 0.300], [0.600, 0.235], [0.520, 0.210], [0.440, 0.225], [0.375, 0.270], [0.330, 0.340],
-      [0.305, 0.440], [0.295, 0.620], [0.290, 0.800], [0.285, 0.960],
-    ];
-    // blood centreline through the cane + branch stub x-centres (unit space)
-    const AORTA_PATH = [
-      [0.185, 0.950], [0.175, 0.720], [0.180, 0.500], [0.210, 0.320], [0.270, 0.190],
-      [0.370, 0.125], [0.500, 0.115], [0.620, 0.130], [0.720, 0.185], [0.780, 0.280],
-      [0.800, 0.420], [0.800, 0.650], [0.795, 0.950],
-    ];
-    const AORTA_STUBS = [0.35, 0.49, 0.63];
-    // 03 · gamepad silhouette — the structural/FEA specimen; its interior gets
-    //      a real Delaunay tri mesh, knitted in behind the scan gate
-    const rawPad = () => [
-      [0.145, 0.325], [0.235, 0.275], [0.360, 0.255], [0.500, 0.265], [0.640, 0.255],
-      [0.765, 0.275], [0.855, 0.325], [0.905, 0.390], [0.935, 0.475], [0.945, 0.565],
-      [0.925, 0.670], [0.885, 0.770], [0.830, 0.845], [0.765, 0.870], [0.710, 0.845],
-      [0.675, 0.780], [0.650, 0.700], [0.615, 0.635], [0.550, 0.600], [0.450, 0.600],
-      [0.385, 0.635], [0.350, 0.700], [0.325, 0.780], [0.290, 0.845], [0.235, 0.870],
-      [0.170, 0.845], [0.115, 0.770], [0.075, 0.670], [0.055, 0.565], [0.065, 0.475],
-      [0.095, 0.390],
-    ];
-    const PAD = {
-      dpad: [0.235, 0.47], sticks: [[0.40, 0.55], [0.60, 0.55]],
-      btns: [[0.76, 0.40], [0.715, 0.45], [0.805, 0.45], [0.76, 0.50]],
-      impact: [0.76, 0.45],
-    };
-    // 04 · coupe silhouette with wheel arches cut into the rocker line
-    const rawCar = () => {
-      const P = [
-        [0.030, 0.755], [0.020, 0.640], [0.075, 0.565], [0.300, 0.520],
-        [0.415, 0.395], [0.520, 0.360], [0.655, 0.372], [0.790, 0.455],
-        [0.885, 0.492], [0.938, 0.487], [0.952, 0.542], [0.965, 0.660],
-        [0.940, 0.755], [0.905, 0.800],
-      ];
-      const arch = (cx) => {
-        const a = [];
-        for (let k = 0; k <= 10; k++) {
-          const t = (Math.PI * k) / 10;
-          a.push([cx + 0.085 * Math.cos(t), 0.800 - 0.085 * Math.sin(t)]);
-        }
-        return a;
+    // 02 · carotid bifurcation — THE canonical vascular-CFD geometry: a trunk
+    //      that forks into two tapering branches (small sac on the upper wall).
+    //      Built from bezier centrelines + radius offsets; the same centrelines
+    //      drive the swept mesh rings and the pulsatile blood paths.
+    const BIF = (() => {
+      const bez = (p0, p1, p2, t) => {
+        const a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t;
+        return [a * p0[0] + b * p1[0] + c * p2[0], a * p0[1] + b * p1[1] + c * p2[1]];
       };
-      return P.concat(arch(0.775), [[0.330, 0.800]], arch(0.245), [[0.085, 0.800]]);
+      const seg = (p0, p1, p2, r0, r1, M) => {
+        const out = [];
+        for (let i = 0; i <= M; i++) {
+          const t = i / M;
+          const c = bez(p0, p1, p2, t);
+          const cA = bez(p0, p1, p2, Math.max(t - 0.01, 0));
+          const cB = bez(p0, p1, p2, Math.min(t + 0.01, 1));
+          let nx = -(cB[1] - cA[1]), ny = cB[0] - cA[0];
+          const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+          out.push({ c, n: [nx, ny], r: r0 + (r1 - r0) * t, t });
+        }
+        return out;
+      };
+      const trunk = seg([0.030, 0.520], [0.240, 0.530], [0.450, 0.500], 0.100, 0.088, 12);
+      const up = seg([0.450, 0.500], [0.660, 0.400], [0.950, 0.210], 0.062, 0.046, 14);
+      const lo = seg([0.450, 0.500], [0.650, 0.610], [0.950, 0.770], 0.070, 0.050, 14);
+      const bulge = (t) => 0.030 * Math.exp(-Math.pow((t - 0.42) / 0.15, 2));
+      const side = (S, sign, useBulge) => S.map((s2) => {
+        const r = s2.r + (useBulge && sign < 0 ? bulge(s2.t) : 0);
+        return [s2.c[0] + sign * s2.n[0] * r, s2.c[1] + sign * s2.n[1] * r];
+      });
+      const cap = (S) => {                        // rounded end cap
+        const e = S[S.length - 1];
+        const tx = e.n[1], ty = -e.n[0];          // forward tangent
+        return [
+          [e.c[0] + tx * e.r * 0.7 - e.n[0] * e.r * 0.5, e.c[1] + ty * e.r * 0.7 - e.n[1] * e.r * 0.5],
+          [e.c[0] + tx * e.r * 0.9, e.c[1] + ty * e.r * 0.9],
+          [e.c[0] + tx * e.r * 0.7 + e.n[0] * e.r * 0.5, e.c[1] + ty * e.r * 0.7 + e.n[1] * e.r * 0.5],
+        ];
+      };
+      const outline = []
+        .concat(side(trunk, -1))
+        .concat(side(up, -1, true).slice(1))
+        .concat(cap(up))
+        .concat(side(up, 1).slice(3).reverse())
+        .concat([[0.505, 0.535]])                 // the crotch of the fork
+        .concat(side(lo, -1).slice(3))
+        .concat(cap(lo))
+        .concat(side(lo, 1).slice(1).reverse())
+        .concat(side(trunk, 1).reverse());
+      const rings = [];
+      trunk.forEach((g, i) => { if (i % 3 === 1) rings.push(g); });
+      up.forEach((g, i) => { if (i >= 4 && i % 3 === 1) rings.push(g); });
+      lo.forEach((g, i) => { if (i >= 4 && i % 3 === 1) rings.push(g); });
+      const paths = [
+        trunk.map((g) => g.c).concat(up.slice(1).map((g) => g.c)),
+        trunk.map((g) => g.c).concat(lo.slice(1).map((g) => g.c)),
+      ];
+      return { outline, rings, paths };
+    })();
+    // 03 · low-poly fortress — the hero environment asset, Blender-style:
+    //      interior gets a real Delaunay tri mesh, plus edit-mode vertex
+    //      handles and a transform gizmo on the crown
+    const rawFort = () => [
+      [0.200, 0.940], [0.195, 0.880], [0.255, 0.865],
+      [0.295, 0.430], [0.235, 0.415], [0.235, 0.270],
+      [0.320, 0.270], [0.320, 0.345], [0.400, 0.345], [0.400, 0.270],
+      [0.480, 0.270], [0.480, 0.345], [0.560, 0.345], [0.560, 0.270],
+      [0.645, 0.270], [0.645, 0.415], [0.585, 0.430],
+      [0.610, 0.600], [0.700, 0.520], [0.845, 0.585], [0.860, 0.940],
+    ];
+    const FORT = {
+      gizmo: [0.645, 0.270],
+      handles: [
+        [0.235, 0.270], [0.320, 0.345], [0.480, 0.270], [0.560, 0.345], [0.645, 0.270],
+        [0.295, 0.430], [0.585, 0.430], [0.700, 0.520], [0.845, 0.585], [0.255, 0.865],
+      ],
     };
-    const CAR_WHEELS = [[0.245, 0.800, 0.058], [0.775, 0.800, 0.058]];
+    // 04 · brake disc — the classic automotive conjugate-heat case: the tri
+    //      mesh doubles as a temperature contour (hot friction band), vanes
+    //      spin, the caliper stays fixed, heat plumes rise off the rim
+    const rawDisc = () => {
+      const out = [];
+      for (let i = 0; i < 56; i++) {
+        const a = (i / 56) * Math.PI * 2;
+        out.push([0.5 + 0.40 * Math.cos(a), 0.5 + 0.40 * Math.sin(a)]);
+      }
+      return out;
+    };
+    const DISC = { c: [0.5, 0.5], rOut: 0.40, rHub: 0.115, rBolt: 0.075, band: [0.20, 0.365], vanes: 18 };
 
     /* ---- geometry utils ---- */
     const bbOf = (pts) => {
@@ -672,7 +705,7 @@
 
     /* ---- build: size the canvas, fit + resample + align all four specimens ---- */
     let W = 0, H = 0, sref = 0, shapes = [], deco = null, lastBB = null;
-    const DEPTHS = [0.26, 0.10, 0.15, 0.21];         // extrusion depth per specimen (× sref)
+    const DEPTHS = [0.26, 0.13, 0.16, 0.06];         // extrusion depth per specimen (× sref)
     const PTS = Array.from({ length: N }, () => [0, 0]);
     const NRM = Array.from({ length: N }, () => [0, 0]);
     const FRONT = Array.from({ length: N }, () => [0, 0, 1]);
@@ -687,8 +720,10 @@
       trail: [],
     });
     const initFlow = () => { FP.length = 0; for (let i = 0; i < 30; i++) FP.push(newFP(true)); };
-    // pulsatile blood particles riding the aorta centreline
-    const BLOOD = Array.from({ length: 9 }, (_, i) => ({ u: i / 9 }));
+    // pulsatile blood particles riding the bifurcation centrelines
+    const BLOOD = Array.from({ length: 10 }, (_, i) => ({ u: i / 10 }));
+    // buoyant heat plumes rising off the brake disc
+    const PL = Array.from({ length: 12 }, () => ({ x: Math.random(), life: Math.random() }));
     const build = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = canvas.clientWidth; H = canvas.clientHeight;
@@ -696,7 +731,7 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       sref = Math.min(W, H);
       const rect = { x: W * 0.14, y: H * 0.17, w: W * 0.72, h: H * 0.64 };
-      const raws = [rawAirfoil(), rawAorta(), rawPad(), rawCar()];
+      const raws = [rawAirfoil(), BIF.outline.slice(), rawFort(), rawDisc()];
       const tfs = raws.map((raw) => fitTf(raw, rect));
       shapes = raws.map((raw, i) => {
         const pts = orient(resample(raw.map(tfs[i].map), N));
@@ -707,54 +742,71 @@
         if (off) shapes[i].pts = shapes[i].pts.slice(off).concat(shapes[i].pts.slice(0, off));
       }
       lastBB = { x0: shapes[0].bb.x0, y0: shapes[0].bb.y0, x1: shapes[0].bb.x1, y1: shapes[0].bb.y1 };
-      // blood path: fitted centreline + cumulative arc length for even sampling
-      const bl = AORTA_PATH.map((v) => tfs[1].map(v));
-      const cum = [0]; let tot = 0;
-      for (let i = 1; i < bl.length; i++) {
-        tot += Math.hypot(bl[i][0] - bl[i - 1][0], bl[i][1] - bl[i - 1][1]);
-        cum.push(tot);
-      }
+      // fitted blood paths with cumulative arc length for even sampling
+      const pathFit = (P) => {
+        const pts2 = P.map((p) => tfs[1].map(p));
+        const cum2 = [0]; let tt = 0;
+        for (let i = 1; i < pts2.length; i++) {
+          tt += Math.hypot(pts2[i][0] - pts2[i - 1][0], pts2[i][1] - pts2[i - 1][1]);
+          cum2.push(tt);
+        }
+        return { pts: pts2, cum: cum2, tot: tt };
+      };
       deco = {
         chord: [tfs[0].map([0, 0.5]), tfs[0].map([1, 0.5])],
-        blood: { pts: bl, cum, tot },
-        stubX: AORTA_STUBS.map((x) => tfs[1].map([x, 0])[0]),
-        stubY: [tfs[1].map([0, 0.16])[1], tfs[1].map([0, 0.03])[1]],
-        wheels: CAR_WHEELS.map((w) => {
-          const c = tfs[3].map([w[0], w[1]]);
-          return { x: c[0], y: c[1], r: w[2] * tfs[3].s };
-        }),
-        groundY: tfs[3].map([0, 0.800])[1] + CAR_WHEELS[0][2] * tfs[3].s + 3,
-        pad: {
-          dpad: tfs[2].map(PAD.dpad), dr: 0.052 * tfs[2].s,
-          sticks: PAD.sticks.map((v) => tfs[2].map(v)), sr: 0.045 * tfs[2].s,
-          btns: PAD.btns.map((v) => tfs[2].map(v)), br: 0.017 * tfs[2].s,
-          impact: tfs[2].map(PAD.impact),
+        bif: {
+          rings: BIF.rings.map((g2) => ({ c: tfs[1].map(g2.c), n: g2.n, r: g2.r * tfs[1].s })),
+          paths: BIF.paths.map(pathFit),
+        },
+        fort: { gizmo: tfs[2].map(FORT.gizmo), handles: FORT.handles.map((v) => tfs[2].map(v)) },
+        disc: {
+          c: tfs[3].map(DISC.c), rOut: DISC.rOut * tfs[3].s, rHub: DISC.rHub * tfs[3].s,
+          rBolt: DISC.rBolt * tfs[3].s, band: DISC.band.map((r) => r * tfs[3].s),
         },
       };
-      // interior FEA mesh for the gamepad: boundary ring + jittered interior
-      // grid, Delaunay-linked, then clipped to the silhouette
-      const padPts = shapes[2].pts, bb2 = shapes[2].bb, g = sref * 0.055;
-      const ring = [];
-      for (let i = 0; i < N; i += 5) ring.push(padPts[i]);
-      const innerPts = [];
-      let gi = 0;
-      for (let y = bb2.y0 + g * 0.7; y < bb2.y1; y += g, gi++) {
-        let gj = 0;
-        for (let x = bb2.x0 + g * 0.7; x < bb2.x1; x += g, gj++) {
-          const fr1 = Math.sin(gi * 127.1 + gj * 311.7), fr2 = Math.sin(gi * 269.5 + gj * 183.3);
-          const px = x + (fr1 - Math.floor(fr1) - 0.5) * 0.55 * g;
-          const py = y + (fr2 - Math.floor(fr2) - 0.5) * 0.55 * g;
-          if (inPoly(px, py, padPts)) innerPts.push([px, py]);
+      /* interior FEA meshes (fortress + disc): boundary ring + jittered
+         interior grid, Delaunay-linked, clipped to each silhouette */
+      const buildMesh = (idx, g) => {
+        const poly = shapes[idx].pts, bbx = shapes[idx].bb;
+        const ring = [];
+        for (let i = 0; i < N; i += 5) ring.push(poly[i]);
+        const ipts = [];
+        let gi = 0;
+        for (let y = bbx.y0 + g * 0.7; y < bbx.y1; y += g, gi++) {
+          let gj = 0;
+          for (let x = bbx.x0 + g * 0.7; x < bbx.x1; x += g, gj++) {
+            const f1 = Math.sin(gi * 127.1 + gj * 311.7), f2 = Math.sin(gi * 269.5 + gj * 183.3);
+            const px = x + (f1 - Math.floor(f1) - 0.5) * 0.55 * g;
+            const py = y + (f2 - Math.floor(f2) - 0.5) * 0.55 * g;
+            if (inPoly(px, py, poly)) ipts.push([px, py]);
+          }
         }
-      }
-      deco.triPts = ring.concat(innerPts);
-      deco.triProj = deco.triPts.map(() => [0, 0, 1]);
-      deco.tris = delaunay(deco.triPts).filter(([a, b, c]) => {
-        const tcx = (deco.triPts[a][0] + deco.triPts[b][0] + deco.triPts[c][0]) / 3;
-        const tcy = (deco.triPts[a][1] + deco.triPts[b][1] + deco.triPts[c][1]) / 3;
-        return inPoly(tcx, tcy, padPts);
+        const pts = ring.concat(ipts);
+        const tris = delaunay(pts).filter(([a, b, c]) => {
+          const cx2 = (pts[a][0] + pts[b][0] + pts[c][0]) / 3;
+          const cy2 = (pts[a][1] + pts[b][1] + pts[c][1]) / 3;
+          return inPoly(cx2, cy2, poly);
+        });
+        return { pts, proj: pts.map(() => [0, 0, 1]), tris };
+      };
+      deco.mesh2 = buildMesh(2, sref * 0.055);
+      deco.mesh2.diag = Math.hypot(shapes[2].bb.x1 - shapes[2].bb.x0, shapes[2].bb.y1 - shapes[2].bb.y0);
+      deco.mesh2.rippleD = deco.mesh2.tris.map(([a, b, c]) => {
+        const m = deco.mesh2.pts;
+        return Math.hypot(
+          (m[a][0] + m[b][0] + m[c][0]) / 3 - deco.fort.gizmo[0],
+          (m[a][1] + m[b][1] + m[c][1]) / 3 - deco.fort.gizmo[1]
+        );
       });
-      deco.padDiag = Math.hypot(bb2.x1 - bb2.x0, bb2.y1 - bb2.y0);
+      deco.mesh3 = buildMesh(3, sref * 0.062);
+      deco.mesh3.temp = deco.mesh3.tris.map(([a, b, c]) => {
+        const m = deco.mesh3.pts;
+        const rr = Math.hypot(
+          (m[a][0] + m[b][0] + m[c][0]) / 3 - deco.disc.c[0],
+          (m[a][1] + m[b][1] + m[c][1]) / 3 - deco.disc.c[1]
+        ) / deco.disc.rOut;
+        return Math.exp(-Math.pow((rr - 0.70) / 0.30, 2));
+      });
       initFlow();
     };
 
@@ -762,8 +814,8 @@
        The specimen is an extruded wireframe in pseudo-3D: it swings slowly
        across each plateau (scroll-driven) and clamps face-on while the
        gate re-meshes it. ---- */
-    const bloodAt = (u) => {
-      const B = deco.blood, d = clamp(u - Math.floor(u), 0, 1) * B.tot;
+    const bloodAt = (B, u) => {
+      const d = clamp(u - Math.floor(u), 0, 1) * B.tot;
       let i = 1;
       while (i < B.cum.length - 1 && B.cum[i] < d) i++;
       const q = (d - B.cum[i - 1]) / Math.max(B.cum[i] - B.cum[i - 1], 1e-9);
@@ -912,39 +964,71 @@
       for (let i = 0; i < N; i += 8) {
         ctx.beginPath(); ctx.moveTo(BACK[i][0], BACK[i][1]); ctx.lineTo(FRONT[i][0], FRONT[i][1]); ctx.stroke();
       }
+      // section ribs through the depth — the solid reads as meshed in 3D,
+      // and the whole cage turns together when the specimen rotates
+      ctx.strokeStyle = "rgba(" + GOLD + ",0.10)";
+      for (const zf of [-0.33, 0.33]) {
+        ctx.beginPath();
+        for (let i = 0; i < N; i++) {
+          const p2 = proj(PTS[i][0], PTS[i][1], D * zf);
+          i ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
 
       /* CFD phases: structured boundary-layer mesh — thin first cell,
-         geometric growth outward, radial connectors → real quad cells */
+         geometric growth outward, radial connectors → real quad cells.
+         Drawn on BOTH faces so the mesh turns with the body in 3D. */
       const blA = Math.max(dA[0], dA[3]) * (1 - 0.85 * morphAct);
       if (blA > 0.01) {
         const SH = [0.013, 0.024, 0.040, 0.062];
         const AL = [0.34, 0.25, 0.17, 0.10];
-        for (let sh = 0; sh < SH.length; sh++) {
-          ctx.strokeStyle = "rgba(" + TEAL + "," + (AL[sh] * blA).toFixed(3) + ")";
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          for (let i = 0; i < N; i++) {
-            const d2 = SH[sh] * sref;
-            const p2 = proj(PTS[i][0] + NRM[i][0] * d2, PTS[i][1] + NRM[i][1] * d2, hz);
-            i ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+        ctx.lineWidth = 1;
+        for (const [zz, fA] of [[-hz, 0.38], [hz, 1]]) {
+          for (let sh = 0; sh < SH.length; sh++) {
+            ctx.strokeStyle = "rgba(" + TEAL + "," + (AL[sh] * blA * fA).toFixed(3) + ")";
+            ctx.beginPath();
+            for (let i = 0; i < N; i++) {
+              const d2 = SH[sh] * sref;
+              const p2 = proj(PTS[i][0] + NRM[i][0] * d2, PTS[i][1] + NRM[i][1] * d2, zz);
+              i ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+            }
+            ctx.closePath();
+            ctx.stroke();
           }
-          ctx.closePath();
-          ctx.stroke();
-        }
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.13 * blA).toFixed(3) + ")";
-        const dOut = SH[SH.length - 1] * sref;
-        for (let i = 0; i < N; i += 5) {
-          const p2 = proj(PTS[i][0] + NRM[i][0] * dOut, PTS[i][1] + NRM[i][1] * dOut, hz);
-          ctx.beginPath(); ctx.moveTo(FRONT[i][0], FRONT[i][1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+          ctx.strokeStyle = "rgba(" + TEAL + "," + (0.13 * blA * fA).toFixed(3) + ")";
+          const dOut = SH[SH.length - 1] * sref;
+          for (let i = 0; i < N; i += 5) {
+            const p0 = proj(PTS[i][0], PTS[i][1], zz);
+            const p2 = proj(PTS[i][0] + NRM[i][0] * dOut, PTS[i][1] + NRM[i][1] * dOut, zz);
+            ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+          }
         }
       }
 
-      /* bio: FSI wall band — inner surface + through-wall connectors */
+      /* bio: swept vascular mesh — hoop rings around each centreline (the
+         way real vessel meshes are swept) + the thin compliant inner wall */
       const wallA = dA[1] * (1 - 0.85 * morphAct);
       if (wallA > 0.01) {
-        const wb = sref * 0.020;
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.42 * wallA).toFixed(3) + ")";
         ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.30 * wallA).toFixed(3) + ")";
+        const rz = hz * 0.92;
+        for (const g2 of deco.bif.rings) {
+          ctx.beginPath();
+          for (let k = 0; k <= 14; k++) {
+            const a3 = (k / 14) * Math.PI * 2;
+            const p2 = proj(
+              g2.c[0] + g2.n[0] * g2.r * Math.cos(a3),
+              g2.c[1] + g2.n[1] * g2.r * Math.cos(a3),
+              rz * Math.sin(a3)
+            );
+            k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+          }
+          ctx.stroke();
+        }
+        const wb = sref * 0.016;
+        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.35 * wallA).toFixed(3) + ")";
         ctx.beginPath();
         for (let i = 0; i < N; i++) {
           const p2 = proj(PTS[i][0] - NRM[i][0] * wb, PTS[i][1] - NRM[i][1] * wb, hz);
@@ -952,58 +1036,49 @@
         }
         ctx.closePath();
         ctx.stroke();
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.22 * wallA).toFixed(3) + ")";
-        for (let i = 0; i < N; i += 4) {
-          const p2 = proj(PTS[i][0] - NRM[i][0] * wb, PTS[i][1] - NRM[i][1] * wb, hz);
-          ctx.beginPath(); ctx.moveTo(FRONT[i][0], FRONT[i][1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
-        }
       }
 
-      /* FEA phase: interior tri mesh, knitted in/out behind the gate,
-         with a stress ripple radiating from the load point when settled */
-      let triA = 0, triClip = 0;
-      if (!morph) triA = dA[2];
-      else if (iA === 1) { triA = f; triClip = -1; }
-      else if (iA === 2) { triA = 1 - f; triClip = 1; }
-      if (triA > 0.01) {
-        for (let i = 0; i < deco.triPts.length; i++)
-          proj(deco.triPts[i][0], deco.triPts[i][1], hz, deco.triProj[i]);
-        const rippleR = morph ? -1 : ((t * 0.00042) % 1.25) * deco.padDiag * 0.9;
+      /* interior meshes: the fortress (FEA stress ripple) and the disc
+         (thermal contour — tris tinted by temperature). Both knit in and
+         out behind the scan gate during their morphs. */
+      const drawMesh = (mesh, mA, mClip, thermal) => {
+        if (mA <= 0.01) return;
+        for (let i = 0; i < mesh.pts.length; i++)
+          proj(mesh.pts[i][0], mesh.pts[i][1], hz, mesh.proj[i]);
+        const rippleR = (!thermal && !morph) ? ((t * 0.00042) % 1.25) * mesh.diag * 0.9 : -1;
         const band = sref * 0.05;
-        const imp = deco.pad.impact;
         ctx.lineWidth = 0.8;
-        for (const tri of deco.tris) {
-          const a2 = deco.triProj[tri[0]], b2 = deco.triProj[tri[1]], c2 = deco.triProj[tri[2]];
+        for (let ti = 0; ti < mesh.tris.length; ti++) {
+          const tri = mesh.tris[ti];
+          const a2 = mesh.proj[tri[0]], b2 = mesh.proj[tri[1]], c2 = mesh.proj[tri[2]];
           const tcx = (a2[0] + b2[0] + c2[0]) / 3;
-          if (triClip === -1 && tcx > gxNow - 14) continue;
-          if (triClip === 1 && tcx < gxNow + 14) continue;
+          if (mClip === -1 && tcx > gxNow - 14) continue;
+          if (mClip === 1 && tcx < gxNow + 14) continue;
           let hot = 0;
-          if (rippleR >= 0) {
-            const t0 = deco.triPts[tri[0]], t1 = deco.triPts[tri[1]], t2 = deco.triPts[tri[2]];
-            const ux = (t0[0] + t1[0] + t2[0]) / 3 - imp[0];
-            const uy = (t0[1] + t1[1] + t2[1]) / 3 - imp[1];
-            const dd = Math.abs(Math.hypot(ux, uy) - rippleR);
+          if (thermal) {
+            // conjugate-heat contour: friction band glows, breathing slowly
+            hot = mesh.temp[ti] * (0.72 + 0.28 * Math.sin(t * 0.0011 - mesh.temp[ti] * 5));
+          } else if (rippleR >= 0) {
+            const dd = Math.abs(mesh.rippleD[ti] - rippleR);
             if (dd < band) hot = 1 - dd / band;
           }
           ctx.beginPath();
           ctx.moveTo(a2[0], a2[1]); ctx.lineTo(b2[0], b2[1]); ctx.lineTo(c2[0], c2[1]);
           ctx.closePath();
-          if (hot > 0.02) {
-            ctx.fillStyle = "rgba(" + GOLD + "," + (0.20 * hot * triA).toFixed(3) + ")";
+          if (hot > 0.03) {
+            ctx.fillStyle = "rgba(" + GOLD + "," + ((thermal ? 0.26 : 0.20) * hot * mA).toFixed(3) + ")";
             ctx.fill();
           }
-          ctx.strokeStyle = "rgba(" + TEAL + "," + ((0.13 + 0.25 * hot) * triA).toFixed(3) + ")";
+          ctx.strokeStyle = "rgba(" + TEAL + "," + ((0.12 + 0.24 * hot) * mA).toFixed(3) + ")";
           ctx.stroke();
         }
-        if (rippleR >= 0) {                    // load-point crosshair
-          const ip = proj(imp[0], imp[1], hz);
-          const ia = Math.max(1 - rippleR / (deco.padDiag * 1.1), 0) * triA;
-          ctx.strokeStyle = "rgba(" + GOLD + "," + (0.7 * ia).toFixed(3) + ")";
-          ctx.lineWidth = 1.2;
-          ctx.beginPath(); ctx.moveTo(ip[0] - 7, ip[1]); ctx.lineTo(ip[0] + 7, ip[1]); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(ip[0], ip[1] - 7); ctx.lineTo(ip[0], ip[1] + 7); ctx.stroke();
-        }
-      }
+      };
+      let m2A = 0, m2Clip = 0, m3A = 0, m3Clip = 0;
+      if (!morph) { m2A = dA[2]; m3A = dA[3]; }
+      else if (iA === 1) { m2A = f; m2Clip = -1; }
+      else if (iA === 2) { m2A = 1 - f; m2Clip = 1; m3A = f; m3Clip = -1; }
+      drawMesh(deco.mesh2, m2A, m2Clip, false);
+      drawMesh(deco.mesh3, m3A, m3Clip, true);
 
       // the skin: gold, glowing (front face)
       ctx.save();
@@ -1029,73 +1104,109 @@
         ctx.beginPath(); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke();
         ctx.setLineDash([]);
       }
-      // 02 · bio: pulsatile blood — dots surge along the centreline at systole
+      // 02 · bio: pulsatile blood — dots surge down the trunk and split
+      //      into both branches at systole
       if (dA[1] > 0.01) {
-        for (const bp of BLOOD) {
+        for (let bi = 0; bi < BLOOD.length; bi++) {
+          const bp = BLOOD[bi];
           bp.u += dt * (0.030 + 0.17 * pulse);
+          const path = deco.bif.paths[bi % 2];
           for (let k = 0; k < 4; k++) {
-            const pos = bloodAt(bp.u - k * 0.012);
+            const pos = bloodAt(path, bp.u - k * 0.012);
             const p2 = proj(pos[0], pos[1], 0);
             const al = (1 - k / 4) * (0.35 + 0.55 * pulse) * dA[1];
             ctx.fillStyle = "rgba(" + TEAL + "," + al.toFixed(3) + ")";
             ctx.beginPath(); ctx.arc(p2[0], p2[1], (2.4 - k * 0.4) * p2[2], 0, 7); ctx.fill();
           }
         }
-        for (let j = 0; j < 3; j++) {          // branch perfusion up the stubs
-          const v = (t * 0.00035 + j * 0.37) % 1;
-          const y2 = deco.stubY[0] + (deco.stubY[1] - deco.stubY[0]) * v;
-          const p2 = proj(deco.stubX[j], y2, 0);
-          ctx.fillStyle = "rgba(" + TEAL + "," + ((1 - v) * 0.6 * dA[1]).toFixed(3) + ")";
-          ctx.beginPath(); ctx.arc(p2[0], p2[1], 1.8 * p2[2], 0, 7); ctx.fill();
-        }
       }
-      // 03 · gaming: the gamepad face — sticks, d-pad, buttons
-      const padA = dA[2] * (1 - morphAct);
-      if (padA > 0.01) {
-        const P2 = deco.pad;
-        ctx.lineWidth = 1.2;
-        ctx.strokeStyle = "rgba(" + GOLD + "," + (0.5 * padA).toFixed(3) + ")";
-        for (const st2 of P2.sticks) {
-          const p2 = proj(st2[0], st2[1], hz);
-          ctx.beginPath(); ctx.arc(p2[0], p2[1], P2.sr * p2[2], 0, 7); ctx.stroke();
-          ctx.fillStyle = "rgba(" + GOLD + "," + (0.35 * padA).toFixed(3) + ")";
-          ctx.beginPath(); ctx.arc(p2[0], p2[1], 1.8 * p2[2], 0, 7); ctx.fill();
+      // 03 · gaming: Blender edit-mode dressing — vertex handles on the
+      //      silhouette and a transform gizmo planted on the crown
+      const fortA = dA[2] * (1 - morphAct);
+      if (fortA > 0.01) {
+        ctx.fillStyle = "rgba(" + GOLD + "," + (0.75 * fortA).toFixed(3) + ")";
+        for (const hv of deco.fort.handles) {
+          const p2 = proj(hv[0], hv[1], hz);
+          ctx.fillRect(p2[0] - 2.2, p2[1] - 2.2, 4.4, 4.4);
         }
-        const dp = proj(P2.dpad[0], P2.dpad[1], hz);
-        const dr = P2.dr * dp[2];
-        ctx.beginPath(); ctx.moveTo(dp[0] - dr, dp[1]); ctx.lineTo(dp[0] + dr, dp[1]); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(dp[0], dp[1] - dr); ctx.lineTo(dp[0], dp[1] + dr); ctx.stroke();
-        for (const b2 of P2.btns) {
-          const p2 = proj(b2[0], b2[1], hz);
-          ctx.beginPath(); ctx.arc(p2[0], p2[1], P2.br * p2[2], 0, 7); ctx.stroke();
-        }
+        const gz = proj(deco.fort.gizmo[0], deco.fort.gizmo[1], hz);
+        const L = sref * 0.085;
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = "rgba(" + GOLD + "," + (0.85 * fortA).toFixed(3) + ")";
+        ctx.beginPath(); ctx.moveTo(gz[0], gz[1]); ctx.lineTo(gz[0], gz[1] - L); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gz[0] - 4, gz[1] - L + 6); ctx.lineTo(gz[0], gz[1] - L); ctx.lineTo(gz[0] + 4, gz[1] - L + 6); ctx.stroke();
+        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.85 * fortA).toFixed(3) + ")";
+        ctx.beginPath(); ctx.moveTo(gz[0], gz[1]); ctx.lineTo(gz[0] + L, gz[1]); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gz[0] + L - 6, gz[1] - 4); ctx.lineTo(gz[0] + L, gz[1]); ctx.lineTo(gz[0] + L - 6, gz[1] + 4); ctx.stroke();
+        ctx.strokeStyle = "rgba(236,234,229," + (0.8 * fortA).toFixed(3) + ")";
+        ctx.strokeRect(gz[0] - 3, gz[1] - 3, 6, 6);
       }
-      // 04 · auto: true-3D wheel rims + spokes, and a speed-dash ground line
-      if (dA[3] > 0.01) {
-        ctx.strokeStyle = "rgba(" + GOLD + "," + (0.55 * dA[3]).toFixed(3) + ")";
-        ctx.lineWidth = 1.3;
-        for (const wl of deco.wheels) {
+      // 04 · auto thermal: hub + bolt ring, spinning vanes, breathing
+      //      isotherms in the friction band, the fixed caliper, heat plumes
+      const thA = dA[3] * (1 - morphAct);
+      if (thA > 0.01) {
+        const dc = deco.disc;
+        const ring3D = (r, alpha, color, lw) => {
+          ctx.strokeStyle = "rgba(" + color + "," + alpha.toFixed(3) + ")";
+          ctx.lineWidth = lw;
           ctx.beginPath();
-          for (let k = 0; k <= 20; k++) {
-            const a3 = (k / 20) * Math.PI * 2;
-            const p2 = proj(wl.x + Math.cos(a3) * wl.r, wl.y + Math.sin(a3) * wl.r, hz);
+          for (let k = 0; k <= 28; k++) {
+            const a3 = (k / 28) * Math.PI * 2;
+            const p2 = proj(dc.c[0] + Math.cos(a3) * r, dc.c[1] + Math.sin(a3) * r, hz);
             k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
           }
           ctx.stroke();
-          const a0 = t * 0.004;
-          const ctr = proj(wl.x, wl.y, hz);
-          for (let k = 0; k < 5; k++) {
-            const a3 = a0 + (k * Math.PI * 2) / 5;
-            const p2 = proj(wl.x + Math.cos(a3) * wl.r * 0.82, wl.y + Math.sin(a3) * wl.r * 0.82, hz);
-            ctx.beginPath(); ctx.moveTo(ctr[0], ctr[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
-          }
+        };
+        ring3D(dc.rHub, 0.55 * thA, GOLD, 1.2);
+        for (let b2 = 0; b2 < 5; b2++) {
+          const a3 = (b2 / 5) * Math.PI * 2 + t * 0.0012;
+          const p2 = proj(dc.c[0] + Math.cos(a3) * dc.rBolt, dc.c[1] + Math.sin(a3) * dc.rBolt, hz);
+          ctx.strokeStyle = "rgba(" + GOLD + "," + (0.5 * thA).toFixed(3) + ")";
+          ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.arc(p2[0], p2[1], 3 * p2[2], 0, 7); ctx.stroke();
         }
-        const g0 = proj(W * 0.06, deco.groundY, 0), g1 = proj(W * 0.94, deco.groundY, 0);
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.28 * dA[3]).toFixed(3) + ")";
-        ctx.lineWidth = 1; ctx.setLineDash([10, 14]);
-        ctx.lineDashOffset = -((t * 0.12) % 24);
-        ctx.beginPath(); ctx.moveTo(g0[0], g0[1]); ctx.lineTo(g1[0], g1[1]); ctx.stroke();
-        ctx.setLineDash([]); ctx.lineDashOffset = 0;
+        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.18 * thA).toFixed(3) + ")";
+        ctx.lineWidth = 1;
+        for (let v2 = 0; v2 < 18; v2++) {
+          const a3 = (v2 / 18) * Math.PI * 2 + t * 0.0012;
+          const p0 = proj(dc.c[0] + Math.cos(a3) * dc.rHub * 1.12, dc.c[1] + Math.sin(a3) * dc.rHub * 1.12, hz);
+          const p1 = proj(dc.c[0] + Math.cos(a3 + 0.10) * dc.rOut * 0.94, dc.c[1] + Math.sin(a3 + 0.10) * dc.rOut * 0.94, hz);
+          ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
+        }
+        for (let q = 0; q < 3; q++) {
+          const rq = dc.band[0] + ((dc.band[1] - dc.band[0]) * (q + 0.5)) / 3;
+          const glow = 0.14 + 0.14 * Math.sin(t * 0.0011 - q * 1.1);
+          ring3D(rq, glow * thA, GOLD, 1);
+        }
+        // caliper stays fixed while the disc spins — the conjugate-heat pair
+        ctx.strokeStyle = "rgba(" + GOLD + "," + (0.6 * thA).toFixed(3) + ")";
+        ctx.lineWidth = 1.5;
+        for (const rr2 of [dc.rOut * 1.07, dc.rOut * 0.80]) {
+          ctx.beginPath();
+          for (let k = 0; k <= 10; k++) {
+            const a3 = -1.05 + (k / 10) * 0.85;
+            const p2 = proj(dc.c[0] + Math.cos(a3) * rr2, dc.c[1] + Math.sin(a3) * rr2, hz);
+            k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+          }
+          ctx.stroke();
+        }
+        for (const a3 of [-1.05, -0.20]) {
+          const p0 = proj(dc.c[0] + Math.cos(a3) * dc.rOut * 1.07, dc.c[1] + Math.sin(a3) * dc.rOut * 1.07, hz);
+          const p1 = proj(dc.c[0] + Math.cos(a3) * dc.rOut * 0.80, dc.c[1] + Math.sin(a3) * dc.rOut * 0.80, hz);
+          ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
+        }
+        // buoyant heat plumes rising off the rim — the CFD half of the case
+        for (const pl of PL) {
+          pl.life -= dt * 0.30;
+          if (pl.life <= 0) { pl.life = 1; pl.x = Math.random(); }
+          const rise = (1 - pl.life) * dc.rOut * 1.4;
+          const px = dc.c[0] + (pl.x - 0.5) * dc.rOut * 1.7 + Math.sin(t * 0.003 + pl.x * 21) * 7;
+          const py = dc.c[1] - dc.rOut * 0.55 - rise;
+          const al = Math.sin(Math.PI * (1 - pl.life)) * 0.28 * thA;
+          ctx.strokeStyle = "rgba(" + GOLD + "," + al.toFixed(3) + ")";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.moveTo(px, py + 8); ctx.lineTo(px, py - 4); ctx.stroke();
+        }
       }
 
       // the scan gate: a teal wall sweeping the conversion across the chamber
