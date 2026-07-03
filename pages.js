@@ -281,8 +281,11 @@
           const f = (a * a) / (r2 * r2);
           return [1 - f * (dx * dx - dy * dy), -f * 2 * dx * dy];
         };
+        // mask follows the dial so the flow lives around the body, not over the copy
+        flowSvg.style.setProperty("--fcx", cx.toFixed(0) + "px");
+        flowSvg.style.setProperty("--fcy", cy.toFixed(0) + "px");
         while (flowSvg.firstChild) flowSvg.removeChild(flowSvg.firstChild);
-        const NL = 20, STEP = 7;
+        const NL = 12, STEP = 7;
         for (let k = 0; k < NL; k++) {
           const y0 = (k + 0.5) * (h / NL) + (k % 2 ? 3 : -3);
           if (Math.abs(y0 - cy) < 6) continue;               // skip the dead stagnation line
@@ -298,7 +301,23 @@
           }
           const path = document.createElementNS(SVGNS, "path");
           path.setAttribute("d", d);
+          path.setAttribute("id", "ringflow-" + k);
           flowSvg.appendChild(path);
+          // tracer particle gliding along every other streamline, wind-tunnel style
+          if (k % 2 === 0) {
+            const tr = document.createElementNS(SVGNS, "circle");
+            tr.setAttribute("class", "ring-tracer" + (k === 6 ? " ring-tracer--gold" : ""));
+            tr.setAttribute("r", "1.8");
+            const mo = document.createElementNS(SVGNS, "animateMotion");
+            mo.setAttribute("dur", Math.max(7, path.getTotalLength() / 90).toFixed(1) + "s");
+            mo.setAttribute("repeatCount", "indefinite");
+            mo.setAttribute("begin", (-(k * 1.7)).toFixed(1) + "s");
+            const mp = document.createElementNS(SVGNS, "mpath");
+            mp.setAttribute("href", "#ringflow-" + k);
+            mo.appendChild(mp);
+            tr.appendChild(mo);
+            flowSvg.appendChild(tr);
+          }
         }
       };
       buildFlow();
