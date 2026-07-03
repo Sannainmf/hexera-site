@@ -270,80 +270,107 @@
       <p class="indx__lede">One meshing core, pointed at the geometry and physics each field actually ships.</p>
     </header>
 
-    <div class="indx__rows" data-ind-rows>
-      <article class="indrow" data-rise>
-        <div class="indrow__cell indrow__cell--industry">
-          <span class="indrow__eyebrow">/External aerodynamics</span>
-          <h3 class="indrow__name">Aerospace</h3>
-        </div>
-        <div class="indrow__cell indrow__cell--explain">
-          <ol class="indrow__list">
-            <li><span class="indrow__n">01</span><span>Prism layers to y+ &asymp; 1</span></li>
-            <li><span class="indrow__n">02</span><span>Refinement at the trailing edge</span></li>
-            <li><span class="indrow__n">03</span><span>A far field that frees the wake</span></li>
-          </ol>
+    <!-- The specimen chamber: one sticky wind-tunnel stage. A single wireframe
+         mesh is pinned in the chamber and literally RE-MESHES itself from one
+         industry's geometry to the next as you scroll — airfoil → vessel →
+         game asset → coupe. Driven by [data-spec] in pages.js. -->
+    <div class="spec" data-spec>
+      <div class="spec__sticky">
 
-          <div class="indrow__foot">
-            <h3 class="indrow__h">Wings, wakes, whole aircraft.</h3>
-            <p class="indrow__p">Boundary layers and separation over lifting surfaces and full airframes — the regime Hexera meshes today.</p>
+        <div class="spec-rail" aria-hidden="true">
+          <span class="spec-rail__line"><span class="spec-rail__fill" data-spec-fill></span></span>
+          <button class="spec-rail__stop active" data-spec-go="0" tabindex="-1"><i></i><em>Aero</em></button>
+          <button class="spec-rail__stop" data-spec-go="1" tabindex="-1"><i></i><em>Bio</em></button>
+          <button class="spec-rail__stop" data-spec-go="2" tabindex="-1"><i></i><em>Game</em></button>
+          <button class="spec-rail__stop" data-spec-go="3" tabindex="-1"><i></i><em>Auto</em></button>
+        </div>
+
+        <div class="spec__grid">
+          <figure class="spec-chamber" aria-hidden="true">
+            <span class="spec-ghost" data-spec-ghost>01</span>
+            <canvas class="spec-canvas" data-spec-canvas></canvas>
+            <i class="spec-corner spec-corner--tl"></i>
+            <i class="spec-corner spec-corner--tr"></i>
+            <i class="spec-corner spec-corner--bl"></i>
+            <i class="spec-corner spec-corner--br"></i>
+            <figcaption class="spec-hud spec-hud--tl"><span class="spec-hud__k" data-spec-id>spec 01</span><span class="spec-hud__v" data-spec-name>naca 0012 · wing section</span></figcaption>
+            <div class="spec-hud spec-hud--tr"><span class="spec-status" data-spec-status>mesh locked</span></div>
+            <div class="spec-hud spec-hud--bl"><span class="spec-hud__v" data-spec-regime>re 6.0e6 · mach 0.30</span></div>
+            <div class="spec-hud spec-hud--br"><span class="spec-hud__v" data-spec-out>→ .cgns · openfoam</span></div>
+          </figure>
+
+          <div class="spec-copy">
+            <article class="spec-card is-active" data-spec-card
+              data-sid="spec 01" data-sname="naca 0012 · wing section"
+              data-regime="re 6.0e6 · mach 0.30" data-out="→ .cgns · openfoam">
+              <span class="spec-card__eyebrow">/External aerodynamics</span>
+              <h3 class="spec-card__name">Aerospace</h3>
+              <ol class="spec-card__list">
+                <li><span class="spec-card__n">01</span><span>Prism layers to y+ &asymp; 1</span></li>
+                <li><span class="spec-card__n">02</span><span>Refinement at the trailing edge</span></li>
+                <li><span class="spec-card__n">03</span><span>A far field that frees the wake</span></li>
+              </ol>
+              <div class="spec-card__foot">
+                <h4 class="spec-card__h">Wings, wakes, whole aircraft.</h4>
+                <p class="spec-card__p">Boundary layers and separation over lifting surfaces and full airframes — the regime Hexera meshes today.</p>
+              </div>
+              <div class="spec-card__chips"><span class="spec-chip">12.4M cells</span><span class="spec-chip">y+ 1.0</span><span class="spec-chip spec-chip--out">→ .cgns</span></div>
+            </article>
+
+            <article class="spec-card" data-spec-card
+              data-sid="spec 02" data-sname="saccular aneurysm · vessel"
+              data-regime="pulsatile · 72 bpm" data-out="→ .msh · fsi-ready">
+              <span class="spec-card__eyebrow">/Flow inside the body</span>
+              <h3 class="spec-card__name">Biomedical</h3>
+              <ol class="spec-card__list">
+                <li><span class="spec-card__n">01</span><span>Patient-specific vasculature</span></li>
+                <li><span class="spec-card__n">02</span><span>Thin, compliant walls</span></li>
+                <li><span class="spec-card__n">03</span><span>Pulsatile, conjugate heat</span></li>
+              </ol>
+              <div class="spec-card__foot">
+                <h4 class="spec-card__h">Vessels, valves, airways.</h4>
+                <p class="spec-card__p">Blood through stents and aneurysms, air through the lung — with tissue heat coupled across walls a cell thick.</p>
+              </div>
+              <div class="spec-card__chips"><span class="spec-chip">8.9M cells</span><span class="spec-chip">wall 0.4 mm</span><span class="spec-chip spec-chip--out">→ .msh</span></div>
+            </article>
+
+            <article class="spec-card" data-spec-card
+              data-sid="spec 03" data-sname="hero asset · gem lod0"
+              data-regime="16.6 ms frame · 60 fps" data-out="→ .fbx · engine-ready">
+              <span class="spec-card__eyebrow">/Physics you can ship</span>
+              <h3 class="spec-card__name">Gaming</h3>
+              <ol class="spec-card__list">
+                <li><span class="spec-card__n">01</span><span>Watertight collision shells</span></li>
+                <li><span class="spec-card__n">02</span><span>Fluid and smoke volumes</span></li>
+                <li><span class="spec-card__n">03</span><span>LODs that hold their silhouette</span></li>
+              </ol>
+              <div class="spec-card__foot">
+                <h4 class="spec-card__h">Real-time, baked, or both.</h4>
+                <p class="spec-card__p">Raw geometry becomes watertight meshes and fluid volumes for live engines and pre-baked VFX, with no hand cleanup.</p>
+              </div>
+              <div class="spec-card__chips"><span class="spec-chip">48k tris lod0</span><span class="spec-chip">watertight</span><span class="spec-chip spec-chip--out">→ .fbx</span></div>
+            </article>
+
+            <article class="spec-card" data-spec-card
+              data-sid="spec 04" data-sname="coupe body · full scale"
+              data-regime="140 km/h · yaw 5°" data-out="→ .cgns · openfoam">
+              <span class="spec-card__eyebrow">/Drag, heat, downforce</span>
+              <h3 class="spec-card__name">Automotive</h3>
+              <ol class="spec-card__list">
+                <li><span class="spec-card__n">01</span><span>Full-vehicle external aero</span></li>
+                <li><span class="spec-card__n">02</span><span>Underhood and brake cooling</span></li>
+                <li><span class="spec-card__n">03</span><span>Conjugate thermal in the pack</span></li>
+              </ol>
+              <div class="spec-card__foot">
+                <h4 class="spec-card__h">Every panel, every duct.</h4>
+                <p class="spec-card__p">Complete vehicle assemblies in one pass — external drag and downforce, underhood airflow, and battery-pack thermal.</p>
+              </div>
+              <div class="spec-card__chips"><span class="spec-chip">96M cells</span><span class="spec-chip">Δcd ±0.001</span><span class="spec-chip spec-chip--out">→ .cgns</span></div>
+            </article>
           </div>
+        </div>
 
-        </div>
-      </article>
-
-      <article class="indrow" data-rise>
-        <div class="indrow__cell indrow__cell--industry">
-          <span class="indrow__eyebrow">/Flow inside the body</span>
-          <h3 class="indrow__name">Biomedical</h3>
-        </div>
-        <div class="indrow__cell indrow__cell--explain">
-          <ol class="indrow__list">
-            <li><span class="indrow__n">01</span><span>Patient-specific vasculature</span></li>
-            <li><span class="indrow__n">02</span><span>Thin, compliant walls</span></li>
-            <li><span class="indrow__n">03</span><span>Pulsatile, conjugate heat</span></li>
-          </ol>
-          <div class="indrow__foot">
-            <h3 class="indrow__h">Vessels, valves, airways.</h3>
-            <p class="indrow__p">Blood through stents and aneurysms, air through the lung — with tissue heat coupled across walls a cell thick.</p>
-          </div>
-        </div>
-      </article>
-
-      <article class="indrow" data-rise>
-        <div class="indrow__cell indrow__cell--industry">
-          <span class="indrow__eyebrow">/Physics you can ship</span>
-          <h3 class="indrow__name">Gaming</h3>
-        </div>
-        <div class="indrow__cell indrow__cell--explain">
-          <ol class="indrow__list">
-            <li><span class="indrow__n">01</span><span>Watertight collision shells</span></li>
-            <li><span class="indrow__n">02</span><span>Fluid and smoke volumes</span></li>
-            <li><span class="indrow__n">03</span><span>LODs that hold their silhouette</span></li>
-          </ol>
-          <div class="indrow__foot">
-            <h3 class="indrow__h">Real-time, baked, or both.</h3>
-            <p class="indrow__p">Raw geometry becomes watertight meshes and fluid volumes for live engines and pre-baked VFX, with no hand cleanup.</p>
-          </div>
-        </div>
-      </article>
-
-      <article class="indrow" data-rise>
-        <div class="indrow__cell indrow__cell--industry">
-          <span class="indrow__eyebrow">/Drag, heat, downforce</span>
-          <h3 class="indrow__name">Automotive</h3>
-        </div>
-        <div class="indrow__cell indrow__cell--explain">
-          <ol class="indrow__list">
-            <li><span class="indrow__n">01</span><span>Full-vehicle external aero</span></li>
-            <li><span class="indrow__n">02</span><span>Underhood and brake cooling</span></li>
-            <li><span class="indrow__n">03</span><span>Conjugate thermal in the pack</span></li>
-          </ol>
-          <div class="indrow__foot">
-            <h3 class="indrow__h">Every panel, every duct.</h3>
-            <p class="indrow__p">Complete vehicle assemblies in one pass — external drag and downforce, underhood airflow, and battery-pack thermal.</p>
-          </div>
-        </div>
-      </article>
+      </div>
     </div>
   </section>
 
