@@ -122,10 +122,10 @@
     const NODE_POS = [[200, 50], [350, 200], [200, 350], [50, 200]];
     /* run log copy: present-tense while running, past-tense result + duration once done */
     const LOG = [
-      { run: "opening cad · sealing gaps", done: "geometry sealed · walls tagged · 2.4s" },
-      { run: "growing boundary layers", done: "prisms grown to y+ 1.0 · 14.9s" },
-      { run: "grading skew & orthogonality", done: "2 weak cells re-meshed · 6.1s" },
-      { run: "packing solver deck", done: "exported .cgns · solver-ready · 1.8s" },
+      { run: "opening cad · sealing gaps", done: "geometry sealed · 2.4s" },
+      { run: "growing boundary layers", done: "prisms at y+ 1.0 · 14.9s" },
+      { run: "grading skew & ortho", done: "2 weak cells re-meshed · 6.1s" },
+      { run: "packing solver deck", done: "exported .cgns · 1.8s" },
     ];
     const statBar = ring.querySelector("[data-ring-bar]");
     const statCells = ring.querySelector("[data-ring-cells]");
