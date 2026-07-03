@@ -1,20 +1,25 @@
 /* ============================================================
    Hexera — engine.html: "Inside the engine"
-   A scroll-scrubbed 3D wireframe story rendered on 2D canvas:
-   hand-rolled perspective projection (no WebGL, no libraries).
+   Scroll-scrubbed 3D wireframe story, hand-rolled perspective
+   projection on 2D canvas. No WebGL, no libraries.
 
-   The specimen is a two-stage launch vehicle, built as a true
-   body of revolution: tangent-ogive nose, barrel with interstage
-   rings, boat-tail, converging–diverging nozzle bell, four swept
-   fins. Every ring and longeron is computed from the profile.
+   The specimen: a transport-style wing built like real CAD —
+   cambered NACA 2412 sections, taper, 24° LE sweep, dihedral,
+   washout twist, closed rounded tip caps, flap + aileron panel
+   break lines, and internal structure (front/rear spars with
+   rib webs). Rendering uses per-segment surface normals for
+   view-dependent backface dimming and a two-tier line
+   hierarchy: bright feature edges, faint interior lines.
 
    Five acts, scrubbed by scroll:
-     00 READ   · the vehicle assembles from a scattered point cloud
-     01 TAG    · nose / barrel / fins / nozzle classified in turn
-     02 MESH   · surface densifies, then a 6-layer prism stack with
-                 geometric growth builds in a 90° cutaway sector
-     03 PROVE  · a scan ring climbs the stack, grading stations
-     04 SHIP   · export crate draws in — and the vehicle lifts off
+     00 READ   · point cloud converges; feature edges draw first
+     01 TAG    · skin / flaps / ailerons / tips classified
+     02 MESH   · structured surface grid sweeps LE → TE with real
+                 clustering, then an 8-layer prism stack (growth
+                 1.35) builds at an inspection rib
+     03 PROVE  · a quality gate sweeps the span; failures flash
+                 and re-refine
+     04 SHIP   · the export crate draws itself closed
    ============================================================ */
 (() => {
   "use strict";
@@ -29,157 +34,256 @@
   const sstep = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
   const lerp = (a, b, t) => a + (b - a) * t;
 
-  /* ================= geometry: the launch vehicle ================= */
-  const P = 24;                      // points per ring
-  const R = 0.20;                    // barrel radius (height ≈ 2.6 → slender)
+  /* ================= wing definition ================= */
+  const SEMI = 1.3;                 // semispan
+  const CROOT = 1.0, CTIP = 0.38;   // chords
+  const SWEEP = 0.46;               // LE sweep (x shift at tip)
+  const DIHED = 0.085;              // dihedral rise at tip
+  const TWIST = -0.06;              // washout (rad at tip)
+  const XSHIFT = -0.52;             // recenter the planform on the origin
 
-  /* profile stations, nose tip → nozzle exit: { y, r, tag }
-     tags: 0 nose · 1 barrel · 3 nozzle (fins are group 2) */
-  const prof = [];
+  // NACA 2412: camber m=0.02 @ p=0.4, thickness 12%
+  const M2 = 0.02, P4 = 0.4;
+  const yc = (x) => x < P4 ? (M2 / (P4 * P4)) * (2 * P4 * x - x * x)
+                           : (M2 / ((1 - P4) * (1 - P4))) * ((1 - 2 * P4) + 2 * P4 * x - x * x);
+  const yt = (x) => 5 * 0.12 * (0.2969 * Math.sqrt(x) - 0.1260 * x - 0.3516 * x * x + 0.2843 * x ** 3 - 0.1036 * x ** 4);
+
+  /* section loop in unit chord space: TE → upper → LE → lower → (TE)
+     P points, cosine-clustered at LE and TE (real chordwise clustering) */
+  const P = 48, H = P / 2;
+  const loopXY = [], loopN = [];
   {
-    // tangent-ogive nose: y 1.30 → 0.72
-    const NU = [0, 0.06, 0.14, 0.24, 0.37, 0.52, 0.7, 0.86, 1];
-    NU.forEach((u) => prof.push({ y: 1.30 - u * 0.58, r: Math.max(R * Math.pow(u, 0.62), 0.004), tag: 0 }));
-    // upper barrel + interstage double-ring at 0.30/0.26
-    [0.6, 0.44, 0.30, 0.26, 0.10].forEach((y) => prof.push({ y, r: R, tag: 1 }));
-    // lower barrel + stage ring at -0.50/-0.54
-    [-0.10, -0.30, -0.50, -0.54, -0.70, -0.80].forEach((y) => prof.push({ y, r: R, tag: 1 }));
-    // boat-tail
-    prof.push({ y: -0.88, r: R * 0.86, tag: 1 });
-    // engine skirt → throat → bell exit (converging–diverging)
-    [[-0.93, 0.58], [-0.97, 0.38], [-1.00, 0.33], [-1.05, 0.40], [-1.12, 0.52], [-1.20, 0.66], [-1.28, 0.78]]
-      .forEach(([y, f]) => prof.push({ y, r: R * f, tag: 3 }));
+    const pts = [];
+    for (let i = 0; i <= H; i++) {                     // upper TE→LE
+      const x = 0.5 * (1 + Math.cos(Math.PI * i / H));
+      pts.push([x, yc(x) + yt(x)]);
+    }
+    for (let i = 1; i < H; i++) {                      // lower LE→TE
+      const x = 0.5 * (1 - Math.cos(Math.PI * i / H));
+      pts.push([x, yc(x) - yt(x)]);
+    }
+    pts.forEach((p) => loopXY.push(p));
+    for (let i = 0; i < P; i++) {
+      const a = loopXY[(i - 1 + P) % P], b = loopXY[(i + 1) % P];
+      const tx = b[0] - a[0], ty = b[1] - a[1];
+      const l = Math.hypot(tx, ty) || 1;
+      loopN.push([-ty / l, tx / l]);                   // outward for this winding
+    }
   }
-  const NS = prof.length;
+  const LEI = H;                                       // loop index of the leading edge
+  const chordAt = (j) => loopXY[j][0];                 // x/c of loop point
+  const distLE = (j) => Math.abs(j - LEI) / H;         // 0 at LE → 1 at TE
 
-  // profile 2D outward normals in the (r, y) plane — exact for a revolve
-  const pnrm = prof.map((p, i) => {
-    const a = prof[Math.max(i - 1, 0)], b = prof[Math.min(i + 1, NS - 1)];
-    const ty = b.y - a.y, tr = b.r - a.r;
-    const l = Math.hypot(ty, tr) || 1;
-    return { nr: -ty / l, ny: tr / l };   // rotate tangent 90°: points away from the axis
-  });
+  /* spanwise stations: clustered at root and tips, plus closing cap stations */
+  const stF = [];
+  {
+    const NHALF = 12;
+    for (let k = -NHALF; k <= NHALF; k++) {
+      const u = k / NHALF;
+      stF.push(Math.tanh(1.6 * u) / Math.tanh(1.6) * 0.955);
+    }
+  }
+  const CAPS = [[0.965, 0.72], [0.978, 0.42], [0.988, 0.16]]; // [f, thickness+chord scale]
 
-  const ringPt = (i, j, d) => {           // station i, angle j, normal offset d
-    const th = (j / P) * Math.PI * 2;
-    const r = prof[i].r + (d ? pnrm[i].nr * d : 0);
-    const y = prof[i].y + (d ? pnrm[i].ny * d : 0);
-    return [Math.cos(th) * r, y, Math.sin(th) * r];
+  /* build one section: returns P points [x,y,z] */
+  const buildSec = (f, scale) => {
+    const af = Math.abs(f);
+    const chord = lerp(CROOT, CTIP, af) * (scale || 1);
+    const xle = SWEEP * af;
+    const dy = DIHED * af * af * 2.2;
+    const tw = TWIST * af;
+    const cosW = Math.cos(tw), sinW = Math.sin(tw);
+    const out = [];
+    for (let j = 0; j < P; j++) {
+      let x = loopXY[j][0] * chord, y = loopXY[j][1] * chord * (scale ? lerp(1, 0.55, 1 - scale) : 1);
+      const qx = x - 0.25 * chord;                     // twist about quarter chord
+      x = 0.25 * chord + qx * cosW - y * sinW;
+      y = qx * sinW + y * cosW;
+      out.push([xle + x + XSHIFT + (scale ? (1 - scale) * chord * 0.35 : 0), y + dy, f * SEMI]);
+    }
+    return out;
   };
+  const sections = stF.map((f) => buildSec(f, 1));
+  const NST = sections.length, MID = (NST - 1) / 2;
+  // closed tips: cap sections shrinking to a point
+  const capsL = CAPS.map(([f, s]) => buildSec(-f, s));
+  const capsR = CAPS.map(([f, s]) => buildSec(f, s));
 
-  /* base wireframe: rings at every station + 12 longerons.
-     seg = [ax,ay,az,bx,by,bz, station, tag] */
-  const baseSegs = [];
-  for (let i = 0; i < NS; i++) {
-    if (prof[i].r < 0.01) continue;
+  /* segment store: {a, b, n(3)|0, cls, tag, st, dle}
+     cls: 0 feature · 1 skin · 2 internal · 3 finegrid
+     tag: 0 skin · 1 flap · 2 aileron · 3 tips */
+  const segs = [];
+  const nrm3 = (j) => [loopN[j][0], loopN[j][1], 0];
+  const tagAt = (j, f) => {
+    const af = Math.abs(f);
+    if (af > 0.9) return 3;
+    if (chordAt(j) > 0.7 && j < H) {                   // rear upper panel region
+      if (af >= 0.5 && af <= 0.9) return 2;            // aileron
+      if (af <= 0.42) return 1;                        // flap
+    }
+    return 0;
+  };
+  const add = (a, b, n, cls, tag, st, dle) => segs.push({ a, b, n, cls, tag, st, dle });
+
+  /* skin rings (CAD density: every 2nd station) */
+  for (let s = 0; s < NST; s += 2) {
     for (let j = 0; j < P; j++) {
-      const a = ringPt(i, j, 0), b = ringPt(i, (j + 1) % P, 0);
-      baseSegs.push([a[0], a[1], a[2], b[0], b[1], b[2], i, prof[i].tag]);
+      add(sections[s][j], sections[s][(j + 1) % P], nrm3(j), 1, tagAt(j, stF[s]), s, distLE(j));
     }
   }
-  for (let j = 0; j < P; j += 2) {
-    for (let i = 0; i < NS - 1; i++) {
-      const a = ringPt(i, j, 0), b = ringPt(i + 1, j, 0);
-      baseSegs.push([a[0], a[1], a[2], b[0], b[1], b[2], i, prof[i].tag]);
+  /* spanwise lines (CAD density: every 4th loop point) */
+  for (let j = 0; j < P; j += 4) {
+    for (let s = 0; s < NST - 1; s++) {
+      add(sections[s][j], sections[s + 1][j], nrm3(j), 1, tagAt(j, stF[s]), s, distLE(j));
     }
   }
-  // four swept fins at 45° offsets: outline + 2 ribs, tag 2
-  const finProfile = [[R - 0.01, -0.52], [R + 0.30, -0.72], [R + 0.30, -0.94], [R - 0.01, -0.90]];
-  for (let f = 0; f < 4; f++) {
-    const th = Math.PI / 4 + f * Math.PI / 2;
-    const c = Math.cos(th), s = Math.sin(th);
-    const p3 = finProfile.map(([r, y]) => [c * r, y, s * r]);
-    const edges = [[0, 1], [1, 2], [2, 3], [3, 0]];
-    edges.forEach(([a, b]) => baseSegs.push([p3[a][0], p3[a][1], p3[a][2], p3[b][0], p3[b][1], p3[b][2], 16, 2]));
-    for (let k = 1; k <= 2; k++) {
-      const t = k / 3;
-      const a = [lerp(p3[0][0], p3[3][0], t), lerp(p3[0][1], p3[3][1], t), lerp(p3[0][2], p3[3][2], t)];
-      const b = [lerp(p3[1][0], p3[2][0], t), lerp(p3[1][1], p3[2][1], t), lerp(p3[1][2], p3[2][2], t)];
-      baseSegs.push([a[0], a[1], a[2], b[0], b[1], b[2], 16, 2]);
-    }
-  }
-
-  /* act 02a · surface densification: mid-rings + odd longerons */
-  const refineSegs = [];
-  for (let i = 0; i < NS - 1; i++) {
-    const rm = (prof[i].r + prof[i + 1].r) / 2, ym = (prof[i].y + prof[i + 1].y) / 2;
-    if (rm < 0.02) continue;
+  /* tip caps: rings + closers */
+  [[capsL, sections[0]], [capsR, sections[NST - 1]]].forEach(([caps, last]) => {
+    let prev = last;
+    caps.forEach((sec, ci) => {
+      for (let j = 0; j < P; j += 2) {
+        add(sec[j], sec[(j + 2) % P], nrm3(j), 1, 3, 0, distLE(j));
+        add(prev[j], sec[j], nrm3(j), 1, 3, 0, distLE(j));
+      }
+      prev = sec;
+    });
+  });
+  /* feature edges: LE, TE (upper+lower rim), spar caps, panel breaks */
+  const featureLine = (jList, sRange, tag) => {
+    jList.forEach((j) => {
+      for (let s = sRange[0]; s < sRange[1]; s++) {
+        add(sections[s][j], sections[s + 1][j], 0, 0, tag, s, distLE(j));
+      }
+    });
+  };
+  featureLine([LEI], [0, NST - 1], 0);                            // leading edge
+  featureLine([0, P - 1], [0, NST - 1], 0);                       // trailing edge rims
+  // spar caps at x/c ≈ 0.25 and 0.68 (nearest loop indices, upper + lower)
+  const jNear = (xc, upper) => {
+    let best = upper ? 0 : H, bd = 9;
     for (let j = 0; j < P; j++) {
-      const t1 = (j / P) * Math.PI * 2, t2 = ((j + 1) % P / P) * Math.PI * 2;
-      refineSegs.push([Math.cos(t1) * rm, ym, Math.sin(t1) * rm, Math.cos(t2) * rm, ym, Math.sin(t2) * rm, i, 1]);
+      const isUp = j < H;
+      if (isUp !== upper) continue;
+      const d = Math.abs(chordAt(j) - xc);
+      if (d < bd) { bd = d; best = j; }
+    }
+    return best;
+  };
+  const sparJ = [[jNear(0.25, true), jNear(0.25, false)], [jNear(0.68, true), jNear(0.68, false)]];
+  sparJ.forEach(([ju, jl]) => featureLine([ju, jl], [0, NST - 1], 0));
+  /* internal structure: spar webs (verticals at each station) + rib outlines */
+  for (let s = 0; s < NST; s++) {
+    sparJ.forEach(([ju, jl]) => add(sections[s][ju], sections[s][jl], 0, 2, 0, s, 0.5));
+    if (s % 4 === 2) {
+      for (let j = 0; j < P; j += 3) add(sections[s][j], sections[s][(j + 3) % P], 0, 2, 0, s, distLE(j));
     }
   }
-  for (let j = 1; j < P; j += 2) {
-    for (let i = 0; i < NS - 1; i++) {
-      if (prof[i].r < 0.01) continue;
-      const a = ringPt(i, j, 0), b = ringPt(i + 1, j, 0);
-      refineSegs.push([a[0], a[1], a[2], b[0], b[1], b[2], i, 1]);
+  /* panel break lines: aileron + flap boxes (span edges chordwise, chord edges spanwise) */
+  const jPanelU = [];
+  for (let j = 0; j < H; j++) if (chordAt(j) > 0.7) jPanelU.push(j);
+  const panelBox = (f0, f1) => {
+    const s0 = stF.findIndex((f) => f >= f0), s1 = stF.findIndex((f) => f >= f1);
+    // spanwise hinge line at x/c 0.7 upper
+    const jh = jNear(0.7, true);
+    for (let s = s0; s < s1; s++) add(sections[s][jh], sections[s + 1][jh], 0, 0, 0, s, distLE(jh));
+    // side edges: chordwise from hinge to TE at s0 and s1
+    [s0, s1].forEach((s) => {
+      for (let j = 0; j < jh; j++) add(sections[s][j], sections[s][j + 1], 0, 0, 0, s, distLE(j));
+    });
+  };
+  panelBox(0.52, 0.9);        // right aileron
+  panelBox(-0.9, -0.52);      // left aileron  (findIndex works on ascending stF)
+  panelBox(-0.4, 0.4);        // center flap span (reads as two flap panels split by root)
+
+  /* ---------------- fine structured surface grid (act 02) ----------------
+     denser spanwise stations (tanh-clustered) + full chordwise loops:
+     the real thing — cells pack at LE/TE and at root/tips */
+  const fineF = [];
+  { const NF = 20; for (let k = -NF; k <= NF; k++) { const u = k / NF; fineF.push(Math.tanh(1.9 * u) / Math.tanh(1.9) * 0.955); } }
+  const fineSecs = fineF.map((f) => buildSec(f, 1));
+  const fineSegs = [];
+  for (let s = 0; s < fineSecs.length; s++) {
+    for (let j = 0; j < P; j++) {
+      fineSegs.push({ a: fineSecs[s][j], b: fineSecs[s][(j + 1) % P], n: nrm3(j), dle: distLE(j) });
+    }
+  }
+  for (let j = 0; j < P; j++) {
+    for (let s = 0; s < fineSecs.length - 1; s++) {
+      fineSegs.push({ a: fineSecs[s][j], b: fineSecs[s + 1][j], n: nrm3(j), dle: distLE(j) });
     }
   }
 
-  /* act 02b · prism stack: 6 layers, geometric growth 1.45, shown as a
-     90° cutaway sector (angles j 0..P/4) — rings + radial cell walls,
-     so the actual quad cells of the boundary layer read on screen */
-  const GROW = 1.45, D0 = 0.016, NLAY = 6;
-  const layD = [];
-  { let acc = 0; for (let k = 0; k < NLAY; k++) { acc += D0 * Math.pow(GROW, k); layD.push(acc); } }
-  const SECJ = P / 4;                                 // sector: 0..90°
-  const prismRings = [];                              // per layer: ring arcs in sector
-  const prismWalls = [];                              // per layer: radial walls layer k-1 → k
+  /* ---------------- prism stack at the inspection rib (act 02b) ----------------
+     8 layers, geometric growth 1.35 — drawn as layer arcs + cell walls so the
+     actual quads read. Placed at f = +0.42, the station the camera dives to. */
+  const INS_F = 0.42;
+  const insSec = buildSec(INS_F, 1);
+  const insChord = lerp(CROOT, CTIP, INS_F);
+  /* stack totals ~8% of local chord — slightly exaggerated from a real BL for
+     legibility, but the right order of magnitude, so layers hug the skin */
+  const NLAY = 8, GROW = 1.35;
+  const TOTAL_D = 0.08 * insChord;
+  const D0 = TOTAL_D * (GROW - 1) / (Math.pow(GROW, NLAY) - 1);
+  const layD = []; { let acc = 0; for (let k = 0; k < NLAY; k++) { acc += D0 * Math.pow(GROW, k); layD.push(acc); } }
+  const prism = [];   // {a,b,layer, wall:bool}
   for (let k = 0; k < NLAY; k++) {
-    const rings = [], walls = [];
-    for (let i = 0; i < NS; i += 1) {
-      if (prof[i].r < 0.02) continue;
-      for (let j = 0; j < SECJ; j++) {
-        const a = ringPt(i, j, layD[k]), b = ringPt(i, j + 1, layD[k]);
-        rings.push([a[0], a[1], a[2], b[0], b[1], b[2], i, 1]);
-      }
-      for (let j = 0; j <= SECJ; j += 2) {
-        const a = ringPt(i, j, k === 0 ? 0 : layD[k - 1]), b = ringPt(i, j, layD[k]);
-        walls.push([a[0], a[1], a[2], b[0], b[1], b[2], i, 1]);
-      }
+    const d = layD[k];
+    for (let j = 0; j < P; j++) {
+      const a = insSec[j], b = insSec[(j + 1) % P];
+      const na = loopN[j], nb = loopN[(j + 1) % P];
+      prism.push({ a: [a[0] + na[0] * d, a[1] + na[1] * d, a[2]], b: [b[0] + nb[0] * d, b[1] + nb[1] * d, b[2]], k, wall: false });
     }
-    prismRings.push(rings); prismWalls.push(walls);
-  }
-
-  /* act 00 · assemble cloud: every 2nd base vertex + a seeded scatter origin */
-  const cloud = [];
-  let seed = 1337;
-  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-  for (let i = 0; i < NS; i++) {
-    if (prof[i].r < 0.01) continue;
     for (let j = 0; j < P; j += 2) {
-      const p = ringPt(i, j, 0);
-      const th = rnd() * Math.PI * 2, ph = Math.acos(rnd() * 2 - 1), r = 2.1 + rnd() * 1.4;
+      const a = insSec[j], n = loopN[j];
+      const d0 = k === 0 ? 0 : layD[k - 1];
+      prism.push({ a: [a[0] + n[0] * d0, a[1] + n[1] * d0, a[2]], b: [a[0] + n[0] * d, a[1] + n[1] * d, a[2]], k, wall: true });
+    }
+  }
+  const insMid = [insSec[LEI][0] * 0.4 + insSec[0][0] * 0.6, insSec[LEI][1] + 0.03, insSec[0][2]];
+
+  /* ---------------- assemble cloud (act 00) ---------------- */
+  const cloud = [];
+  let seed = 20260703;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let s = 0; s < NST; s++) {
+    for (let j = 0; j < P; j += 2) {
+      const p = sections[s][j];
+      const th = rnd() * Math.PI * 2, ph = Math.acos(rnd() * 2 - 1), r = 2.0 + rnd() * 1.5;
       cloud.push({ tx: p[0], ty: p[1], tz: p[2],
-        sx: Math.sin(ph) * Math.cos(th) * r, sy: Math.cos(ph) * r * 0.9, sz: Math.sin(ph) * Math.sin(th) * r,
+        sx: Math.sin(ph) * Math.cos(th) * r, sy: Math.cos(ph) * r * 0.75, sz: Math.sin(ph) * Math.sin(th) * r,
         st: rnd() * 0.55 });
     }
   }
 
-  /* act 04 · export crate + launch arrow */
-  const EX = R + 0.34, EY0 = -1.34, EY1 = 1.36;
+  /* ---------------- export crate (act 04) ---------------- */
+  let bb = [9, 9, 9, -9, -9, -9];
+  sections.flat().forEach((p) => {
+    bb = [Math.min(bb[0], p[0]), Math.min(bb[1], p[1]), Math.min(bb[2], p[2]),
+          Math.max(bb[3], p[0]), Math.max(bb[4], p[1]), Math.max(bb[5], p[2])];
+  });
+  const MG = 0.16;
   const corners = [
-    [-EX, EY0, -EX], [EX, EY0, -EX], [EX, EY1, -EX], [-EX, EY1, -EX],
-    [-EX, EY0, EX], [EX, EY0, EX], [EX, EY1, EX], [-EX, EY1, EX],
+    [bb[0]-MG, bb[1]-MG*1.5, bb[2]-MG], [bb[3]+MG, bb[1]-MG*1.5, bb[2]-MG], [bb[3]+MG, bb[4]+MG*1.5, bb[2]-MG], [bb[0]-MG, bb[4]+MG*1.5, bb[2]-MG],
+    [bb[0]-MG, bb[1]-MG*1.5, bb[5]+MG], [bb[3]+MG, bb[1]-MG*1.5, bb[5]+MG], [bb[3]+MG, bb[4]+MG*1.5, bb[5]+MG], [bb[0]-MG, bb[4]+MG*1.5, bb[5]+MG],
   ];
   const crateEdges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
 
-  /* ================= camera timeline ================= */
+  /* ================= camera timeline (with 3D targets) ================= */
   const KEYS = [
-    { p: 0.00, th: 0.50, ph: 0.10, d: 4.3, ty: 0.05 },
-    { p: 0.20, th: 1.35, ph: 0.20, d: 3.4, ty: 0.10 },
-    { p: 0.40, th: 2.35, ph: 0.30, d: 2.7, ty: 0.00 },
-    { p: 0.60, th: 3.25, ph: 0.10, d: 1.8, ty: -0.25 },
-    { p: 0.80, th: 3.95, ph: 0.50, d: 3.0, ty: -0.05 },
-    { p: 1.00, th: 4.65, ph: 0.16, d: 4.2, ty: 0.05 },
+    { p: 0.00, th: 0.55, ph: 0.34, d: 3.9, t: [0, 0, 0] },
+    { p: 0.20, th: 1.25, ph: 0.44, d: 2.7, t: [0, 0, 0] },
+    { p: 0.40, th: 2.05, ph: 0.58, d: 2.5, t: [0, 0, 0.15] },
+    { p: 0.60, th: 2.75, ph: 0.26, d: 1.1, t: [insMid[0], insMid[1], insMid[2] * 0.9] },
+    { p: 0.80, th: 3.55, ph: 0.72, d: 2.9, t: [0, 0, 0] },
+    { p: 1.00, th: 4.25, ph: 0.30, d: 3.9, t: [0, 0, 0] },
   ];
   const cam = (p) => {
     let i = 0;
     while (i < KEYS.length - 2 && p > KEYS[i + 1].p) i++;
     const a = KEYS[i], b = KEYS[i + 1];
     const t = sstep((p - a.p) / (b.p - a.p));
-    return { th: lerp(a.th, b.th, t), ph: lerp(a.ph, b.ph, t), d: lerp(a.d, b.d, t), ty: lerp(a.ty, b.ty, t) };
+    return { th: lerp(a.th, b.th, t), ph: lerp(a.ph, b.ph, t), d: lerp(a.d, b.d, t),
+      tx: lerp(a.t[0], b.t[0], t), ty: lerp(a.t[1], b.t[1], t), tz: lerp(a.t[2], b.t[2], t) };
   };
 
   /* ================= projection + batched rendering ================= */
@@ -192,47 +296,46 @@
   };
   resize();
 
-  const COL = { t: "15,182,172", g: "255,186,0", i: "230,228,220" };
+  const COL = { t: "15,182,172", g: "255,186,0", i: "235,233,226" };
   let buckets = new Map();
-  const put = (x1, y1, x2, y2, col, a) => {
+  const put = (x1, y1, x2, y2, col, a, w) => {
     if (a <= 0.012) return;
-    const key = col + (Math.round(a * 20));
+    const aq = Math.round(a * 18);
+    const key = col + aq + "w" + w;
     let b = buckets.get(key);
-    if (!b) { b = { col, a: Math.round(a * 20) / 20, seg: [], pts: null }; buckets.set(key, b); }
+    if (!b) { b = { col, a: aq / 18, w, seg: [], pts: null }; buckets.set(key, b); }
     b.seg.push(x1, y1, x2, y2);
   };
   const putPt = (x, y, col, a) => {
     if (a <= 0.02) return;
-    const key = col + (Math.round(a * 20)) + "p";
+    const aq = Math.round(a * 18);
+    const key = col + aq + "p";
     let b = buckets.get(key);
-    if (!b) { b = { col, a: Math.round(a * 20) / 20, seg: [], pts: [] }; buckets.set(key, b); }
+    if (!b) { b = { col, a: aq / 18, w: 1, seg: [], pts: [] }; buckets.set(key, b); }
     (b.pts || (b.pts = [])).push(x, y);
   };
 
-  let cth = 0, cph = 0, cd = 3, cty = 0, sref = 300, yShift = 0;
+  let cth = 0, cph = 0, cd = 3, ctx3 = [0, 0, 0], sref = 300;
   let sinT = 0, cosT = 1, sinP = 0, cosP = 1;
+  let CX = 0, CY = 0, CZ = 0;                          // camera position in model space
   const FL = 2.0;
   const proj = (x, y, z) => {
-    y = y + yShift - cty;
+    x -= ctx3[0]; y -= ctx3[1]; z -= ctx3[2];
     const x1 = x * cosT + z * sinT, z1 = -x * sinT + z * cosT;
     const y2 = y * cosP - z1 * sinP, z2 = y * sinP + z1 * cosP;
     const zc = z2 + cd;
-    if (zc < 0.35) return null;
+    if (zc < 0.3) return null;
     const s = FL / zc;
     return [W / 2 + x1 * s * sref, Hh / 2 - y2 * s * sref, zc];
   };
-  const dfade = (zc) => clamp(1.65 - zc / cd, 0.14, 1);
-
-  const segBatch = (segs, col, aBase, aFn) => {
-    for (let i = 0; i < segs.length; i++) {
-      const g = segs[i];
-      const A = proj(g[0], g[1], g[2]); if (!A) continue;
-      const B = proj(g[3], g[4], g[5]); if (!B) continue;
-      const zc = (A[2] + B[2]) / 2;
-      let a = aBase * dfade(zc), c = col;
-      if (aFn) { const o = aFn(g, i); if (!o) continue; a *= o[0]; if (o[1]) c = o[1]; }
-      put(A[0], A[1], B[0], B[1], c, a);
-    }
+  const dfade = (zc) => clamp(1.7 - zc / cd, 0.15, 1);
+  /* view-dependent facing weight: front surface bright, far side recedes */
+  const facing = (mx, my, mz, n) => {
+    if (!n) return 1;
+    const dx = CX - mx, dy = CY - my, dz = CZ - mz;
+    const il = 1 / (Math.hypot(dx, dy, dz) || 1);
+    const dot = (n[0] * dx + n[1] * dy + n[2] * dz) * il;
+    return 0.13 + 0.87 * sstep(dot * 2.4 + 0.42);
   };
 
   /* ================= acts ================= */
@@ -240,115 +343,140 @@
 
   const draw = (p, t) => {
     const c = cam(p);
-    cth = c.th + (reduce ? 0 : Math.sin(t / 5200) * 0.035);
-    cph = c.ph + (reduce ? 0 : Math.sin(t / 6900) * 0.02);
-    cd = c.d; cty = c.ty;
+    cth = c.th + (reduce ? 0 : Math.sin(t / 5600) * 0.03);
+    cph = c.ph + (reduce ? 0 : Math.sin(t / 7300) * 0.018);
+    cd = c.d; ctx3 = [c.tx, c.ty, c.tz];
     sinT = Math.sin(cth); cosT = Math.cos(cth); sinP = Math.sin(cph); cosP = Math.cos(cph);
-    sref = Math.min(W, Hh) * 0.335;
+    CX = ctx3[0] + cd * cosP * sinT; CY = ctx3[1] - cd * sinP; CZ = ctx3[2] - cd * cosP * cosT;
+    sref = Math.min(W, Hh) * 0.40;
 
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.clearRect(0, 0, W, Hh);
     buckets = new Map();
 
     const a0 = actWin(p, 0), a1 = actWin(p, 1), a2 = actWin(p, 2), a3 = actWin(p, 3), a4 = actWin(p, 4);
+    const wingA = sstep((a0 - 0.42) / 0.58);
+    const meshOn = sstep(a2 / 0.5);
+    const shipDim = 1 - 0.35 * sstep(a4);
 
-    // liftoff: the vehicle rises gently as the crate completes
-    yShift = 0.16 * sstep((a4 - 0.5) / 0.5);
-
-    /* act 00 · assemble: cloud converges, wireframe fades in as points land */
-    const wingA = sstep((a0 - 0.45) / 0.55);
+    /* act 00 · assemble cloud */
     if (a0 < 1) {
       for (const q of cloud) {
         const k = sstep((a0 * 1.5 - q.st) / 0.5);
         const A = proj(lerp(q.sx, q.tx, k), lerp(q.sy, q.ty, k), lerp(q.sz, q.tz, k));
         if (!A) continue;
-        putPt(A[0], A[1], "t", (1 - wingA * 0.92) * dfade(A[2]) * 0.8);
+        putPt(A[0], A[1], "t", (1 - wingA * 0.94) * dfade(A[2]) * 0.8);
       }
     }
 
-    /* base wireframe · tag classification during act 01 */
+    /* CAD wireframe: features bright, skin faint+culled, internals ghost */
     if (wingA > 0.01) {
-      const order = [0, 1, 2, 3];             // nose → barrel → fins → nozzle
-      segBatch(baseSegs, "t", 0.42 * wingA, (g) => {
-        if (a1 <= 0) return [1, null];
-        const at = clamp(a1 * 4.4 - order.indexOf(g[7]) * 1.05, 0, 1);
-        if (at <= 0) return [1, null];
-        const pulse = Math.sin(at * Math.PI);
-        return [1 + pulse * 1.1 + (at >= 1 ? 0.3 : 0), pulse > 0.3 && at < 1 ? "g" : null];
-      });
+      const order = [0, 1, 2, 3];                 // skin → flap → aileron → tips
+      for (let i = 0; i < segs.length; i++) {
+        const g = segs[i];
+        const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
+        const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
+        const zc = (A[2] + B[2]) / 2;
+        const mx = (g.a[0] + g.b[0]) / 2, my = (g.a[1] + g.b[1]) / 2, mz = (g.a[2] + g.b[2]) / 2;
+        let a, w = 1, col = "t";
+        if (g.cls === 0) { a = 0.72 * wingA * dfade(zc) * shipDim; w = 1.5; col = "i"; }
+        else if (g.cls === 2) { a = 0.10 * wingA * dfade(zc) * shipDim; }
+        else { a = 0.30 * wingA * dfade(zc) * facing(mx, my, mz, g.n) * (1 - 0.45 * meshOn) * shipDim; }
+        /* act 01 · classification pulse */
+        if (a1 > 0 && g.cls !== 2) {
+          const at = clamp(a1 * 4.4 - order.indexOf(g.tag) * 1.05, 0, 1);
+          if (at > 0 && at < 1) {
+            const pulse = Math.sin(at * Math.PI);
+            if (pulse > 0.25) { col = "g"; a = Math.max(a, (0.5 + 0.4 * pulse) * dfade(zc)); }
+          } else if (at >= 1 && g.tag > 0) {
+            a *= 1.25;
+          }
+        }
+        put(A[0], A[1], B[0], B[1], col, a, w);
+      }
     }
 
-    /* act 02a · surface densification, sweeping nose → tail */
+    /* act 02a · structured surface grid sweeps LE → TE */
     if (a2 > 0) {
-      const dt = sstep(a2 / 0.55);
-      segBatch(refineSegs, "t", 0.20 * (1 - 0.25 * sstep(a4)), (g) => {
-        const on = sstep((dt * 1.35 - g[6] / NS) / 0.3);
-        return on > 0.01 ? [on, null] : null;
-      });
+      const gt = sstep(a2 / 0.62);
+      for (let i = 0; i < fineSegs.length; i++) {
+        const g = fineSegs[i];
+        const on = sstep((gt * 1.45 - g.dle) / 0.22);
+        if (on <= 0.01) continue;
+        const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
+        const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
+        const zc = (A[2] + B[2]) / 2;
+        const mx = (g.a[0] + g.b[0]) / 2, my = (g.a[1] + g.b[1]) / 2, mz = (g.a[2] + g.b[2]) / 2;
+        put(A[0], A[1], B[0], B[1], "t", 0.30 * on * dfade(zc) * facing(mx, my, mz, g.n) * shipDim, 1);
+      }
     }
 
-    /* act 02b · prism stack builds outward, layer by layer, in the cutaway sector */
-    if (a2 > 0.3) {
-      const bt = (a2 - 0.3) / 0.7;
-      for (let k = 0; k < NLAY; k++) {
-        const kt = sstep((bt * (NLAY + 1.5) - k) / 1.6);
+    /* act 02b · prism stack at the inspection rib (persists through PROVE) */
+    if (a2 > 0.45) {
+      const bt = (a2 - 0.45) / 0.55;
+      for (let i = 0; i < prism.length; i++) {
+        const g = prism[i];
+        const kt = sstep((bt * (NLAY + 2) - g.k) / 1.7);
         if (kt <= 0) continue;
-        const fade = 1 - 0.3 * sstep(a4);
-        segBatch(prismRings[k], "t", 0.5 * kt * fade);
-        segBatch(prismWalls[k], "t", 0.34 * kt * fade);
+        const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
+        const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
+        const zc = (A[2] + B[2]) / 2;
+        put(A[0], A[1], B[0], B[1], "t", (g.wall ? 0.34 : 0.55) * kt * dfade(zc) * shipDim, 1);
       }
     }
 
-    /* act 03 · scan ring climbs the vehicle, grading stations */
+    /* act 03 · quality gate sweeps the span */
     if (a3 > 0 && a3 < 1.15) {
-      const scanY = lerp(-1.42, 1.44, sstep(a3));
-      const SR = R + 0.42;
-      let prev = null;
-      for (let j = 0; j <= P; j++) {
-        const th = (j / P) * Math.PI * 2;
-        const A = proj(Math.cos(th) * SR, scanY, Math.sin(th) * SR);
-        if (A && prev) put(prev[0], prev[1], A[0], A[1], "g", 0.5 * (1 - Math.abs(a3 - 0.5) * 0.7) * dfade(A[2]));
-        prev = A;
+      const scanZ = lerp(-SEMI - 0.2, SEMI + 0.2, sstep(a3));
+      const gy0 = bb[1] - 0.22, gy1 = bb[4] + 0.22, gx0 = bb[0] - 0.12, gx1 = bb[3] + 0.12;
+      const frame = [[gx0, gy0], [gx1, gy0], [gx1, gy1], [gx0, gy1]];
+      for (let e = 0; e < 4; e++) {
+        const A = proj(frame[e][0], frame[e][1], scanZ), B = proj(frame[(e + 1) % 4][0], frame[(e + 1) % 4][1], scanZ);
+        if (A && B) put(A[0], A[1], B[0], B[1], "g", 0.45 * (1 - Math.abs(a3 - 0.5) * 0.7), 1);
       }
-      segBatch(baseSegs, "t", 0.001, (g) => {
-        const my = (g[1] + g[4]) / 2;
-        const near = Math.exp(-Math.pow((my - scanY) / 0.10, 2));
-        const flagged = (g[6] === 10 || g[6] === 22);
-        const passed = scanY - my;
-        if (flagged && passed > 0 && passed < 0.45) return [Math.sin(passed / 0.45 * Math.PI) * 750, "g"];
-        return near > 0.03 ? [near * 620, "t"] : null;
+      for (let i = 0; i < fineSegs.length; i++) {
+        const g = fineSegs[i];
+        const mz = (g.a[2] + g.b[2]) / 2;
+        const near = Math.exp(-Math.pow((mz - scanZ) / 0.09, 2));
+        if (near < 0.04) continue;
+        const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
+        const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
+        const mx = (g.a[0] + g.b[0]) / 2, my = (g.a[1] + g.b[1]) / 2;
+        put(A[0], A[1], B[0], B[1], "t", 0.55 * near * dfade((A[2] + B[2]) / 2) * facing(mx, my, mz, g.n), 1);
+      }
+      /* flagged stations flash gold as the gate passes, then settle */
+      [-0.62, 0.31].forEach((ff) => {
+        const fz = ff * SEMI;
+        const passed = scanZ - fz;
+        if (passed > 0 && passed < 0.4) {
+          const pulse = Math.sin(passed / 0.4 * Math.PI);
+          const sec = buildSec(ff, 1);
+          for (let j = 0; j < P; j++) {
+            const A = proj(sec[j][0], sec[j][1], sec[j][2]), B = proj(sec[(j + 1) % P][0], sec[(j + 1) % P][1], sec[(j + 1) % P][2]);
+            if (A && B) put(A[0], A[1], B[0], B[1], "g", 0.7 * pulse * dfade((A[2] + B[2]) / 2), 1.5);
+          }
+        }
       });
     }
 
-    /* act 04 · export crate draws in, then the launch arrow */
+    /* act 04 · export crate draws in */
     if (a4 > 0) {
       for (let e = 0; e < crateEdges.length; e++) {
         const et = clamp(a4 * 2.2 - e * 0.085, 0, 1);
         if (et <= 0) continue;
         const A3 = corners[crateEdges[e][0]], B3 = corners[crateEdges[e][1]];
         const sm = sstep(et);
-        const A = proj(A3[0], A3[1] - yShift, A3[2]);      // crate stays grounded
-        const B = proj(lerp(A3[0], B3[0], sm), lerp(A3[1], B3[1], sm) - yShift, lerp(A3[2], B3[2], sm));
-        if (A && B) put(A[0], A[1], B[0], B[1], "g", 0.5 * dfade((A[2] + B[2]) / 2));
-      }
-      const at = sstep((a4 - 0.62) / 0.3);
-      if (at > 0) {
-        const y1 = 1.5, y2 = y1 + 0.34 * at;
-        const A = proj(0, y1 - yShift, 0), B = proj(0, y2 - yShift, 0);
-        if (A && B) {
-          put(A[0], A[1], B[0], B[1], "g", 0.8);
-          const H1 = proj(-0.07, y2 - 0.09 - yShift, 0), H2 = proj(0.07, y2 - 0.09 - yShift, 0);
-          if (H1) put(H1[0], H1[1], B[0], B[1], "g", 0.8);
-          if (H2) put(H2[0], H2[1], B[0], B[1], "g", 0.8);
-        }
+        const A = proj(A3[0], A3[1], A3[2]);
+        const B = proj(lerp(A3[0], B3[0], sm), lerp(A3[1], B3[1], sm), lerp(A3[2], B3[2], sm));
+        if (A && B) put(A[0], A[1], B[0], B[1], "g", 0.5 * dfade((A[2] + B[2]) / 2), 1);
       }
     }
 
-    /* flush batches */
+    /* flush */
     for (const b of buckets.values()) {
       if (b.seg.length) {
         ctx.strokeStyle = "rgba(" + COL[b.col] + "," + b.a + ")";
-        ctx.lineWidth = 1;
+        ctx.lineWidth = b.w;
         ctx.beginPath();
         for (let i = 0; i < b.seg.length; i += 4) { ctx.moveTo(b.seg[i], b.seg[i + 1]); ctx.lineTo(b.seg[i + 2], b.seg[i + 3]); }
         ctx.stroke();
@@ -421,7 +549,7 @@
     });
   };
 
-  /* ================= drive: scroll scrub + idle drift ================= */
+  /* ================= drive ================= */
   let p = 0;
   const onScroll = () => {
     const r = track.getBoundingClientRect();
