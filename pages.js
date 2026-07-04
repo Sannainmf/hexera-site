@@ -476,12 +476,11 @@
   }
 
   /* ---------- Industries: the specimen chamber ----------
-     One canvas mesh pinned in a sticky wind-tunnel stage. Scroll drives a
-     scan gate that re-meshes the specimen from one industry's geometry to
-     the next: airfoil → vessel → gem → coupe. The copy deck, HUD readouts,
-     ghost index and progress rail swap in step. Every outline is computed
-     (NACA maths, tube offsets, hand-set silhouettes), resampled to one
-     shared point count, and morphed point-wise behind the moving gate. */
+     Four REAL 3D wireframe models pinned in a sticky wind-tunnel stage,
+     each CAD'd procedurally: a lofted swept wing, a deployed coronary
+     stent, a low-poly terrain tile, and a vented brake rotor. Scroll
+     drives a scan gate that wipes one finished mesh into the next; the
+     copy deck, HUD readouts, ghost index and rail swap in step. */
   const spec = document.querySelector("[data-spec]");
   if (spec) {
     const canvas = spec.querySelector("[data-spec-canvas]");
@@ -498,221 +497,274 @@
     const railFill = spec.querySelector("[data-spec-fill]");
     const railStops = Array.from(spec.querySelectorAll("[data-spec-go]"));
 
-    const N = 220;                                   // shared outline point count
     const GOLD = "255,186,0", TEAL = "15,182,172";
     const sstep = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * k * (k * (k * 6 - 15) + 10));
-    const MW = 0.11;                                 // morph window, in total-scroll units
+    const MW = 0.11;                                 // gate window, in total-scroll units
 
-    /* ---- specimen outlines, unit space (y down) ---- */
-    // 01 · a true NACA 0012, cosine-spaced (thickness lifted a touch for stage presence)
-    const rawAirfoil = () => {
-      const M = 64, yt = (t) => 5 * 0.12 * (0.2969 * Math.sqrt(t) - 0.1260 * t - 0.3516 * t * t + 0.2843 * t * t * t - 0.1036 * t * t * t * t);
-      const up = [], lo = [];
-      for (let i = 0; i <= M; i++) {
-        const x = 0.5 * (1 - Math.cos(Math.PI * i / M));
-        const y = yt(x) * 1.5;
-        up.push([x, 0.5 - y]); lo.push([x, 0.5 + y]);
-      }
-      return up.slice().reverse().concat(lo.slice(1, M));
-    };
-    // 02 · carotid bifurcation — THE canonical vascular-CFD geometry: a trunk
-    //      that forks into two tapering branches (small sac on the upper wall).
-    //      Built from bezier centrelines + radius offsets; the same centrelines
-    //      drive the swept mesh rings and the pulsatile blood paths.
-    const BIF = (() => {
-      const bez = (p0, p1, p2, t) => {
-        const a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t;
-        return [a * p0[0] + b * p1[0] + c * p2[0], a * p0[1] + b * p1[1] + c * p2[1]];
-      };
-      const seg = (p0, p1, p2, r0, r1, M) => {
-        const out = [];
-        for (let i = 0; i <= M; i++) {
-          const t = i / M;
-          const c = bez(p0, p1, p2, t);
-          const cA = bez(p0, p1, p2, Math.max(t - 0.01, 0));
-          const cB = bez(p0, p1, p2, Math.min(t + 0.01, 1));
-          let nx = -(cB[1] - cA[1]), ny = cB[0] - cA[0];
-          const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
-          out.push({ c, n: [nx, ny], r: r0 + (r1 - r0) * t, t });
-        }
-        return out;
-      };
-      const trunk = seg([0.030, 0.520], [0.240, 0.530], [0.450, 0.500], 0.100, 0.088, 12);
-      const up = seg([0.450, 0.500], [0.660, 0.400], [0.950, 0.210], 0.062, 0.046, 14);
-      const lo = seg([0.450, 0.500], [0.650, 0.610], [0.950, 0.770], 0.070, 0.050, 14);
-      const bulge = (t) => 0.030 * Math.exp(-Math.pow((t - 0.42) / 0.15, 2));
-      const side = (S, sign, useBulge) => S.map((s2) => {
-        const r = s2.r + (useBulge && sign < 0 ? bulge(s2.t) : 0);
-        return [s2.c[0] + sign * s2.n[0] * r, s2.c[1] + sign * s2.n[1] * r];
-      });
-      const cap = (S) => {                        // rounded end cap
-        const e = S[S.length - 1];
-        const tx = e.n[1], ty = -e.n[0];          // forward tangent
-        return [
-          [e.c[0] + tx * e.r * 0.7 - e.n[0] * e.r * 0.5, e.c[1] + ty * e.r * 0.7 - e.n[1] * e.r * 0.5],
-          [e.c[0] + tx * e.r * 0.9, e.c[1] + ty * e.r * 0.9],
-          [e.c[0] + tx * e.r * 0.7 + e.n[0] * e.r * 0.5, e.c[1] + ty * e.r * 0.7 + e.n[1] * e.r * 0.5],
-        ];
-      };
-      const outline = []
-        .concat(side(trunk, -1))
-        .concat(side(up, -1, true).slice(1))
-        .concat(cap(up))
-        .concat(side(up, 1).slice(3).reverse())
-        .concat([[0.505, 0.535]])                 // the crotch of the fork
-        .concat(side(lo, -1).slice(3))
-        .concat(cap(lo))
-        .concat(side(lo, 1).slice(1).reverse())
-        .concat(side(trunk, 1).reverse());
-      const rings = [];
-      trunk.forEach((g, i) => { if (i % 3 === 1) rings.push(g); });
-      up.forEach((g, i) => { if (i >= 4 && i % 3 === 1) rings.push(g); });
-      lo.forEach((g, i) => { if (i >= 4 && i % 3 === 1) rings.push(g); });
-      const paths = [
-        trunk.map((g) => g.c).concat(up.slice(1).map((g) => g.c)),
-        trunk.map((g) => g.c).concat(lo.slice(1).map((g) => g.c)),
-      ];
-      return { outline, rings, paths, spines: [trunk, up, lo] };
-    })();
-    // 03 · low-poly fortress — the hero environment asset, Blender-style:
-    //      interior gets a real Delaunay tri mesh, plus edit-mode vertex
-    //      handles and a transform gizmo on the crown
-    const rawFort = () => [
-      [0.200, 0.940], [0.195, 0.880], [0.255, 0.865],
-      [0.295, 0.430], [0.235, 0.415], [0.235, 0.270],
-      [0.320, 0.270], [0.320, 0.345], [0.400, 0.345], [0.400, 0.270],
-      [0.480, 0.270], [0.480, 0.345], [0.560, 0.345], [0.560, 0.270],
-      [0.645, 0.270], [0.645, 0.415], [0.585, 0.430],
-      [0.610, 0.600], [0.700, 0.520], [0.845, 0.585], [0.860, 0.940],
-    ];
-    const FORT = {
-      gizmo: [0.645, 0.270],
-      handles: [
-        [0.235, 0.270], [0.320, 0.345], [0.480, 0.270], [0.560, 0.345], [0.645, 0.270],
-        [0.295, 0.430], [0.585, 0.430], [0.700, 0.520], [0.845, 0.585], [0.255, 0.865],
-      ],
-    };
-    // 04 · brake disc — the classic automotive conjugate-heat case: the tri
-    //      mesh doubles as a temperature contour (hot friction band), vanes
-    //      spin, the caliper stays fixed, heat plumes rise off the rim
-    const rawDisc = () => {
-      const out = [];
-      for (let i = 0; i < 56; i++) {
-        const a = (i / 56) * Math.PI * 2;
-        out.push([0.5 + 0.40 * Math.cos(a), 0.5 + 0.40 * Math.sin(a)]);
-      }
-      return out;
-    };
-    const DISC = { c: [0.5, 0.5], rOut: 0.40, rHub: 0.115, rBolt: 0.075, band: [0.20, 0.365], vanes: 18 };
+    /* ================= real 3D specimens =================
+       Every specimen is a genuine 3D wireframe model, CAD'd procedurally in
+       unit space: grouped polylines (gold skin / teal mesh), optional
+       per-vertex polar coords for the rotor's thermal field, optional
+       per-vertex altitude for terrain shading. The scan gate no longer
+       deforms outlines — it wipes one finished mesh into the next. */
 
-    /* ---- geometry utils ---- */
-    const bbOf = (pts) => {
-      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-      for (const p of pts) { if (p[0] < x0) x0 = p[0]; if (p[0] > x1) x1 = p[0]; if (p[1] < y0) y0 = p[1]; if (p[1] > y1) y1 = p[1]; }
-      return { x0, y0, x1, y1 };
-    };
-    const resample = (pts, n) => {                   // closed polyline → n evenly spaced points
-      const m = pts.length, cum = [0];
-      let tot = 0;
-      for (let i = 0; i < m; i++) {
-        const a = pts[i], b = pts[(i + 1) % m];
-        tot += Math.hypot(b[0] - a[0], b[1] - a[1]);
-        cum.push(tot);
-      }
-      const out = []; let seg = 0;
-      for (let k = 0; k < n; k++) {
-        const d = (tot * k) / n;
-        while (seg < m - 1 && cum[seg + 1] < d) seg++;
-        const a = pts[seg], b = pts[(seg + 1) % m];
-        const u = (d - cum[seg]) / Math.max(cum[seg + 1] - cum[seg], 1e-9);
-        out.push([a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]);
-      }
-      return out;
-    };
-    const orient = (pts) => {                        // one shared winding for clean morphs
-      let a = 0;
-      for (let i = 0; i < pts.length; i++) {
-        const p = pts[i], q = pts[(i + 1) % pts.length];
-        a += p[0] * q[1] - q[0] * p[1];
-      }
-      return a < 0 ? pts.slice().reverse() : pts;
-    };
-    const fitTf = (raw, rect) => {                   // contain + centre a raw outline in a px rect
-      const bb = bbOf(raw);
-      const s = Math.min(rect.w / Math.max(bb.x1 - bb.x0, 1e-6), rect.h / Math.max(bb.y1 - bb.y0, 1e-6));
-      const ox = rect.x + (rect.w - (bb.x1 - bb.x0) * s) / 2 - bb.x0 * s;
-      const oy = rect.y + (rect.h - (bb.y1 - bb.y0) * s) / 2 - bb.y0 * s;
-      return { map: (p) => [p[0] * s + ox, p[1] * s + oy], s };
-    };
-    const bestOffset = (A, B) => {                   // start-index rotation minimising point travel
-      let best = 0, bestD = Infinity;
-      for (let off = 0; off < N; off += 2) {
-        let d = 0;
-        for (let i = 0; i < N; i += 5) {
-          const a = A[i], b = B[(i + off) % N];
-          const dx = a[0] - b[0], dy = a[1] - b[1];
-          d += dx * dx + dy * dy;
-          if (d >= bestD) break;
-        }
-        if (d < bestD) { bestD = d; best = off; }
-      }
-      return best;
-    };
+    const yt12 = (t) => 5 * 0.12 * (0.2969 * Math.sqrt(t) - 0.1260 * t - 0.3516 * t * t + 0.2843 * t * t * t - 0.1036 * t * t * t * t);
 
-    /* ---- mesh utils: point-in-polygon + Bowyer–Watson Delaunay (build-time) ---- */
-    const inPoly = (x, y, poly) => {
-      let c = false;
-      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-        const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
-        if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
-      }
-      return c;
-    };
-    const delaunay = (P) => {
-      const n = P.length;
-      const pts = P.concat([[-9e4, -9e4], [9e4, -9e4], [0, 9e4]]);
-      const circum = (a, b, c) => {
-        const ax = pts[a][0], ay = pts[a][1], bx = pts[b][0], by = pts[b][1], cx2 = pts[c][0], cy2 = pts[c][1];
-        const d = 2 * (ax * (by - cy2) + bx * (cy2 - ay) + cx2 * (ay - by));
-        if (Math.abs(d) < 1e-12) return null;
-        const a2 = ax * ax + ay * ay, b2 = bx * bx + by * by, c2 = cx2 * cx2 + cy2 * cy2;
-        const ux = (a2 * (by - cy2) + b2 * (cy2 - ay) + c2 * (ay - by)) / d;
-        const uy = (a2 * (cx2 - bx) + b2 * (ax - cx2) + c2 * (bx - ax)) / d;
-        return { x: ux, y: uy, r2: (ax - ux) * (ax - ux) + (ay - uy) * (ay - uy) };
-      };
-      let T = [{ a: n, b: n + 1, c: n + 2, cc: circum(n, n + 1, n + 2) }];
-      for (let i = 0; i < n; i++) {
-        const px = pts[i][0], py = pts[i][1];
-        const bad = [], edges = [];
-        for (const t of T) {
-          if (t.cc && (px - t.cc.x) * (px - t.cc.x) + (py - t.cc.y) * (py - t.cc.y) <= t.cc.r2) {
-            bad.push(t); edges.push([t.a, t.b], [t.b, t.c], [t.c, t.a]);
-          }
+    // 01 · swept tapered wing lofted from NACA 0012 sections — section rings ×
+    //      spanwise rails = the surface mesh, winglet curls out of plane,
+    //      prism-layer halos grow off four stations
+    const buildWing = () => {
+      const ST = 13, CH = 12;
+      const secs = [], le = [], te = [];
+      for (let i = 0; i < ST; i++) {
+        const s = i / (ST - 1);
+        const span = -0.98 + 1.96 * s;
+        const c = 0.62 * (1 - 0.60 * s);
+        const leY = -0.26 + 0.46 * s;
+        const curl = Math.pow(Math.max(0, (s - 0.86) / 0.14), 2);
+        const zUp = curl * 0.30;
+        const ring = [];
+        for (let j = 0; j <= CH; j++) {
+          const xc = 0.5 * (1 + Math.cos((Math.PI * j) / CH));
+          ring.push([span, leY + xc * c, zUp + yt12(xc) * c * 1.7]);
         }
-        T = T.filter((t) => bad.indexOf(t) === -1);
-        for (let e = 0; e < edges.length; e++) {
-          let dup = false;
-          for (let e2 = 0; e2 < edges.length; e2++) {
-            if (e2 === e) continue;
-            const A0 = edges[e][0], A1 = edges[e][1], B0 = edges[e2][0], B1 = edges[e2][1];
-            if ((A0 === B0 && A1 === B1) || (A0 === B1 && A1 === B0)) { dup = true; break; }
-          }
-          if (!dup) T.push({ a: edges[e][0], b: edges[e][1], c: i, cc: circum(edges[e][0], edges[e][1], i) });
+        for (let j = CH - 1; j > 0; j--) {
+          const xc = 0.5 * (1 + Math.cos((Math.PI * j) / CH));
+          ring.push([span, leY + xc * c, zUp - yt12(xc) * c * 1.7]);
+        }
+        ring.push(ring[0]);
+        secs.push(ring);
+        le.push([span, leY, zUp]);
+        te.push([span, leY + c, zUp]);
+      }
+      const rails = [];
+      for (let j = 0; j < secs[0].length - 1; j += 2) rails.push(secs.map((r) => r[j]));
+      const halos = [];
+      for (const i of [1, 4, 7, 10]) {
+        const base = secs[i];
+        let cy = 0, cz = 0;
+        for (const p of base) { cy += p[1]; cz += p[2]; }
+        cy /= base.length; cz /= base.length;
+        for (const m of [1.16, 1.34, 1.58]) {
+          halos.push(base.map((p) => [p[0], cy + (p[1] - cy) * (1 + (m - 1) * 0.55), cz + (p[2] - cz) * m]));
         }
       }
-      return T.filter((t) => t.a < n && t.b < n && t.c < n).map((t) => [t.a, t.b, t.c]);
+      return {
+        scale: 0.42, tilt: 0.62, sweep: 0.85, wob: 0.06,
+        groups: [
+          { pl: halos, col: TEAL, a: 0.13, w: 1 },
+          { pl: secs, col: TEAL, a: 0.34, w: 1 },
+          { pl: rails, col: TEAL, a: 0.24, w: 1 },
+          { pl: [le, te, secs[0], secs[ST - 1]], col: GOLD, a: 0.9, w: 1.6, glow: true },
+        ],
+      };
     };
 
-    /* ---- build: size the canvas, fit + resample + align all four specimens ---- */
-    let W = 0, H = 0, sref = 0, shapes = [], deco = null, lastBB = null;
-    const DEPTHS = [0.26, 0.13, 0.16, 0.06];         // extrusion depth per specimen (× sref)
-    const PTS = Array.from({ length: N }, () => [0, 0]);
-    const NRM = Array.from({ length: N }, () => [0, 0]);
-    const FRONT = Array.from({ length: N }, () => [0, 0, 1]);
-    const BACK = Array.from({ length: N }, () => [0, 0, 1]);
-    const RJ = Array.from({ length: N }, () => [Math.random() * 2 - 1, Math.random() * 2 - 1]);
-    // free-stream particles (external-aero phases): integrated through a potential-flow
-    // field around an ellipse fitted to the specimen, so they part and rejoin like real air
+    // 02 · coronary stent, deployed — laser-cut crown rings in antiphase,
+    //      linked by bridge struts, bent with the vessel, inside a faint
+    //      artery tube; the lumen path carries the pulsatile blood stream
+    const buildStent = () => {
+      const R = 0.30, LEN = 1.9, NR = 9, PK = 6, A = 0.085, KS = 96;
+      const bend = (x) => 0.16 * x * x - 0.10;
+      const rings = [], bridges = [];
+      for (let i = 0; i < NR; i++) {
+        const x0 = -LEN / 2 + (LEN * i) / (NR - 1);
+        const flip = (i % 2) * Math.PI;
+        const ring = [];
+        for (let k = 0; k <= KS; k++) {
+          const th = (k / KS) * Math.PI * 2;
+          const x = x0 + A * Math.sin(th * PK + flip);
+          ring.push([x, R * Math.cos(th) + bend(x), R * Math.sin(th)]);
+        }
+        rings.push(ring);
+      }
+      for (let i = 0; i < NR - 1; i++) {
+        for (let b = 0; b < 3; b++) {
+          const th = ((b / 3) + (i % 2 ? 1 / 6 : 0)) * Math.PI * 2 + 0.35;
+          const xa = -LEN / 2 + (LEN * i) / (NR - 1) + A * Math.sin(th * PK + (i % 2) * Math.PI);
+          const xb = -LEN / 2 + (LEN * (i + 1)) / (NR - 1) + A * Math.sin(th * PK + ((i + 1) % 2) * Math.PI);
+          bridges.push([
+            [xa, R * Math.cos(th) + bend(xa), R * Math.sin(th)],
+            [xb, R * Math.cos(th) + bend(xb), R * Math.sin(th)],
+          ]);
+        }
+      }
+      const VR = R * 1.5, vessel = [];
+      for (const xr of [-0.92, -0.45, 0, 0.45, 0.92]) {
+        const ring = [];
+        for (let k = 0; k <= 24; k++) {
+          const th = (k / 24) * Math.PI * 2;
+          ring.push([xr, VR * Math.cos(th) + bend(xr), VR * Math.sin(th)]);
+        }
+        vessel.push(ring);
+      }
+      for (const th of [0.6, 2.2, 4.0, 5.5]) {
+        const rail = [];
+        for (let k = 0; k <= 20; k++) {
+          const x = -0.95 + (k / 20) * 1.9;
+          rail.push([x, VR * Math.cos(th) + bend(x), VR * Math.sin(th)]);
+        }
+        vessel.push(rail);
+      }
+      const path = [];
+      for (let k = 0; k <= 24; k++) {
+        const x = -1.02 + (k / 24) * 2.04;
+        path.push([x, bend(x), 0]);
+      }
+      return {
+        scale: 0.40, tilt: 0.35, sweep: 0.8, wob: 0.07, path,
+        groups: [
+          { pl: vessel, col: TEAL, a: 0.13, w: 1 },
+          { pl: bridges, col: GOLD, a: 0.55, w: 1.3 },
+          { pl: rings, col: GOLD, a: 0.78, w: 1.5, glow: true },
+        ],
+      };
+    };
+
+    // 03 · game terrain tile — low-poly heightfield with ridged peaks and an
+    //      island falloff; wireframe tinted by altitude, base plate framed
+    const buildTerrain = () => {
+      const G = 21;
+      const n2 = (a, b) => { const s2 = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s2 - Math.floor(s2); };
+      const smp = (x, y) => {
+        const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+        const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+        return n2(xi, yi) * (1 - u) * (1 - v) + n2(xi + 1, yi) * u * (1 - v) + n2(xi, yi + 1) * (1 - u) * v + n2(xi + 1, yi + 1) * u * v;
+      };
+      const HT = [], V = [];
+      for (let i = 0; i < G; i++) {
+        HT.push([]); V.push([]);
+        for (let j = 0; j < G; j++) {
+          let e = 0.58 * smp(i * 0.22, j * 0.22) + 0.30 * smp(i * 0.47 + 7.3, j * 0.47 + 3.1) + 0.12 * smp(i * 0.9 + 13.7, j * 0.9 + 5.9);
+          e = Math.pow(e, 1.6) * 1.35;
+          const dx = (i / (G - 1) - 0.5) * 2, dy = (j / (G - 1) - 0.5) * 2;
+          e *= clamp(1.3 - Math.max(Math.abs(dx), Math.abs(dy)) * 1.25, 0, 1);
+          HT[i].push(e);
+          V[i].push([-0.95 + (1.9 * i) / (G - 1), 0.42 - e * 0.95, -0.95 + (1.9 * j) / (G - 1)]);
+        }
+      }
+      const rows = [], cols = [], dias = [], hRows = [], hCols = [];
+      for (let j = 0; j < G; j++) { rows.push(V.map((col) => col[j])); hRows.push(HT.map((col) => col[j])); }
+      for (let i = 0; i < G; i++) { cols.push(V[i]); hCols.push(HT[i]); }
+      for (let i = 0; i < G - 1; i++) for (let j = 0; j < G - 1; j++) dias.push([V[i + 1][j], V[i][j + 1]]);
+      const base = [[-0.98, 0.44, -0.98], [0.98, 0.44, -0.98], [0.98, 0.44, 0.98], [-0.98, 0.44, 0.98], [-0.98, 0.44, -0.98]];
+      return {
+        scale: 0.46, tilt: 0.82, sweep: 0.7, wob: 0.10,
+        groups: [
+          { pl: [base], col: GOLD, a: 0.35, w: 1.2 },
+          { pl: dias, col: TEAL, a: 0.13, w: 1 },
+          { pl: rows, col: TEAL, a: 0.30, w: 1, hgt: hRows },
+          { pl: cols, col: TEAL, a: 0.30, w: 1, hgt: hCols },
+        ],
+      };
+    };
+
+    // 04 · vented brake rotor, fully revolved — drilled friction faces with a
+    //      polar mesh, vane cage between the cheeks, hub + bolt circle, and a
+    //      fixed caliper; the heat field stays anchored to the pad while the
+    //      rotor spins beneath it
+    const buildRotor = () => {
+      const RD = [0.42, 0.56, 0.70, 0.84, 0.97], WZ = 0.11;
+      const hotPl = [], hotPol = [], backR = [], rim = [], holes = [], hub = [], vanes = [], cal = [];
+      for (const r of RD) {
+        const ring = [], pol = [];
+        for (let k = 0; k <= 40; k++) {
+          const th = (k / 40) * Math.PI * 2;
+          ring.push([r * Math.cos(th), r * Math.sin(th), WZ]);
+          pol.push([r, th]);
+        }
+        hotPl.push(ring); hotPol.push(pol);
+        backR.push(ring.map((p) => [p[0], p[1], -WZ]));
+      }
+      for (let k = 0; k < 36; k++) {
+        const th = (k / 36) * Math.PI * 2;
+        const sp = [], pol = [];
+        for (let q = 0; q <= 4; q++) {
+          const r = 0.42 + ((0.97 - 0.42) * q) / 4;
+          sp.push([r * Math.cos(th), r * Math.sin(th), WZ]);
+          pol.push([r, th]);
+        }
+        hotPl.push(sp); hotPol.push(pol);
+      }
+      for (let k = 0; k < 24; k++) {
+        const th = (k / 24) * Math.PI * 2;
+        rim.push([[0.97 * Math.cos(th), 0.97 * Math.sin(th), WZ], [0.97 * Math.cos(th), 0.97 * Math.sin(th), -WZ]]);
+      }
+      for (let k = 0; k < 16; k++) {
+        const th = (k / 16) * Math.PI * 2 + 0.1;
+        const hr = k % 2 ? 0.715 : 0.585;
+        const cx2 = hr * Math.cos(th), cy2 = hr * Math.sin(th);
+        const hole = [];
+        for (let q = 0; q <= 8; q++) {
+          const a2 = (q / 8) * Math.PI * 2;
+          hole.push([cx2 + 0.045 * Math.cos(a2), cy2 + 0.045 * Math.sin(a2), WZ]);
+        }
+        holes.push(hole);
+      }
+      for (const z of [WZ, -WZ]) {
+        const ring = [];
+        for (let k = 0; k <= 28; k++) {
+          const th = (k / 28) * Math.PI * 2;
+          ring.push([0.30 * Math.cos(th), 0.30 * Math.sin(th), z]);
+        }
+        hub.push(ring);
+      }
+      for (let k = 0; k < 8; k++) {
+        const th = (k / 8) * Math.PI * 2;
+        hub.push([[0.30 * Math.cos(th), 0.30 * Math.sin(th), WZ], [0.30 * Math.cos(th), 0.30 * Math.sin(th), -WZ]]);
+      }
+      for (let k = 0; k < 5; k++) {
+        const th = (k / 5) * Math.PI * 2 + 0.4;
+        const bx = 0.19 * Math.cos(th), by = 0.19 * Math.sin(th);
+        const bolt = [];
+        for (let q = 0; q <= 8; q++) {
+          const a2 = (q / 8) * Math.PI * 2;
+          bolt.push([bx + 0.045 * Math.cos(a2), by + 0.045 * Math.sin(a2), WZ]);
+        }
+        hub.push(bolt);
+      }
+      for (let k = 0; k < 18; k++) {
+        const th = (k / 18) * Math.PI * 2;
+        const vn = [];
+        for (let q = 0; q <= 5; q++) {
+          const r = 0.44 + ((0.94 - 0.44) * q) / 5;
+          const a2 = th + 0.14 * (q / 5);
+          vn.push([r * Math.cos(a2), r * Math.sin(a2), 0]);
+        }
+        vanes.push(vn);
+      }
+      // caliper: straddles the rim, does NOT spin
+      for (const z of [WZ + 0.05, -WZ - 0.05]) {
+        const arc = [];
+        for (let k = 0; k <= 8; k++) {
+          const th = -0.90 + (k / 8) * 0.56;
+          arc.push([1.06 * Math.cos(th), 1.06 * Math.sin(th), z]);
+        }
+        cal.push(arc);
+      }
+      for (const th of [-0.90, -0.34]) {
+        cal.push([[1.06 * Math.cos(th), 1.06 * Math.sin(th), WZ + 0.05], [1.06 * Math.cos(th), 1.06 * Math.sin(th), -WZ - 0.05]]);
+        cal.push([[1.06 * Math.cos(th), 1.06 * Math.sin(th), WZ + 0.05], [0.88 * Math.cos(th), 0.88 * Math.sin(th), WZ + 0.02]]);
+      }
+      return {
+        scale: 0.42, tilt: 0.42, sweep: 0.5, wob: 0.05, spinRate: 0.0008,
+        groups: [
+          { pl: backR, col: TEAL, a: 0.12, w: 1 },
+          { pl: vanes, col: TEAL, a: 0.20, w: 1 },
+          { pl: rim, col: GOLD, a: 0.22, w: 1 },
+          { pl: hotPl, col: TEAL, a: 0.26, w: 1, pol: hotPol },
+          { pl: holes, col: TEAL, a: 0.34, w: 1 },
+          { pl: hub, col: GOLD, a: 0.55, w: 1.2 },
+          { pl: cal, col: GOLD, a: 0.85, w: 1.8, glow: true, noSpin: true },
+        ],
+      };
+    };
+
+    const MODELS = [buildWing(), buildStent(), buildTerrain(), buildRotor()];
+    const PAD_ANG = -0.62;                           // caliper pad centre angle
+
+    /* ---- state + ambient particle systems ---- */
+    let W = 0, H = 0, sref = 0, lastBB = null, lastPj = null;
     const FP = [];
     const newFP = (anywhere) => ({
       x: anywhere ? Math.random() * W : -10 - Math.random() * 60,
@@ -720,139 +772,123 @@
       trail: [],
     });
     const initFlow = () => { FP.length = 0; for (let i = 0; i < 38; i++) FP.push(newFP(true)); };
-    // pulsatile blood particles riding the bifurcation centrelines
-    const BLOOD = Array.from({ length: 10 }, (_, i) => ({ u: i / 10 }));
-    // buoyant heat plumes rising off the brake disc
+    const BLOOD = Array.from({ length: 14 }, (_, i) => ({
+      u: i / 14, oy: (Math.random() - 0.5) * 0.30, oz: (Math.random() - 0.5) * 0.30,
+    }));
     const PL = Array.from({ length: 12 }, () => ({ x: Math.random(), life: Math.random() }));
+    const pathAt = (P, u) => {
+      const m = P.length - 1;
+      const d = clamp(u - Math.floor(u), 0, 1) * m;
+      const i = Math.min(Math.floor(d), m - 1), q = d - i;
+      return [
+        P[i][0] + (P[i + 1][0] - P[i][0]) * q,
+        P[i][1] + (P[i + 1][1] - P[i][1]) * q,
+        P[i][2] + (P[i + 1][2] - P[i][2]) * q,
+      ];
+    };
+
     const build = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = canvas.clientWidth; H = canvas.clientHeight;
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       sref = Math.min(W, H);
-      const rect = { x: W * 0.14, y: H * 0.17, w: W * 0.72, h: H * 0.64 };
-      const raws = [rawAirfoil(), BIF.outline.slice(), rawFort(), rawDisc()];
-      const tfs = raws.map((raw) => fitTf(raw, rect));
-      shapes = raws.map((raw, i) => {
-        const pts = orient(resample(raw.map(tfs[i].map), N));
-        return { pts, bb: bbOf(pts) };
-      });
-      for (let i = 1; i < shapes.length; i++) {
-        const off = bestOffset(shapes[i - 1].pts, shapes[i].pts);
-        if (off) shapes[i].pts = shapes[i].pts.slice(off).concat(shapes[i].pts.slice(0, off));
-      }
-      lastBB = { x0: shapes[0].bb.x0, y0: shapes[0].bb.y0, x1: shapes[0].bb.x1, y1: shapes[0].bb.y1 };
-      // fitted blood paths with cumulative arc length for even sampling
-      const pathFit = (P) => {
-        const pts2 = P.map((p) => tfs[1].map(p));
-        const cum2 = [0]; let tt = 0;
-        for (let i = 1; i < pts2.length; i++) {
-          tt += Math.hypot(pts2[i][0] - pts2[i - 1][0], pts2[i][1] - pts2[i - 1][1]);
-          cum2.push(tt);
-        }
-        return { pts: pts2, cum: cum2, tot: tt };
-      };
-      deco = {
-        chord: [tfs[0].map([0, 0.5]), tfs[0].map([1, 0.5])],
-        bif: {
-          rings: BIF.rings.map((g2) => ({ c: tfs[1].map(g2.c), n: g2.n, r: g2.r * tfs[1].s })),
-          spines: BIF.spines.map((S) => S.map((g2) => ({ c: tfs[1].map(g2.c), n: g2.n, r: g2.r * tfs[1].s }))),
-          paths: BIF.paths.map(pathFit),
-        },
-        fort: { gizmo: tfs[2].map(FORT.gizmo), handles: FORT.handles.map((v) => tfs[2].map(v)) },
-        disc: {
-          c: tfs[3].map(DISC.c), rOut: DISC.rOut * tfs[3].s, rHub: DISC.rHub * tfs[3].s,
-          rBolt: DISC.rBolt * tfs[3].s, band: DISC.band.map((r) => r * tfs[3].s),
-        },
-      };
-      /* interior FEA meshes (fortress + disc): boundary ring + jittered
-         interior grid, Delaunay-linked, clipped to each silhouette */
-      const buildMesh = (idx, g) => {
-        const poly = shapes[idx].pts, bbx = shapes[idx].bb;
-        const ring = [];
-        for (let i = 0; i < N; i += 5) ring.push(poly[i]);
-        const ipts = [];
-        let gi = 0;
-        for (let y = bbx.y0 + g * 0.7; y < bbx.y1; y += g, gi++) {
-          let gj = 0;
-          for (let x = bbx.x0 + g * 0.7; x < bbx.x1; x += g, gj++) {
-            const f1 = Math.sin(gi * 127.1 + gj * 311.7), f2 = Math.sin(gi * 269.5 + gj * 183.3);
-            const px = x + (f1 - Math.floor(f1) - 0.5) * 0.55 * g;
-            const py = y + (f2 - Math.floor(f2) - 0.5) * 0.55 * g;
-            if (inPoly(px, py, poly)) ipts.push([px, py]);
-          }
-        }
-        const pts = ring.concat(ipts);
-        const tris = delaunay(pts).filter(([a, b, c]) => {
-          const cx2 = (pts[a][0] + pts[b][0] + pts[c][0]) / 3;
-          const cy2 = (pts[a][1] + pts[b][1] + pts[c][1]) / 3;
-          return inPoly(cx2, cy2, poly);
-        });
-        return { pts, proj: pts.map(() => [0, 0, 1]), tris };
-      };
-      deco.mesh2 = buildMesh(2, sref * 0.055);
-      deco.mesh2.diag = Math.hypot(shapes[2].bb.x1 - shapes[2].bb.x0, shapes[2].bb.y1 - shapes[2].bb.y0);
-      deco.mesh2.rippleD = deco.mesh2.tris.map(([a, b, c]) => {
-        const m = deco.mesh2.pts;
-        return Math.hypot(
-          (m[a][0] + m[b][0] + m[c][0]) / 3 - deco.fort.gizmo[0],
-          (m[a][1] + m[b][1] + m[c][1]) / 3 - deco.fort.gizmo[1]
-        );
-      });
-      deco.mesh2.selR = deco.mesh2.diag * 0.15;    // edit-mode "selected faces" patch
-      deco.mesh3 = buildMesh(3, sref * 0.062);
-      /* pad heating, physically placed: the friction band peaks radially,
-         and the hot spot sits AT the caliper with a comet tail decaying
-         downstream of the rotation — heat is generated at the pad and the
-         spinning disc carries it away */
-      const PAD_ANG = -0.625;                      // caliper pad centre angle
-      deco.mesh3.temp = deco.mesh3.tris.map(([a, b, c]) => {
-        const m = deco.mesh3.pts;
-        const mx = (m[a][0] + m[b][0] + m[c][0]) / 3 - deco.disc.c[0];
-        const my = (m[a][1] + m[b][1] + m[c][1]) / 3 - deco.disc.c[1];
-        const rr = Math.hypot(mx, my) / deco.disc.rOut;
-        const band = Math.exp(-Math.pow((rr - 0.70) / 0.26, 2));
-        const dRev = ((Math.atan2(my, mx) - PAD_ANG) / (Math.PI * 2) % 1 + 1) % 1;
-        return band * (0.16 + 0.84 * Math.exp(-dRev * 2.8));
-      });
+      lastBB = { x0: W * 0.25, y0: H * 0.25, x1: W * 0.75, y1: H * 0.75 };
       initFlow();
     };
 
-    /* ---- one frame: flow → back face → meshes → skin → deco → gate ----
-       The specimen is an extruded wireframe in pseudo-3D: it swings slowly
-       across each plateau (scroll-driven) and clamps face-on while the
-       gate re-meshes it. ---- */
-    const bloodAt = (B, u) => {
-      const d = clamp(u - Math.floor(u), 0, 1) * B.tot;
-      let i = 1;
-      while (i < B.cum.length - 1 && B.cum[i] < d) i++;
-      const q = (d - B.cum[i - 1]) / Math.max(B.cum[i] - B.cum[i - 1], 1e-9);
-      return [
-        B.pts[i - 1][0] + (B.pts[i][0] - B.pts[i - 1][0]) * q,
-        B.pts[i - 1][1] + (B.pts[i][1] - B.pts[i - 1][1]) * q,
-      ];
+    /* ---- one 3D model pass: rotate → project → depth-shaded wireframe ---- */
+    const drawModel = (mi, t, sweepLocal, alphaMul, trackBB) => {
+      const M = MODELS[mi];
+      const rotY = sweepLocal * M.sweep + Math.sin(t * 0.00045 + mi * 2.1) * M.wob;
+      const rotX = M.tilt + Math.sin(t * 0.00032) * 0.04;
+      const spin = M.spinRate ? t * M.spinRate : 0;
+      const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+      const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+      const cosS = Math.cos(spin), sinS = Math.sin(spin);
+      const S = sref * M.scale, cx0 = W * 0.5, cy0 = H * 0.47, F3 = 3.1;
+      const pj = (p, spun) => {
+        let x = p[0], y = p[1];
+        const z = p[2];
+        if (spun) { const xx = x * cosS - y * sinS; y = x * sinS + y * cosS; x = xx; }
+        const x1 = x * cosY + z * sinY, z1 = -x * sinY + z * cosY;
+        const y1 = y * cosX - z1 * sinX, z2 = y * sinX + z1 * cosX;
+        const k = F3 / (F3 - z2);
+        return [cx0 + x1 * S * k, cy0 + y1 * S * k, k];
+      };
+      if (trackBB) {
+        lastPj = { pj };
+        lastBB.x0 = 1e9; lastBB.y0 = 1e9; lastBB.x1 = -1e9; lastBB.y1 = -1e9;
+      }
+      const tb = (p2) => {
+        if (p2[0] < lastBB.x0) lastBB.x0 = p2[0];
+        if (p2[0] > lastBB.x1) lastBB.x1 = p2[0];
+        if (p2[1] < lastBB.y0) lastBB.y0 = p2[1];
+        if (p2[1] > lastBB.y1) lastBB.y1 = p2[1];
+      };
+      const breath = 0.74 + 0.26 * Math.sin(t * 0.0011);
+      for (const g of M.groups) {
+        const spun = M.spinRate ? g.noSpin !== true : false;
+        ctx.lineWidth = g.w;
+        if (g.glow) { ctx.save(); ctx.shadowColor = "rgba(" + GOLD + ",0.5)"; ctx.shadowBlur = 12; }
+        for (let pi = 0; pi < g.pl.length; pi++) {
+          const pl = g.pl[pi];
+          if (g.pol || g.hgt) {
+            // per-segment colour: thermal field (rotor) or altitude (terrain)
+            let prev = pj(pl[0], spun);
+            if (trackBB) tb(prev);
+            for (let k = 1; k < pl.length; k++) {
+              const cur = pj(pl[k], spun);
+              if (trackBB) tb(cur);
+              let mix;
+              if (g.pol) {
+                const po = g.pol[pi][k];
+                const dRev = ((((po[1] + spin) - PAD_ANG) / (Math.PI * 2)) % 1 + 1) % 1;
+                mix = Math.exp(-Math.pow((po[0] - 0.70) / 0.20, 2)) * (0.16 + 0.84 * Math.exp(-dRev * 2.8)) * breath;
+              } else {
+                mix = clamp(g.hgt[pi][k] * 1.15, 0, 1);
+              }
+              const dep = clamp(0.45 + (cur[2] - 0.96) * 5, 0.30, 1.15);
+              const cr = Math.round(15 + 240 * mix), cg2 = Math.round(182 + 4 * mix), cb = Math.round(172 - 172 * mix);
+              ctx.strokeStyle = "rgba(" + cr + "," + cg2 + "," + cb + "," + ((g.a + 0.55 * mix) * dep * alphaMul).toFixed(3) + ")";
+              ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(cur[0], cur[1]); ctx.stroke();
+              prev = cur;
+            }
+          } else {
+            let kSum = 0;
+            ctx.beginPath();
+            for (let k = 0; k < pl.length; k++) {
+              const p2 = pj(pl[k], spun);
+              kSum += p2[2];
+              if (trackBB) tb(p2);
+              k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+            }
+            const dep = clamp(0.45 + (kSum / pl.length - 0.96) * 5, 0.30, 1.15);
+            ctx.strokeStyle = "rgba(" + g.col + "," + (g.a * dep * alphaMul).toFixed(3) + ")";
+            ctx.stroke();
+          }
+        }
+        if (g.glow) ctx.restore();
+      }
     };
+
+    /* ---- one frame: flow → model (or gate-wiped pair) → ambient ---- */
     const drawFrame = (s, t, dt, pNow) => {
       const iA = Math.min(Math.floor(s), 2);
       const f = clamp(s - iA, 0, 1);
-      const A = shapes[iA], B = shapes[iA + 1];
       const morph = f > 0.001 && f < 0.999;
       const morphAct = Math.sin(Math.PI * f);
-      const bb = {
-        x0: Math.min(A.bb.x0, B.bb.x0), y0: Math.min(A.bb.y0, B.bb.y0),
-        x1: Math.max(A.bb.x1, B.bb.x1), y1: Math.max(A.bb.y1, B.bb.y1),
-      };
+      const cur = Math.round(s);
       const dA = [0, 1, 2, 3].map((i) => clamp(1 - Math.abs(s - i) * 2.4, 0, 1));
       ctx.clearRect(0, 0, W, H);
 
-      /* free-stream: particles integrated through potential flow around an
-         ellipse fitted to the projected silhouette — they part ahead of the
-         body, pinch fast over the shoulders and rejoin in the wake */
+      /* free-stream: particles through potential flow around an ellipse
+         fitted to the projected silhouette — they part, pinch and rejoin */
       const flowA = Math.max(dA[0], dA[3]);
       if (flowA > 0.003) {
         const ecx = (lastBB.x0 + lastBB.x1) / 2, ecy = (lastBB.y0 + lastBB.y1) / 2;
         const ea = Math.max((lastBB.x1 - lastBB.x0) * 0.60, 24);
-        const eb = Math.max((lastBB.y1 - lastBB.y0) * 0.78, 20);
+        const eb = Math.max((lastBB.y1 - lastBB.y0) * 0.66, 20);
         const U = sref * 0.26 * dt * (0.7 + flowA * 0.6);
         ctx.lineWidth = 1;
         for (const q of FP) {
@@ -864,17 +900,15 @@
             u = 1 - (xp * xp - yp * yp) / r4;
             v = (-2 * xp * yp) / r4;
           }
-          if (r2 < 1.10) {                     // never let a particle enter the body
+          if (r2 < 1.10) {
             const rr = Math.sqrt(r2) || 1;
             q.x += (xp / rr) * 90 * dt; q.y += (yp / rr) * 90 * dt;
           }
           const mag = Math.hypot(u, v) || 1;
           if (mag > 2.3) { u = (u / mag) * 2.3; v = (v / mag) * 2.3; }
-          if (u < 0.10) u = 0.10;              // keep drifting through stagnation
+          if (u < 0.10) u = 0.10;
           q.x += u * U;
           q.y += v * U * (eb / ea);
-          // sample the trail on a time base (not per frame) so streamlines
-          // keep their length on high-refresh displays
           q.acc = (q.acc || 0) + dt;
           if (q.acc >= 0.016) {
             q.acc = 0;
@@ -895,422 +929,69 @@
         }
       }
 
-      // blended outline in-plane: points convert behind the gate, with scatter
-      for (let i = 0; i < N; i++) {
-        const a = A.pts[i], b = B.pts[i];
-        const nx = ((a[0] + b[0]) * 0.5 - bb.x0) / Math.max(bb.x1 - bb.x0, 1);
-        let mk = clamp(f * 1.45 - nx * 0.45, 0, 1);
-        mk = mk * mk * (3 - 2 * mk);
-        let x = a[0] + (b[0] - a[0]) * mk, y = a[1] + (b[1] - a[1]) * mk;
-        if (morph) { const j = Math.sin(Math.PI * mk) * 5; x += RJ[i][0] * j; y += RJ[i][1] * j; }
-        PTS[i][0] = x; PTS[i][1] = y;
-      }
-      let cx = 0, cy = 0;
-      for (let i = 0; i < N; i++) { cx += PTS[i][0]; cy += PTS[i][1]; }
-      cx /= N; cy /= N;
-      // bio: compliant walls breathe at systole (72 bpm)
-      const pulse = Math.pow(Math.max(Math.sin(t * 0.00754), 0), 2);
-      if (dA[1] > 0.01) {
-        const k = 1 + 0.010 * pulse * dA[1];
-        for (let i = 0; i < N; i++) {
-          PTS[i][0] = cx + (PTS[i][0] - cx) * k;
-          PTS[i][1] = cy + (PTS[i][1] - cy) * k;
-        }
-      }
-      // outward normals: consistent winding → one global sign, set at the top point
-      let minI = 0;
-      for (let i = 1; i < N; i++) if (PTS[i][1] < PTS[minI][1]) minI = i;
-      for (let i = 0; i < N; i++) {
-        const a = PTS[(i - 1 + N) % N], b = PTS[(i + 1) % N];
-        const tx = b[0] - a[0], ty = b[1] - a[1];
-        const l = Math.hypot(tx, ty) || 1;
-        NRM[i][0] = -ty / l; NRM[i][1] = tx / l;
-      }
-      if (NRM[minI][1] > 0) for (let i = 0; i < N; i++) { NRM[i][0] *= -1; NRM[i][1] *= -1; }
-
-      // pseudo-3D: rotation sweeps across the plateau, clamps face-on to re-mesh
-      const damp = 1 - morphAct;
+      // rotation sweeps across the plateau, clamps face-on at the gate
       const local = pNow >= 0.999 ? 1 : (pNow % 0.25) / 0.25;
-      const rotY = ((local - 0.5) * 0.80 + Math.sin(t * 0.00045) * 0.07) * damp;
-      const rotX = 0.17 + Math.sin(t * 0.00032) * 0.03 * damp;
-      const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-      const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
-      const F3 = sref * 2.6;
-      const D = (DEPTHS[iA] + (DEPTHS[iA + 1] - DEPTHS[iA]) * f) * sref;
-      const hz = D / 2;
-      const proj = (x, y, z, out) => {
-        const dx = x - cx, dy = y - cy;
-        const x1 = dx * cosY + z * sinY, z1 = -dx * sinY + z * cosY;
-        const y1 = dy * cosX - z1 * sinX, z2 = dy * sinX + z1 * cosX;
-        const k = F3 / (F3 - z2);
-        if (out) { out[0] = cx + x1 * k; out[1] = cy + y1 * k; out[2] = k; return out; }
-        return [cx + x1 * k, cy + y1 * k, k];
-      };
-      for (let i = 0; i < N; i++) {
-        proj(PTS[i][0], PTS[i][1], hz, FRONT[i]);
-        proj(PTS[i][0], PTS[i][1], -hz, BACK[i]);
-      }
-      // remember the projected silhouette for next frame's flow field
-      let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9;
-      for (let i = 0; i < N; i++) {
-        if (FRONT[i][0] < bx0) bx0 = FRONT[i][0];
-        if (FRONT[i][0] > bx1) bx1 = FRONT[i][0];
-        if (FRONT[i][1] < by0) by0 = FRONT[i][1];
-        if (FRONT[i][1] > by1) by1 = FRONT[i][1];
-      }
-      lastBB.x0 = bx0; lastBB.y0 = by0; lastBB.x1 = bx1; lastBB.y1 = by1;
-      const gxNow = morph ? bb.x0 - 24 + (bb.x1 - bb.x0 + 48) * f : 0;
+      const sweepLocal = (local - 0.5) * (1 - morphAct);
+      const gx = W * 0.06 + W * 0.88 * f;
 
-      // back face + side struts: the extrusion that sells the depth
-      ctx.strokeStyle = "rgba(" + GOLD + ",0.20)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let i = 0; i < N; i++) (i ? ctx.lineTo(BACK[i][0], BACK[i][1]) : ctx.moveTo(BACK[i][0], BACK[i][1]));
-      ctx.closePath();
-      ctx.stroke();
-      ctx.strokeStyle = "rgba(" + GOLD + ",0.11)";
-      for (let i = 0; i < N; i += 8) {
-        ctx.beginPath(); ctx.moveTo(BACK[i][0], BACK[i][1]); ctx.lineTo(FRONT[i][0], FRONT[i][1]); ctx.stroke();
-      }
-      // section ribs through the depth — the solid reads as meshed in 3D,
-      // and the whole cage turns together when the specimen rotates
-      ctx.strokeStyle = "rgba(" + GOLD + ",0.10)";
-      for (const zf of [-0.33, 0.33]) {
-        ctx.beginPath();
-        for (let i = 0; i < N; i++) {
-          const p2 = proj(PTS[i][0], PTS[i][1], D * zf);
-          i ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
-        }
-        ctx.closePath();
-        ctx.stroke();
-      }
-
-      /* CFD phases: a REAL prism boundary layer — 7 layers with geometric
-         growth (thin first cell at the wall, y+ ≈ 1 look), quad connectors
-         every 3rd node, drawn on BOTH faces so the mesh turns with the body */
-      const blA = Math.max(dA[0], dA[3]) * (1 - 0.85 * morphAct);
-      const SH = [0.0045, 0.0107, 0.0193, 0.0311, 0.0474, 0.0699, 0.1009];
-      if (blA > 0.01) {
-        const AL = [0.38, 0.32, 0.26, 0.21, 0.16, 0.11, 0.07];
-        ctx.lineWidth = 1;
-        for (const [zz, fA] of [[-hz, 0.35], [hz, 1]]) {
-          for (let sh = 0; sh < SH.length; sh++) {
-            ctx.strokeStyle = "rgba(" + TEAL + "," + (AL[sh] * blA * fA).toFixed(3) + ")";
-            ctx.beginPath();
-            for (let i = 0; i < N; i++) {
-              const d2 = SH[sh] * sref;
-              const p2 = proj(PTS[i][0] + NRM[i][0] * d2, PTS[i][1] + NRM[i][1] * d2, zz);
-              i ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
-            }
-            ctx.closePath();
-            ctx.stroke();
-          }
-          if (fA === 1) {                      // quad walls only on the near face
-            ctx.strokeStyle = "rgba(" + TEAL + "," + (0.14 * blA).toFixed(3) + ")";
-            const dOut = SH[SH.length - 1] * sref;
-            for (let i = 0; i < N; i += 3) {
-              const p0 = proj(PTS[i][0], PTS[i][1], zz);
-              const p2 = proj(PTS[i][0] + NRM[i][0] * dOut, PTS[i][1] + NRM[i][1] * dOut, zz);
-              ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
-            }
-          }
-        }
-      }
-      /* aero only: C-grid wake refinement trailing the TE — the layer lines
-         continue downstream and relax, tied by a few cross-divisions */
-      if (dA[0] > 0.01 && !morph) {
-        const teX = deco.chord[1][0], teY = deco.chord[1][1];
-        const wakeL = W * 0.17;
-        ctx.lineWidth = 1;
-        for (let k = -7; k <= 7; k++) {
-          if (k === 0) continue;
-          const off = Math.sign(k) * SH[Math.abs(k) - 1] * sref;
-          const p0 = proj(teX, teY + off, hz);
-          const p1 = proj(teX + wakeL, teY + off * 1.9, hz);
-          ctx.strokeStyle = "rgba(" + TEAL + "," + ((0.16 - Math.abs(k) * 0.018) * dA[0]).toFixed(3) + ")";
-          ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
-        }
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.08 * dA[0]).toFixed(3) + ")";
-        for (const fx of [0.35, 0.68, 1.0]) {
-          const spread = SH[6] * sref * (1 + 0.9 * fx);
-          const p0 = proj(teX + wakeL * fx, teY - spread, hz);
-          const p1 = proj(teX + wakeL * fx, teY + spread, hz);
-          ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
-        }
-      }
-
-      /* bio: swept vascular mesh — hoop rings × longitudinal rails along
-         every centreline, exactly how real vessel hex meshes are swept.
-         Rings and rails cross to form surface quads that turn in 3D. */
-      const wallA = dA[1] * (1 - 0.85 * morphAct);
-      if (wallA > 0.01) {
-        const rz = hz * 0.92;
-        ctx.lineWidth = 1;
-        // rails: 8 longitudinal lines per branch, spaced around the tube
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.20 * wallA).toFixed(3) + ")";
-        for (const spine of deco.bif.spines) {
-          for (let j = 0; j < 8; j++) {
-            const a3 = (j / 8) * Math.PI * 2;
-            const ca = Math.cos(a3), sa = Math.sin(a3);
-            ctx.beginPath();
-            for (let k = 0; k < spine.length; k++) {
-              const g2 = spine[k];
-              const p2 = proj(
-                g2.c[0] + g2.n[0] * g2.r * ca,
-                g2.c[1] + g2.n[1] * g2.r * ca,
-                Math.min(rz, g2.r) * sa
-              );
-              k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
-            }
-            ctx.stroke();
-          }
-        }
-        // rings: hoop cross-sections that close the quads
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.32 * wallA).toFixed(3) + ")";
-        for (const g2 of deco.bif.rings) {
-          ctx.beginPath();
-          for (let k = 0; k <= 14; k++) {
-            const a3 = (k / 14) * Math.PI * 2;
-            const p2 = proj(
-              g2.c[0] + g2.n[0] * g2.r * Math.cos(a3),
-              g2.c[1] + g2.n[1] * g2.r * Math.cos(a3),
-              Math.min(rz, g2.r) * Math.sin(a3)
-            );
-            k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
-          }
-          ctx.stroke();
-        }
-        const wb = sref * 0.016;
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.35 * wallA).toFixed(3) + ")";
-        ctx.beginPath();
-        for (let i = 0; i < N; i++) {
-          const p2 = proj(PTS[i][0] - NRM[i][0] * wb, PTS[i][1] - NRM[i][1] * wb, hz);
-          i ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
-        }
-        ctx.closePath();
-        ctx.stroke();
-      }
-
-      /* interior meshes: the fortress (FEA stress ripple) and the disc
-         (thermal contour — tris tinted by temperature). Both knit in and
-         out behind the scan gate during their morphs. */
-      const drawMesh = (mesh, mA, mClip, thermal) => {
-        if (mA <= 0.01) return;
-        for (let i = 0; i < mesh.pts.length; i++)
-          proj(mesh.pts[i][0], mesh.pts[i][1], hz, mesh.proj[i]);
-        const rippleR = (!thermal && !morph) ? ((t * 0.00042) % 1.25) * mesh.diag * 0.9 : -1;
-        const band = sref * 0.05;
-        ctx.lineWidth = 0.8;
-        for (let ti = 0; ti < mesh.tris.length; ti++) {
-          const tri = mesh.tris[ti];
-          const a2 = mesh.proj[tri[0]], b2 = mesh.proj[tri[1]], c2 = mesh.proj[tri[2]];
-          const tcx = (a2[0] + b2[0] + c2[0]) / 3;
-          if (mClip === -1 && tcx > gxNow - 14) continue;
-          if (mClip === 1 && tcx < gxNow + 14) continue;
-          let hot = 0, fillA = 0;
-          if (thermal) {
-            // conjugate-heat contour: pad hot spot + downstream tail, breathing
-            hot = mesh.temp[ti] * (0.72 + 0.28 * Math.sin(t * 0.0011 - mesh.temp[ti] * 5));
-            fillA = 0.28 * hot;
-          } else {
-            if (mesh.selR && mesh.rippleD[ti] < mesh.selR) fillA = 0.10;   // "selected faces"
-            if (rippleR >= 0) {
-              const dd = Math.abs(mesh.rippleD[ti] - rippleR);
-              if (dd < band) hot = 1 - dd / band;
-            }
-            fillA += 0.20 * hot;
-          }
-          ctx.beginPath();
-          ctx.moveTo(a2[0], a2[1]); ctx.lineTo(b2[0], b2[1]); ctx.lineTo(c2[0], c2[1]);
-          ctx.closePath();
-          if (fillA > 0.01) {
-            ctx.fillStyle = "rgba(" + GOLD + "," + (fillA * mA).toFixed(3) + ")";
-            ctx.fill();
-          }
-          ctx.strokeStyle = "rgba(" + TEAL + "," + ((0.12 + 0.24 * hot) * mA).toFixed(3) + ")";
-          ctx.stroke();
-        }
-      };
-      let m2A = 0, m2Clip = 0, m3A = 0, m3Clip = 0;
-      if (!morph) { m2A = dA[2]; m3A = dA[3]; }
-      else if (iA === 1) { m2A = f; m2Clip = -1; }
-      else if (iA === 2) { m2A = 1 - f; m2Clip = 1; m3A = f; m3Clip = -1; }
-      drawMesh(deco.mesh2, m2A, m2Clip, false);
-      drawMesh(deco.mesh3, m3A, m3Clip, true);
-
-      // the skin: gold, glowing (front face)
-      ctx.save();
-      ctx.shadowColor = "rgba(" + GOLD + ",0.55)"; ctx.shadowBlur = 16;
-      ctx.strokeStyle = "rgba(" + GOLD + ",0.95)"; ctx.lineWidth = 1.7;
-      ctx.beginPath();
-      for (let i = 0; i < N; i++) (i ? ctx.lineTo(FRONT[i][0], FRONT[i][1]) : ctx.moveTo(FRONT[i][0], FRONT[i][1]));
-      ctx.closePath();
-      ctx.stroke();
-      ctx.restore();
-      ctx.fillStyle = "rgba(" + TEAL + ",0.55)";
-      for (let i = 0; i < N; i += 5) {
-        ctx.beginPath(); ctx.arc(FRONT[i][0], FRONT[i][1], 1.3, 0, 7); ctx.fill();
-      }
-
-      /* per-phase deco */
-      // 01 · aero: dashed chord line through the mid-plane
-      if (dA[0] > 0.01) {
-        const c0 = proj(deco.chord[0][0], deco.chord[0][1], 0);
-        const c1 = proj(deco.chord[1][0], deco.chord[1][1], 0);
-        ctx.strokeStyle = "rgba(" + GOLD + "," + (0.28 * dA[0]).toFixed(3) + ")";
-        ctx.lineWidth = 1; ctx.setLineDash([5, 7]);
-        ctx.beginPath(); ctx.moveTo(c0[0], c0[1]); ctx.lineTo(c1[0], c1[1]); ctx.stroke();
-        ctx.setLineDash([]);
-      }
-      // 02 · bio: pulsatile blood — dots surge down the trunk and split
-      //      into both branches at systole
-      if (dA[1] > 0.01) {
-        for (let bi = 0; bi < BLOOD.length; bi++) {
-          const bp = BLOOD[bi];
-          bp.u += dt * (0.030 + 0.17 * pulse);
-          const path = deco.bif.paths[bi % 2];
-          for (let k = 0; k < 4; k++) {
-            const pos = bloodAt(path, bp.u - k * 0.012);
-            const p2 = proj(pos[0], pos[1], 0);
-            const al = (1 - k / 4) * (0.35 + 0.55 * pulse) * dA[1];
-            ctx.fillStyle = "rgba(" + TEAL + "," + al.toFixed(3) + ")";
-            ctx.beginPath(); ctx.arc(p2[0], p2[1], (2.4 - k * 0.4) * p2[2], 0, 7); ctx.fill();
-          }
-        }
-      }
-      // 03 · gaming: Blender edit-mode dressing — vertex handles on the
-      //      silhouette and a transform gizmo planted on the crown
-      const fortA = dA[2] * (1 - morphAct);
-      if (fortA > 0.01) {
-        ctx.fillStyle = "rgba(" + GOLD + "," + (0.75 * fortA).toFixed(3) + ")";
-        for (const hv of deco.fort.handles) {
-          const p2 = proj(hv[0], hv[1], hz);
-          ctx.fillRect(p2[0] - 2.2, p2[1] - 2.2, 4.4, 4.4);
-        }
-        const gz = proj(deco.fort.gizmo[0], deco.fort.gizmo[1], hz);
-        const L = sref * 0.085;
-        ctx.lineWidth = 1.4;
-        ctx.strokeStyle = "rgba(" + GOLD + "," + (0.85 * fortA).toFixed(3) + ")";
-        ctx.beginPath(); ctx.moveTo(gz[0], gz[1]); ctx.lineTo(gz[0], gz[1] - L); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(gz[0] - 4, gz[1] - L + 6); ctx.lineTo(gz[0], gz[1] - L); ctx.lineTo(gz[0] + 4, gz[1] - L + 6); ctx.stroke();
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.85 * fortA).toFixed(3) + ")";
-        ctx.beginPath(); ctx.moveTo(gz[0], gz[1]); ctx.lineTo(gz[0] + L, gz[1]); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(gz[0] + L - 6, gz[1] - 4); ctx.lineTo(gz[0] + L, gz[1]); ctx.lineTo(gz[0] + L - 6, gz[1] + 4); ctx.stroke();
-        ctx.strokeStyle = "rgba(236,234,229," + (0.8 * fortA).toFixed(3) + ")";
-        ctx.strokeRect(gz[0] - 3, gz[1] - 3, 6, 6);
-        // marching ants around the selection — pure edit-mode
-        ctx.strokeStyle = "rgba(236,234,229," + (0.30 * fortA).toFixed(3) + ")";
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.lineDashOffset = -((t * 0.02) % 8);
-        ctx.beginPath();
-        for (let i = 0; i < N; i++) (i ? ctx.lineTo(FRONT[i][0], FRONT[i][1]) : ctx.moveTo(FRONT[i][0], FRONT[i][1]));
-        ctx.closePath();
-        ctx.stroke();
-        ctx.setLineDash([]); ctx.lineDashOffset = 0;
-      }
-      // 04 · auto thermal: hub + bolt ring, spinning vanes, breathing
-      //      isotherms in the friction band, the fixed caliper, heat plumes
-      const thA = dA[3] * (1 - morphAct);
-      if (thA > 0.01) {
-        const dc = deco.disc;
-        const ring3D = (r, alpha, color, lw) => {
-          ctx.strokeStyle = "rgba(" + color + "," + alpha.toFixed(3) + ")";
-          ctx.lineWidth = lw;
-          ctx.beginPath();
-          for (let k = 0; k <= 28; k++) {
-            const a3 = (k / 28) * Math.PI * 2;
-            const p2 = proj(dc.c[0] + Math.cos(a3) * r, dc.c[1] + Math.sin(a3) * r, hz);
-            k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
-          }
-          ctx.stroke();
-        };
-        ring3D(dc.rHub, 0.55 * thA, GOLD, 1.2);
-        for (let b2 = 0; b2 < 5; b2++) {
-          const a3 = (b2 / 5) * Math.PI * 2 + t * 0.0012;
-          const p2 = proj(dc.c[0] + Math.cos(a3) * dc.rBolt, dc.c[1] + Math.sin(a3) * dc.rBolt, hz);
-          ctx.strokeStyle = "rgba(" + GOLD + "," + (0.5 * thA).toFixed(3) + ")";
-          ctx.lineWidth = 1;
-          ctx.beginPath(); ctx.arc(p2[0], p2[1], 3 * p2[2], 0, 7); ctx.stroke();
-        }
-        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.18 * thA).toFixed(3) + ")";
-        ctx.lineWidth = 1;
-        for (let v2 = 0; v2 < 18; v2++) {
-          const a3 = (v2 / 18) * Math.PI * 2 + t * 0.0012;
-          const p0 = proj(dc.c[0] + Math.cos(a3) * dc.rHub * 1.12, dc.c[1] + Math.sin(a3) * dc.rHub * 1.12, hz);
-          const p1 = proj(dc.c[0] + Math.cos(a3 + 0.10) * dc.rOut * 0.94, dc.c[1] + Math.sin(a3 + 0.10) * dc.rOut * 0.94, hz);
-          ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
-        }
-        for (let q = 0; q < 3; q++) {
-          const rq = dc.band[0] + ((dc.band[1] - dc.band[0]) * (q + 0.5)) / 3;
-          const glow = 0.14 + 0.14 * Math.sin(t * 0.0011 - q * 1.1);
-          ring3D(rq, glow * thA, GOLD, 1);
-        }
-        // caliper stays fixed while the disc spins — the conjugate-heat pair
-        ctx.strokeStyle = "rgba(" + GOLD + "," + (0.6 * thA).toFixed(3) + ")";
-        ctx.lineWidth = 1.5;
-        for (const rr2 of [dc.rOut * 1.07, dc.rOut * 0.80]) {
-          ctx.beginPath();
-          for (let k = 0; k <= 10; k++) {
-            const a3 = -1.05 + (k / 10) * 0.85;
-            const p2 = proj(dc.c[0] + Math.cos(a3) * rr2, dc.c[1] + Math.sin(a3) * rr2, hz);
-            k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
-          }
-          ctx.stroke();
-        }
-        for (const a3 of [-1.05, -0.20]) {
-          const p0 = proj(dc.c[0] + Math.cos(a3) * dc.rOut * 1.07, dc.c[1] + Math.sin(a3) * dc.rOut * 1.07, hz);
-          const p1 = proj(dc.c[0] + Math.cos(a3) * dc.rOut * 0.80, dc.c[1] + Math.sin(a3) * dc.rOut * 0.80, hz);
-          ctx.beginPath(); ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]); ctx.stroke();
-        }
-        // pad contact patch: the friction interface itself glows and flickers
-        const flick = 0.65 + 0.35 * Math.sin(t * 0.013) * Math.sin(t * 0.0047);
-        for (const rq of [dc.band[0] * 1.04, (dc.band[0] + dc.band[1]) / 2, dc.band[1] * 0.97]) {
-          ctx.strokeStyle = "rgba(" + GOLD + "," + (0.22 * flick * thA).toFixed(3) + ")";
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          for (let k = 0; k <= 8; k++) {
-            const a3 = -1.0 + (k / 8) * 0.75;
-            const p2 = proj(dc.c[0] + Math.cos(a3) * rq, dc.c[1] + Math.sin(a3) * rq, hz);
-            k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
-          }
-          ctx.stroke();
-        }
-        ctx.lineWidth = 1.2;
-        // buoyant heat plumes rising off the rim, densest over the hot side
-        for (const pl of PL) {
-          pl.life -= dt * 0.30;
-          if (pl.life <= 0) { pl.life = 1; pl.x = 0.30 + 0.70 * Math.random(); }
-          const rise = (1 - pl.life) * dc.rOut * 1.4;
-          const px = dc.c[0] + (pl.x - 0.5) * dc.rOut * 1.7 + Math.sin(t * 0.003 + pl.x * 21) * 7;
-          const py = dc.c[1] - dc.rOut * 0.55 - rise;
-          const al = Math.sin(Math.PI * (1 - pl.life)) * 0.28 * thA;
-          ctx.strokeStyle = "rgba(" + GOLD + "," + al.toFixed(3) + ")";
-          ctx.lineWidth = 1.2;
-          ctx.beginPath(); ctx.moveTo(px, py + 8); ctx.lineTo(px, py - 4); ctx.stroke();
-        }
-      }
-
-      // the scan gate: a teal wall sweeping the conversion across the chamber
-      if (morph) {
-        const gA = clamp(Math.sin(Math.PI * f) * 1.8, 0, 1);
-        const gy0 = H * 0.07, gy1 = H * 0.93;
-        const grad = ctx.createLinearGradient(gxNow - 70, 0, gxNow, 0);
+      if (!morph) {
+        drawModel(cur, t, sweepLocal, 1, true);
+      } else {
+        // the gate wipes the finished old mesh into the finished new one
+        ctx.save(); ctx.beginPath(); ctx.rect(gx, -H, W - gx + H * 2, H * 3); ctx.clip();
+        drawModel(iA, t, 0, 1 - morphAct * 0.3, f < 0.5);
+        ctx.restore();
+        ctx.save(); ctx.beginPath(); ctx.rect(-H, -H, gx + H, H * 3); ctx.clip();
+        drawModel(iA + 1, t, 0, 1 - morphAct * 0.3, f >= 0.5);
+        ctx.restore();
+        const gA = clamp(morphAct * 1.8, 0, 1);
+        const gy0 = H * 0.06, gy1 = H * 0.94;
+        const grad = ctx.createLinearGradient(gx - 70, 0, gx, 0);
         grad.addColorStop(0, "rgba(" + TEAL + ",0)");
         grad.addColorStop(1, "rgba(" + TEAL + "," + (0.10 * gA).toFixed(3) + ")");
         ctx.fillStyle = grad;
-        ctx.fillRect(gxNow - 70, gy0, 70, gy1 - gy0);
+        ctx.fillRect(gx - 70, gy0, 70, gy1 - gy0);
         ctx.strokeStyle = "rgba(" + TEAL + "," + (0.8 * gA).toFixed(3) + ")";
         ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(gxNow, gy0); ctx.lineTo(gxNow, gy1); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(gxNow - 7, gy0); ctx.lineTo(gxNow + 7, gy0); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(gxNow - 7, gy1); ctx.lineTo(gxNow + 7, gy1); ctx.stroke();
-        for (let i = 0; i < N; i += 2) {       // cells re-knitting right at the gate
-          const d3 = Math.abs(FRONT[i][0] - gxNow);
-          if (d3 < 34) {
-            ctx.fillStyle = "rgba(" + GOLD + "," + ((1 - d3 / 34) * gA).toFixed(3) + ")";
-            ctx.beginPath(); ctx.arc(FRONT[i][0], FRONT[i][1], 2.1, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(gx, gy0); ctx.lineTo(gx, gy1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gx - 7, gy0); ctx.lineTo(gx + 7, gy0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gx - 7, gy1); ctx.lineTo(gx + 7, gy1); ctx.stroke();
+        for (let i2 = 0; i2 < 26; i2++) {       // re-mesh sparks at the cut
+          const yy = H * (0.10 + 0.80 * Math.random());
+          const xx = gx + (Math.random() - 0.5) * 26;
+          ctx.fillStyle = "rgba(" + (Math.random() < 0.62 ? GOLD : TEAL) + "," + (Math.random() * gA).toFixed(3) + ")";
+          ctx.fillRect(xx, yy, 2, 2);
+        }
+      }
+
+      /* ambient, per phase */
+      const pulse = Math.pow(Math.max(Math.sin(t * 0.00754), 0), 2);   // 72 bpm systole
+      // 02 · blood cells streaming through the stent lumen
+      if (dA[1] > 0.01 && lastPj) {
+        for (const bp of BLOOD) {
+          bp.u += dt * (0.06 + 0.26 * pulse);
+          for (let k2 = 0; k2 < 3; k2++) {
+            const pos = pathAt(MODELS[1].path, bp.u - k2 * 0.02);
+            const scr = lastPj.pj([pos[0], pos[1] + bp.oy * 0.5, pos[2] + bp.oz * 0.5], false);
+            const al = (1 - k2 / 3) * (0.30 + 0.55 * pulse) * dA[1] * (1 - morphAct);
+            ctx.fillStyle = "rgba(" + TEAL + "," + al.toFixed(3) + ")";
+            ctx.beginPath(); ctx.arc(scr[0], scr[1], (2.3 - k2 * 0.5) * scr[2], 0, 7); ctx.fill();
           }
+        }
+      }
+      // 04 · buoyant heat plumes rising off the rotor
+      if (dA[3] > 0.01) {
+        const bw = Math.max(lastBB.x1 - lastBB.x0, 1);
+        for (const pl2 of PL) {
+          pl2.life -= dt * 0.30;
+          if (pl2.life <= 0) { pl2.life = 1; pl2.x = 0.25 + 0.75 * Math.random(); }
+          const rise = (1 - pl2.life) * H * 0.30;
+          const px = lastBB.x0 + pl2.x * bw + Math.sin(t * 0.003 + pl2.x * 21) * 7;
+          const py = lastBB.y0 + H * 0.02 - rise;
+          const al = Math.sin(Math.PI * (1 - pl2.life)) * 0.26 * dA[3] * (1 - morphAct);
+          ctx.strokeStyle = "rgba(" + GOLD + "," + al.toFixed(3) + ")";
+          ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.moveTo(px, py + 8); ctx.lineTo(px, py - 4); ctx.stroke();
         }
       }
     };
