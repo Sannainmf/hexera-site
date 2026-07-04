@@ -1,30 +1,31 @@
 /* ============================================================
    Hexera — engine.html: "Inside the engine"
-   Scroll-scrubbed 3D wireframe story, hand-rolled perspective
-   projection on 2D canvas. No WebGL, no libraries.
+   Scroll-scrubbed 3D story, rendered with Three.js using the
+   standard CAD hidden-line technique: a background-coloured
+   solid occluder mesh (polygonOffset) under depth-tested line
+   overlays — the far side of the part is genuinely hidden, so
+   the render reads like a CAD viewport, not wireframe soup.
 
    The specimen: a light-aircraft wing in the RV-12 mould —
-   constant chord, no sweep, gentle dihedral, square-ish tip,
-   full-span flaperon, main + rear spar with evenly-spaced ribs.
-   Simple part, honest detail.
+   constant chord, no sweep, gentle dihedral, square tip,
+   full-span flaperon, two spars, evenly spaced ribs.
 
-   The mesh is the star, and it follows real rules:
+   The mesh follows real rules:
      · chordwise cells cosine-clustered at LE and TE
      · spanwise blocks split exactly at the flaperon side edges,
-       Chebyshev-clustered into root, tip and both block bounds
-     · an 8-layer prism stack at growth 1.25 (~3.5% chord)
-     · then the classic O-grid volume slice at the inspection
-       station: rings growing geometrically off the BL stack,
-       radial spokes forming quads, and a wake block fanning
-       downstream of the trailing edge — viewed face-on.
+       Chebyshev-clustered into root / tip / both block bounds
+     · 8 prism layers at growth 1.25 (~3.5% chord)
+     · O-grid volume rings at growth 1.38 with radial spokes
+       and a wake block behind the TE
    ============================================================ */
 (() => {
   "use strict";
+  if (!window.THREE) return;
+  const T = window.THREE;
   const stage = document.querySelector("[data-eng]");
   if (!stage) return;
   const canvas = stage.querySelector("[data-eng-canvas]");
-  if (!canvas || !canvas.getContext) return;
-  const ctx = canvas.getContext("2d");
+  if (!canvas) return;
   const track = document.querySelector("[data-eng-track]");
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
@@ -32,14 +33,10 @@
   const lerp = (a, b, t) => a + (b - a) * t;
 
   /* ================= wing definition (RV-12 style) ================= */
-  const S = 1.8;                       // semispan
-  const CR = 0.72;                     // constant chord — rectangular planform
-  const DIHED = 0.035;                 // ~2° dihedral
+  const S = 1.8, CR = 0.72, DIHED = 0.035;
   const dihedY = (z) => DIHED * z;
   const XO = -0.36, YO = -0.05, ZO = -0.92;
 
-  /* cambered GA airfoil (NACA 2412 family), cosine-spaced loop:
-     TE → upper → LE → lower → (TE) */
   const P = 56, H = P / 2;
   const M2 = 0.02, P4 = 0.4;
   const ycam = (x) => x < P4 ? (M2 / (P4 * P4)) * (2 * P4 * x - x * x)
@@ -68,8 +65,6 @@
     }
     return best;
   };
-
-  /* section at spanwise z (scale < 1 closes the tip) */
   const secAt = (z, scale) => {
     const sc = scale || 1, ch = CR * sc, dy = dihedY(Math.min(z, S));
     const x0 = (1 - sc) * CR * 0.5;
@@ -80,106 +75,143 @@
     return out;
   };
 
-  /* ================= CAD stations: ribs every 0.15, closed tip ================= */
   const RIBZ = [];
   for (let z = 0; z <= S + 1e-6; z += 0.15) RIBZ.push(+z.toFixed(2));
   const stations = RIBZ.map((z) => ({ pts: secAt(z), z }));
   stations.push({ pts: secAt(S + 0.035, 0.62), z: S + 0.035 });
   stations.push({ pts: secAt(S + 0.06, 0.26), z: S + 0.06 });
-  const NSTA = stations.length;
+  const NSTA = stations.length, tipIdx = RIBZ.length - 1;
 
-  /* flaperon: full-span single surface, hinge x/c 0.74, z 0.18 → 1.68 */
   const FLAP0 = 0.18, FLAP1 = 1.68, HINGE = 0.74;
-
-  /* segment store: {a,b,n,cls,tag}
-     cls: 0 feature(ink) · 1 skin(teal) · 2 internal ghost
-     tag: 0 skin · 1 leading edge · 2 flaperon · 3 tip + root */
-  const segs = [];
-  const n3 = (j) => [LN[j][0], LN[j][1], 0];
   const tagOf = (j, z) => {
     if (z > S - 0.06 || z < 0.05) return 3;
     if (LX[j] < 0.14) return 1;
     if (LX[j] > HINGE && z > FLAP0 && z < FLAP1) return 2;
     return 0;
   };
-  const add = (a, b, n, cls, tag) => segs.push({ a, b, n, cls, tag });
 
-  /* skin: rings at every rib + spanwise lines every 2nd loop point */
+  /* ================= scene ================= */
+  const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  renderer.setClearColor(0x000000, 0);
+  const scene = new T.Scene();
+  scene.fog = new T.Fog(0x060402, 2.0, 7.0);
+  const camera = new T.PerspectiveCamera(40, 1, 0.05, 40);
+
+  const mats = [];                                     // [material, baseOpacity]
+  const lineMat = (hex, op, noDepth) => {
+    const m = new T.LineBasicMaterial({ color: hex, transparent: true, opacity: op });
+    if (noDepth) { m.depthTest = false; }
+    mats.push([m, op]);
+    return m;
+  };
+  const TEAL = 0x0fb6ac, GOLD = 0xffba00, INK = 0xebe9e2;
+
+  const lineObj = (arr, mat, order) => {
+    const g = new T.BufferGeometry();
+    g.setAttribute("position", new T.Float32BufferAttribute(arr, 3));
+    const o = new T.LineSegments(g, mat);
+    if (order !== undefined) o.renderOrder = order;
+    scene.add(o);
+    return o;
+  };
+  const pushSeg = (arr, a, b) => { arr.push(a[0], a[1], a[2], b[0], b[1], b[2]); };
+
+  /* ---- solid occluder: the hidden-line trick ---- */
+  {
+    const pos = [];
+    const quad = (a, b, c, d) => { pos.push(...a, ...b, ...c, ...a, ...c, ...d); };
+    for (let s = 0; s < NSTA - 1; s++) {
+      for (let j = 0; j < P; j++) {
+        quad(stations[s].pts[j], stations[s + 1].pts[j], stations[s + 1].pts[(j + 1) % P], stations[s].pts[(j + 1) % P]);
+      }
+    }
+    [0, NSTA - 1].forEach((si) => {
+      const ring = stations[si].pts;
+      const c0 = [0, 0, 0];
+      ring.forEach((p) => { c0[0] += p[0] / P; c0[1] += p[1] / P; c0[2] += p[2] / P; });
+      for (let j = 0; j < P; j++) pos.push(...c0, ...ring[j], ...ring[(j + 1) % P]);
+    });
+    const g = new T.BufferGeometry();
+    g.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
+    const m = new T.MeshBasicMaterial({ color: 0x080603, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2, side: T.DoubleSide });
+    const solid = new T.Mesh(g, m);
+    solid.renderOrder = 0;
+    scene.add(solid);
+    var solidMesh = solid;
+  }
+
+  /* ---- CAD skin grid, split by tag group for the classify act ---- */
+  const tagArr = [[], [], [], []];
   stations.forEach((st) => {
-    for (let j = 0; j < P; j++) add(st.pts[j], st.pts[(j + 1) % P], n3(j), 1, tagOf(j, st.z));
+    for (let j = 0; j < P; j++) pushSeg(tagArr[tagOf(j, st.z)], st.pts[j], st.pts[(j + 1) % P]);
   });
   for (let j = 0; j < P; j += 2) {
     for (let s = 0; s < NSTA - 1; s++) {
-      add(stations[s].pts[j], stations[s + 1].pts[j], n3(j), 1, tagOf(j, stations[s].z));
+      pushSeg(tagArr[tagOf(j, stations[s].z)], stations[s].pts[j], stations[s + 1].pts[j]);
     }
   }
+  const tagMats = [0, 1, 2, 3].map(() => lineMat(TEAL, 0.34));
+  const tagObjs = tagArr.map((arr, i) => lineObj(arr, tagMats[i], 2));
 
-  /* feature edges: LE · TE rims · root + tip ribs · spar caps · flaperon box */
-  const featAlong = (j, s0, s1) => {
-    for (let s = s0; s < s1; s++) add(stations[s].pts[j], stations[s + 1].pts[j], 0, 0, 0);
-  };
-  featAlong(LEI, 0, NSTA - 1);
-  featAlong(0, 0, NSTA - 1);
-  featAlong(P - 1, 0, NSTA - 1);
-  for (let j = 0; j < P; j++) add(stations[0].pts[j], stations[0].pts[(j + 1) % P], 0, 0, 3);
-  const tipIdx = RIBZ.length - 1;
-  for (let j = 0; j < P; j++) add(stations[tipIdx].pts[j], stations[tipIdx].pts[(j + 1) % P], 0, 0, 3);
-  const sparXC = [0.30, 0.70];
+  /* ---- feature edges ---- */
+  const featArr = [];
+  const featAlong = (j, s0, s1) => { for (let s = s0; s < s1; s++) pushSeg(featArr, stations[s].pts[j], stations[s + 1].pts[j]); };
+  featAlong(LEI, 0, NSTA - 1); featAlong(0, 0, NSTA - 1); featAlong(P - 1, 0, NSTA - 1);
+  [0, tipIdx].forEach((si) => { for (let j = 0; j < P; j++) pushSeg(featArr, stations[si].pts[j], stations[si].pts[(j + 1) % P]); });
   const sparJs = [];
-  sparXC.forEach((xc) => {
+  [0.30, 0.70].forEach((xc) => {
     const ju = jFor(xc, true), jl = jFor(xc, false);
     sparJs.push([ju, jl]);
-    featAlong(ju, 0, tipIdx);
-    featAlong(jl, 0, tipIdx);
+    featAlong(ju, 0, tipIdx); featAlong(jl, 0, tipIdx);
   });
-  /* flaperon hinge + side edges (arcs from hinge around TE) */
   const jH = jFor(HINGE, true);
   const stIdxAt = (z) => { let b = 0, bd = 9; RIBZ.forEach((rz, i) => { const d = Math.abs(rz - z); if (d < bd) { bd = d; b = i; } }); return b; };
   featAlong(jH, stIdxAt(FLAP0), stIdxAt(FLAP1));
   [FLAP0, FLAP1].forEach((z) => {
     const sec = secAt(z);
-    for (let j = 0; j < jH; j++) add(sec[j], sec[j + 1], 0, 0, 2);
-    for (let j = P - 1; j > P - 1 - jH; j--) add(sec[j], sec[j - 1], 0, 0, 2);
+    for (let j = 0; j < jH; j++) pushSeg(featArr, sec[j], sec[j + 1]);
+    for (let j = P - 1; j > P - 1 - jH; j--) pushSeg(featArr, sec[j], sec[j - 1]);
   });
-  /* internal: spar webs at every rib + ghost rib outlines */
-  for (let s = 0; s <= tipIdx; s++) {
-    sparJs.forEach(([ju, jl]) => add(stations[s].pts[ju], stations[s].pts[jl], 0, 2, 0));
-    for (let j = 0; j < P; j += 4) add(stations[s].pts[j], stations[s].pts[(j + 4) % P], 0, 2, 0);
-  }
+  const featMat = lineMat(INK, 0.85);
+  lineObj(featArr, featMat, 3);
 
-  /* ================= fine surface mesh: real multiblock rules =================
-     spanwise stations land EXACTLY on root, flaperon edges and tip, with
-     Chebyshev clustering into every block boundary */
+  /* ---- internal structure: ghosted through the skin ---- */
+  const intArr = [];
+  for (let s = 0; s <= tipIdx; s++) {
+    sparJs.forEach(([ju, jl]) => pushSeg(intArr, stations[s].pts[ju], stations[s].pts[jl]));
+    for (let j = 0; j < P; j += 4) pushSeg(intArr, stations[s].pts[j], stations[s].pts[(j + 4) % P]);
+  }
+  const intMat = lineMat(TEAL, 0.05, true);
+  lineObj(intArr, intMat, 1);
+
+  /* ---- fine surface mesh: multiblock, sorted LE→TE for the sweep reveal ---- */
   const cheb = (a, b, n, skipFirst) => {
     const out = [];
     for (let i = skipFirst ? 1 : 0; i <= n; i++) out.push(lerp(a, b, 0.5 - 0.5 * Math.cos(Math.PI * i / n)));
     return out;
   };
-  const fineZ = [
-    ...cheb(0, FLAP0, 4),
-    ...cheb(FLAP0, FLAP1, 20, true),
-    ...cheb(FLAP1, S, 5, true),
-  ];
-  const fineStations = fineZ.map((z) => ({ pts: secAt(z), z }));
-  const NFZ = fineStations.length;
-  const fineSegs = [];
-  for (let s = 0; s < NFZ; s++) {
-    const st = fineStations[s];
+  const fineZ = [...cheb(0, FLAP0, 4), ...cheb(FLAP0, FLAP1, 20, true), ...cheb(FLAP1, S, 5, true)];
+  const fineSecs = fineZ.map((z) => secAt(z));
+  const fineList = [];
+  for (let s = 0; s < fineSecs.length; s++) {
     for (let j = 0; j < P; j++) {
-      fineSegs.push({ a: st.pts[j], b: st.pts[(j + 1) % P], n: n3(j), dle: Math.abs(j - LEI) / H });
+      fineList.push({ a: fineSecs[s][j], b: fineSecs[s][(j + 1) % P], d: Math.abs(j - LEI) / H });
     }
   }
   for (let j = 0; j < P; j++) {
-    for (let s = 0; s < NFZ - 1; s++) {
-      fineSegs.push({ a: fineStations[s].pts[j], b: fineStations[s + 1].pts[j], n: n3(j), dle: Math.abs(j - LEI) / H });
+    for (let s = 0; s < fineSecs.length - 1; s++) {
+      fineList.push({ a: fineSecs[s][j], b: fineSecs[s + 1][j], d: Math.abs(j - LEI) / H });
     }
   }
+  fineList.sort((a, b) => a.d - b.d);
+  const fineArr = [];
+  fineList.forEach((g) => pushSeg(fineArr, g.a, g.b));
+  const fineMat = lineMat(TEAL, 0.4);
+  const fineObj = lineObj(fineArr, fineMat, 2);
+  const FINE_N = fineList.length;
+  fineObj.geometry.setDrawRange(0, 0);
 
-  /* ================= the O-grid slice at the inspection station =================
-     · 8 prism layers, growth 1.25, total 3.5% chord (real BL practice)
-     · 10 volume rings continuing at growth 1.38 out to ~half a chord
-     · radial spokes every 2nd point → visible quads
-     · wake block: lines fanning downstream of the TE with cross-rungs */
+  /* ---- O-grid slice at the inspection station ---- */
   const INS_Z = 0.93;
   const insSec = secAt(INS_Z);
   const NBL = 8, GBL = 1.25, NVOL = 10, GVOL = 1.38;
@@ -192,48 +224,35 @@
     let dv = d0 * Math.pow(GBL, NBL);
     for (let k = 0; k < NVOL; k++) { acc += dv; offs.push(acc); dv *= GVOL; }
   }
-  const NOFF = offs.length;
   const ringPts = offs.map((d) => insSec.map((p, j) => [p[0] + LN[j][0] * d, p[1] + LN[j][1] * d, p[2]]));
-  const ogrid = [];   // {a,b,ring,kind: 0 ring · 1 spoke · 2 wake}
-  for (let k = 0; k < NOFF; k++) {
-    for (let j = 0; j < P; j++) {
-      ogrid.push({ a: ringPts[k][j], b: ringPts[k][(j + 1) % P], ring: k, kind: 0 });
-    }
-  }
+  const blArr = [], volArr = [], spokeArr = [], wakeArr = [];
+  ringPts.forEach((ring, k) => {
+    const arr = k < NBL ? blArr : volArr;
+    for (let j = 0; j < P; j++) pushSeg(arr, ring[j], ring[(j + 1) % P]);
+  });
   for (let j = 0; j < P; j += 2) {
-    for (let k = 0; k < NOFF; k++) {
-      const from = k === 0 ? insSec[j] : ringPts[k - 1][j];
-      ogrid.push({ a: from, b: ringPts[k][j], ring: k, kind: 1 });
+    for (let k = 0; k < offs.length; k++) {
+      pushSeg(spokeArr, k === 0 ? insSec[j] : ringPts[k - 1][j], ringPts[k][j]);
     }
   }
-  /* wake block behind the TE */
-  const WX = [0.10, 0.22, 0.38, 0.58];
-  const teU = [insSec[0], ...ringPts.map((r) => r[0])];
-  const teL = [insSec[P - 1], ...ringPts.map((r) => r[P - 1])];
-  [teU, teL].forEach((row) => {
-    row.forEach((p, k) => {
-      if (k % 1 !== 0) return;
+  const WXs = [0.10, 0.22, 0.38, 0.58];
+  const chordY = dihedY(INS_Z) + YO;
+  const wakeOf = (p, wx) => [p[0] + wx, p[1] + (p[1] - chordY) * wx * 0.5, p[2]];
+  [[0], [P - 1]].forEach(([jj]) => {
+    const row = [insSec[jj], ...ringPts.map((r) => r[jj])];
+    row.forEach((p) => {
       let prev = p;
-      WX.forEach((wx) => {
-        const q = [p[0] + wx, p[1] + (p[1] - (dihedY(INS_Z) + YO)) * wx * 0.5, p[2]];
-        ogrid.push({ a: prev, b: q, ring: Math.max(k - 1, 0), kind: 2 });
-        prev = q;
-      });
+      WXs.forEach((wx) => { const q = wakeOf(p, wx); pushSeg(wakeArr, prev, q); prev = q; });
+    });
+    WXs.forEach((wx) => {
+      for (let k = 0; k < row.length - 1; k++) pushSeg(wakeArr, wakeOf(row[k], wx), wakeOf(row[k + 1], wx));
     });
   });
-  WX.forEach((wx) => {
-    [teU, teL].forEach((row) => {
-      for (let k = 0; k < row.length - 1; k++) {
-        const a = row[k], b = row[k + 1];
-        const qa = [a[0] + wx, a[1] + (a[1] - (dihedY(INS_Z) + YO)) * wx * 0.5, a[2]];
-        const qb = [b[0] + wx, b[1] + (b[1] - (dihedY(INS_Z) + YO)) * wx * 0.5, b[2]];
-        ogrid.push({ a: qa, b: qb, ring: k, kind: 2 });
-      }
-    });
-  });
-  const insMid = [0.5 * CR + XO + 0.08, dihedY(INS_Z) + YO + 0.01, INS_Z + ZO];
+  const blMat = lineMat(TEAL, 0.62), volMat = lineMat(TEAL, 0.3), spokeMat = lineMat(TEAL, 0.3), wakeMat = lineMat(TEAL, 0.26);
+  lineObj(blArr, blMat, 4); lineObj(volArr, volMat, 4); lineObj(spokeArr, spokeMat, 4); lineObj(wakeArr, wakeMat, 4);
+  const insMid = [0.5 * CR + XO + 0.1, chordY, INS_Z + ZO];
 
-  /* ================= assemble cloud + export crate ================= */
+  /* ---- assemble cloud ---- */
   const cloud = [];
   let seed = 20260703;
   const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
@@ -241,33 +260,67 @@
     for (let j = 0; j < P; j += 2) {
       const p = st.pts[j];
       const th = rnd() * Math.PI * 2, ph = Math.acos(rnd() * 2 - 1), r = 1.8 + rnd() * 1.3;
-      cloud.push({ tx: p[0], ty: p[1], tz: p[2],
-        sx: Math.sin(ph) * Math.cos(th) * r, sy: Math.cos(ph) * r * 0.75, sz: Math.sin(ph) * Math.sin(th) * r,
-        st: rnd() * 0.55 });
+      cloud.push({ t: p, s: [Math.sin(ph) * Math.cos(th) * r, Math.cos(ph) * r * 0.75, Math.sin(ph) * Math.sin(th) * r], st: rnd() * 0.55 });
     }
   });
+  const cloudPos = new Float32Array(cloud.length * 3);
+  const cloudGeo = new T.BufferGeometry();
+  cloudGeo.setAttribute("position", new T.BufferAttribute(cloudPos, 3));
+  const cloudMat = new T.PointsMaterial({ color: TEAL, size: 2.6, sizeAttenuation: false, transparent: true, opacity: 0.85 });
+  mats.push([cloudMat, 0.85]);
+  const cloudObj = new T.Points(cloudGeo, cloudMat);
+  cloudObj.renderOrder = 5;
+  scene.add(cloudObj);
+
+  /* ---- gate, flag rings, crate ---- */
+  const gateGeo = new T.BufferGeometry();
+  {
+    const gx0 = XO - 0.1, gx1 = CR + XO + 0.1, gy0 = -0.12 + YO, gy1 = 0.16 + YO;
+    gateGeo.setAttribute("position", new T.Float32BufferAttribute([
+      gx0, gy0, 0, gx1, gy0, 0, gx1, gy0, 0, gx1, gy1, 0,
+      gx1, gy1, 0, gx0, gy1, 0, gx0, gy1, 0, gx0, gy0, 0,
+    ], 3));
+  }
+  const gateMat = lineMat(GOLD, 0.55);
+  const gateObj = new T.LineSegments(gateGeo, gateMat);
+  gateObj.renderOrder = 6;
+  scene.add(gateObj);
+
+  const flagObjs = [FLAP0, FLAP1].map((z) => {
+    const sec = secAt(z);
+    const arr = [];
+    for (let j = 0; j < P; j++) pushSeg(arr, sec[j], sec[(j + 1) % P]);
+    const m = lineMat(GOLD, 0.0);
+    const o = lineObj(arr, m, 6);
+    o.userData.z = z + ZO;
+    o.userData.mat = m;
+    return o;
+  });
+
   let bb = [9, 9, 9, -9, -9, -9];
   stations.forEach((st) => st.pts.forEach((p) => {
     bb = [Math.min(bb[0], p[0]), Math.min(bb[1], p[1]), Math.min(bb[2], p[2]),
           Math.max(bb[3], p[0]), Math.max(bb[4], p[1]), Math.max(bb[5], p[2])];
   }));
   const MG = 0.14;
-  const corners = [
+  const cnr = [
     [bb[0]-MG, bb[1]-MG, bb[2]-MG], [bb[3]+MG, bb[1]-MG, bb[2]-MG], [bb[3]+MG, bb[4]+MG, bb[2]-MG], [bb[0]-MG, bb[4]+MG, bb[2]-MG],
     [bb[0]-MG, bb[1]-MG, bb[5]+MG], [bb[3]+MG, bb[1]-MG, bb[5]+MG], [bb[3]+MG, bb[4]+MG, bb[5]+MG], [bb[0]-MG, bb[4]+MG, bb[5]+MG],
   ];
-  const crateEdges = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+  const crateArr = [];
+  [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].forEach(([a, b]) => pushSeg(crateArr, cnr[a], cnr[b]));
+  const crateMat = lineMat(GOLD, 0.55);
+  const crateObj = lineObj(crateArr, crateMat, 6);
+  crateObj.geometry.setDrawRange(0, 0);
 
-  /* ================= camera timeline =================
-     high-elevation keys so the planform actually reads; the mesh act ends
-     face-on down the span — the classic O-grid view */
+  /* ================= camera timeline ================= */
   const KEYS = [
-    { p: 0.00, th: 0.90, ph: 0.50, d: 3.2, t: [0, 0, 0] },
-    { p: 0.20, th: 1.50, ph: 0.64, d: 2.3, t: [0, 0, 0] },
-    { p: 0.40, th: 2.20, ph: 0.66, d: 2.05, t: [0, 0, 0.05] },
-    { p: 0.60, th: 3.14, ph: 0.10, d: 1.15, t: insMid },
-    { p: 0.80, th: 3.75, ph: 0.85, d: 2.5, t: [0, 0, 0] },
-    { p: 1.00, th: 4.35, ph: 0.40, d: 3.2, t: [0, 0, 0] },
+    { p: 0.00, th: 0.90, ph: 0.50, d: 3.3, t: [0, 0, 0] },
+    { p: 0.20, th: 1.50, ph: 0.62, d: 2.35, t: [0, 0, 0] },
+    { p: 0.40, th: 2.20, ph: 0.60, d: 2.1, t: [0, 0, 0.05] },
+    { p: 0.60, th: 2.69, ph: 0.14, d: 1.25, t: insMid },
+    { p: 0.80, th: 3.60, ph: 0.90, d: 2.6, t: [0, 0, 0] },
+    { p: 1.00, th: 4.30, ph: 0.40, d: 3.3, t: [0, 0, 0] },
   ];
   const cam = (p) => {
     let i = 0;
@@ -278,200 +331,104 @@
       tx: lerp(a.t[0], b.t[0], t), ty: lerp(a.t[1], b.t[1], t), tz: lerp(a.t[2], b.t[2], t) };
   };
 
-  /* ================= projection + batched rendering ================= */
-  let W = 0, Hh = 0, DPR = 1;
+  /* ================= sizing ================= */
+  let W = 0, Hh = 0;
   const resize = () => {
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = stage.clientWidth; Hh = stage.clientHeight;
-    canvas.width = Math.round(W * DPR); canvas.height = Math.round(Hh * DPR);
-    canvas.style.width = W + "px"; canvas.style.height = Hh + "px";
+    if (!W || !Hh) return;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(W, Hh, false);
+    camera.aspect = W / Hh;
+    camera.updateProjectionMatrix();
   };
   resize();
 
-  const COL = { t: "15,182,172", g: "255,186,0", i: "235,233,226" };
-  let buckets = new Map();
-  const put = (x1, y1, x2, y2, col, a, w) => {
-    if (a <= 0.012) return;
-    const aq = Math.round(a * 18);
-    const key = col + aq + "w" + w;
-    let b = buckets.get(key);
-    if (!b) { b = { col, a: aq / 18, w, seg: [], pts: null }; buckets.set(key, b); }
-    b.seg.push(x1, y1, x2, y2);
-  };
-  const putPt = (x, y, col, a) => {
-    if (a <= 0.02) return;
-    const aq = Math.round(a * 18);
-    const key = col + aq + "p";
-    let b = buckets.get(key);
-    if (!b) { b = { col, a: aq / 18, w: 1, seg: [], pts: [] }; buckets.set(key, b); }
-    (b.pts || (b.pts = [])).push(x, y);
-  };
-
-  let cth = 0, cph = 0, cd = 3, TGT = [0, 0, 0], sref = 300;
-  let sinT = 0, cosT = 1, sinP = 0, cosP = 1;
-  let CXp = 0, CYp = 0, CZp = 0;
-  const FL = 2.0;
-  const proj = (x, y, z) => {
-    x -= TGT[0]; y -= TGT[1]; z -= TGT[2];
-    const x1 = x * cosT + z * sinT, z1 = -x * sinT + z * cosT;
-    const y2 = y * cosP - z1 * sinP, z2 = y * sinP + z1 * cosP;
-    const zc = z2 + cd;
-    if (zc < 0.3) return null;
-    const s = FL / zc;
-    return [W / 2 + x1 * s * sref, Hh / 2 - y2 * s * sref, zc];
-  };
-  const dfade = (zc) => clamp(1.7 - zc / cd, 0.15, 1) * sstep((zc - 0.35) / 0.3);
-  const facing = (mx, my, mz, n) => {
-    if (!n) return 1;
-    const dx = CXp - mx, dy = CYp - my, dz = CZp - mz;
-    const il = 1 / (Math.hypot(dx, dy, dz) || 1);
-    const dot = (n[0] * dx + n[1] * dy + n[2] * dz) * il;
-    return 0.12 + 0.88 * sstep(dot * 2.4 + 0.42);
-  };
-
   const actWin = (p, i) => clamp((p - i * 0.2) / 0.2, 0, 1);
+  const cTeal = new T.Color(TEAL), cGold = new T.Color(GOLD);
 
   const draw = (p, t) => {
     if (!W || !Hh) { resize(); if (!W || !Hh) return; }
     const c = cam(p);
-    cth = c.th + (reduce ? 0 : Math.sin(t / 5600) * 0.025);
-    cph = c.ph + (reduce ? 0 : Math.sin(t / 7300) * 0.015);
-    cd = c.d; TGT = [c.tx, c.ty, c.tz];
-    sinT = Math.sin(cth); cosT = Math.cos(cth); sinP = Math.sin(cph); cosP = Math.cos(cph);
-    CXp = TGT[0] + cd * cosP * sinT; CYp = TGT[1] - cd * sinP; CZp = TGT[2] - cd * cosP * cosT;
-    sref = Math.min(W, Hh) * 0.44;
-
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    ctx.clearRect(0, 0, W, Hh);
-    buckets = new Map();
+    const th = c.th + (reduce ? 0 : Math.sin(t / 5600) * 0.02);
+    const ph = c.ph + (reduce ? 0 : Math.sin(t / 7300) * 0.012);
+    camera.position.set(
+      c.tx + c.d * Math.cos(ph) * Math.sin(th),
+      c.ty + c.d * Math.sin(ph),
+      c.tz + c.d * Math.cos(ph) * Math.cos(th)
+    );
+    camera.lookAt(c.tx, c.ty, c.tz);
+    scene.fog.near = c.d * 0.55;
+    scene.fog.far = c.d * 3.2;
 
     const a0 = actWin(p, 0), a1 = actWin(p, 1), a2 = actWin(p, 2), a3 = actWin(p, 3), a4 = actWin(p, 4);
     const wingA = sstep((a0 - 0.42) / 0.58);
     const meshOn = sstep(a2 / 0.4);
-    const shipDim = 1 - 0.35 * sstep(a4);
+    const shipDim = 1 - 0.4 * sstep(a4);
 
-    /* act 00 · assemble */
-    if (a0 < 1) {
-      for (const q of cloud) {
-        const k = sstep((a0 * 1.5 - q.st) / 0.5);
-        const A = proj(lerp(q.sx, q.tx, k), lerp(q.sy, q.ty, k), lerp(q.sz, q.tz, k));
-        if (!A) continue;
-        putPt(A[0], A[1], "t", (1 - wingA * 0.94) * dfade(A[2]) * 0.8);
+    /* assemble cloud */
+    cloudObj.visible = a0 < 1;
+    if (cloudObj.visible) {
+      for (let i = 0; i < cloud.length; i++) {
+        const q = cloud[i], k = sstep((a0 * 1.5 - q.st) / 0.5);
+        cloudPos[i * 3] = lerp(q.s[0], q.t[0], k);
+        cloudPos[i * 3 + 1] = lerp(q.s[1], q.t[1], k);
+        cloudPos[i * 3 + 2] = lerp(q.s[2], q.t[2], k);
       }
+      cloudGeo.attributes.position.needsUpdate = true;
+      cloudMat.opacity = 0.85 * (1 - wingA * 0.95);
     }
 
-    /* CAD wireframe + act 01 classification */
-    if (wingA > 0.01) {
-      const order = [0, 1, 2, 3];
-      for (let i = 0; i < segs.length; i++) {
-        const g = segs[i];
-        const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
-        const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
-        const zc = (A[2] + B[2]) / 2;
-        const mx = (g.a[0] + g.b[0]) / 2, my = (g.a[1] + g.b[1]) / 2, mz = (g.a[2] + g.b[2]) / 2;
-        let a, w = 1, col = "t";
-        if (g.cls === 0) { a = 0.72 * wingA * dfade(zc) * shipDim; w = 1.5; col = "i"; }
-        else if (g.cls === 2) { a = 0.07 * wingA * dfade(zc) * shipDim; }
-        else { a = 0.28 * wingA * dfade(zc) * facing(mx, my, mz, g.n) * (1 - 0.55 * meshOn) * shipDim; }
-        if (a1 > 0 && g.cls !== 2) {
-          const at = clamp(a1 * 4.4 - order.indexOf(g.tag) * 1.05, 0, 1);
-          if (at > 0 && at < 1) {
-            const pulse = Math.sin(at * Math.PI);
-            if (pulse > 0.25) { col = "g"; a = Math.max(a, (0.5 + 0.4 * pulse) * dfade(zc)); }
-          } else if (at >= 1 && g.tag > 0) a *= 1.25;
-        }
-        put(A[0], A[1], B[0], B[1], col, a, w);
-      }
-    }
+    /* solid occluder appears once the shape has mostly landed */
+    solidMesh.visible = wingA > 0.3;
 
-    /* act 02a · surface mesh sweeps LE → TE */
-    if (a2 > 0) {
-      const gt = sstep(a2 / 0.5);
-      for (let i = 0; i < fineSegs.length; i++) {
-        const g = fineSegs[i];
-        const on = sstep((gt * 1.45 - g.dle) / 0.22);
-        if (on <= 0.01) continue;
-        const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
-        const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
-        const mx = (g.a[0] + g.b[0]) / 2, my = (g.a[1] + g.b[1]) / 2, mz = (g.a[2] + g.b[2]) / 2;
-        put(A[0], A[1], B[0], B[1], "t", 0.3 * on * dfade((A[2] + B[2]) / 2) * facing(mx, my, mz, g.n) * shipDim, 1);
+    /* CAD skin + classification pulses */
+    const order = [0, 1, 2, 3];
+    tagMats.forEach((m, i) => {
+      let op = 0.34 * wingA * (1 - 0.55 * meshOn) * shipDim;
+      m.color.copy(cTeal);
+      if (a1 > 0) {
+        const at = clamp(a1 * 4.4 - order.indexOf(i) * 1.05, 0, 1);
+        if (at > 0 && at < 1) {
+          const pulse = Math.sin(at * Math.PI);
+          m.color.lerpColors(cTeal, cGold, pulse);
+          op = Math.max(op, 0.75 * pulse);
+        } else if (at >= 1 && i > 0) op *= 1.35;
       }
-    }
+      m.opacity = op;
+    });
+    featMat.opacity = 0.85 * wingA * shipDim;
+    intMat.opacity = 0.05 * wingA * shipDim;
 
-    /* act 02b · O-grid slice blooms outward, ring by ring (persists into PROVE) */
-    if (a2 > 0.35 && a4 < 0.5) {
-      const bt = sstep((a2 - 0.35) / 0.65);
-      const fadeOut = 1 - sstep((a4 - 0.1) / 0.4);
-      for (let i = 0; i < ogrid.length; i++) {
-        const g = ogrid[i];
-        const kt = sstep((bt * (NOFF + 4) - g.ring) / 2.2);
-        if (kt <= 0.01) continue;
-        const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
-        const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
-        const base = g.kind === 0 ? (g.ring < NBL ? 0.55 : 0.34) : g.kind === 1 ? 0.30 : 0.26;
-        put(A[0], A[1], B[0], B[1], "t", base * kt * dfade((A[2] + B[2]) / 2) * fadeOut, 1);
-      }
-    }
+    /* fine mesh sweep LE → TE */
+    const gt = sstep(a2 / 0.5);
+    fineObj.geometry.setDrawRange(0, Math.floor(FINE_N * sstep(gt * 1.15)) * 2);
+    fineMat.opacity = 0.4 * shipDim;
 
-    /* act 03 · quality gate sweeps the span */
-    if (a3 > 0 && a3 < 1.15) {
+    /* O-grid staged build-out */
+    const bl = sstep((a2 - 0.4) / 0.25), sp = sstep((a2 - 0.52) / 0.28), vl = sstep((a2 - 0.62) / 0.3), wk = sstep((a2 - 0.74) / 0.26);
+    const ogDim = (1 - sstep((a4 - 0.05) / 0.35));
+    blMat.opacity = 0.62 * bl * ogDim;
+    spokeMat.opacity = 0.3 * sp * ogDim;
+    volMat.opacity = 0.3 * vl * ogDim;
+    wakeMat.opacity = 0.26 * wk * ogDim;
+
+    /* quality gate */
+    gateObj.visible = a3 > 0 && a3 < 1.15;
+    if (gateObj.visible) {
       const scanZ = lerp(bb[2] - 0.1, bb[5] + 0.1, sstep(a3));
-      const gy0 = bb[1] - 0.14, gy1 = bb[4] + 0.14, gx0 = bb[0] - 0.1, gx1 = bb[3] + 0.1;
-      const frame = [[gx0, gy0], [gx1, gy0], [gx1, gy1], [gx0, gy1]];
-      for (let e = 0; e < 4; e++) {
-        const A = proj(frame[e][0], frame[e][1], scanZ), B = proj(frame[(e + 1) % 4][0], frame[(e + 1) % 4][1], scanZ);
-        if (A && B) put(A[0], A[1], B[0], B[1], "g", 0.42 * (1 - Math.abs(a3 - 0.5) * 0.7), 1);
-      }
-      for (let i = 0; i < fineSegs.length; i++) {
-        const g = fineSegs[i];
-        const mz = (g.a[2] + g.b[2]) / 2;
-        const near = Math.exp(-Math.pow((mz - scanZ) / 0.08, 2));
-        if (near < 0.04) continue;
-        const A = proj(g.a[0], g.a[1], g.a[2]); if (!A) continue;
-        const B = proj(g.b[0], g.b[1], g.b[2]); if (!B) continue;
-        const mx = (g.a[0] + g.b[0]) / 2, my = (g.a[1] + g.b[1]) / 2;
-        put(A[0], A[1], B[0], B[1], "t", 0.55 * near * dfade((A[2] + B[2]) / 2) * facing(mx, my, mz, g.n), 1);
-      }
-      /* flagged where meshes really fail: the flaperon side-edge blocks */
-      [FLAP0, FLAP1].forEach((fz) => {
-        const passed = scanZ - (fz + ZO);
-        if (passed > 0 && passed < 0.38) {
-          const pulse = Math.sin(passed / 0.38 * Math.PI);
-          const sec = secAt(fz);
-          for (let j = 0; j < P; j++) {
-            const A = proj(sec[j][0], sec[j][1], sec[j][2]), B = proj(sec[(j + 1) % P][0], sec[(j + 1) % P][1], sec[(j + 1) % P][2]);
-            if (A && B) put(A[0], A[1], B[0], B[1], "g", 0.7 * pulse * dfade((A[2] + B[2]) / 2), 1.5);
-          }
-        }
+      gateObj.position.z = scanZ;
+      gateMat.opacity = 0.55 * (1 - Math.abs(a3 - 0.5) * 0.8);
+      flagObjs.forEach((o) => {
+        const passed = scanZ - o.userData.z;
+        o.userData.mat.opacity = (passed > 0 && passed < 0.38) ? 0.8 * Math.sin(passed / 0.38 * Math.PI) : 0;
       });
-    }
+    } else flagObjs.forEach((o) => { o.userData.mat.opacity = 0; });
 
-    /* act 04 · export crate */
-    if (a4 > 0) {
-      for (let e = 0; e < crateEdges.length; e++) {
-        const et = clamp(a4 * 2.2 - e * 0.085, 0, 1);
-        if (et <= 0) continue;
-        const A3 = corners[crateEdges[e][0]], B3 = corners[crateEdges[e][1]];
-        const sm = sstep(et);
-        const A = proj(A3[0], A3[1], A3[2]);
-        const B = proj(lerp(A3[0], B3[0], sm), lerp(A3[1], B3[1], sm), lerp(A3[2], B3[2], sm));
-        if (A && B) put(A[0], A[1], B[0], B[1], "g", 0.5 * dfade((A[2] + B[2]) / 2), 1);
-      }
-    }
+    /* export crate */
+    crateObj.geometry.setDrawRange(0, Math.floor(12 * clamp(a4 * 1.9, 0, 1)) * 2);
+    crateMat.opacity = 0.55;
 
-    for (const b of buckets.values()) {
-      if (b.seg.length) {
-        ctx.strokeStyle = "rgba(" + COL[b.col] + "," + b.a + ")";
-        ctx.lineWidth = b.w;
-        ctx.beginPath();
-        for (let i = 0; i < b.seg.length; i += 4) { ctx.moveTo(b.seg[i], b.seg[i + 1]); ctx.lineTo(b.seg[i + 2], b.seg[i + 3]); }
-        ctx.stroke();
-      }
-      if (b.pts && b.pts.length) {
-        ctx.fillStyle = "rgba(" + COL[b.col] + "," + b.a + ")";
-        for (let i = 0; i < b.pts.length; i += 2) ctx.fillRect(b.pts[i] - 1, b.pts[i + 1] - 1, 2, 2);
-      }
-    }
+    renderer.render(scene, camera);
   };
 
   /* ================= HUD, captions, rail ================= */
@@ -583,7 +540,6 @@
     clearTimeout(rsT);
     rsT = setTimeout(() => { resize(); onScroll(); draw(p, performance.now()); ui(p); }, 120);
   });
-  // stage can be laid out after script init (fonts, panels) — track its size directly
   if (window.ResizeObserver) {
     new ResizeObserver(() => { resize(); draw(p, performance.now()); ui(p); }).observe(stage);
   }
