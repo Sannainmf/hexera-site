@@ -590,7 +590,7 @@
     //      meshed through the wall thickness (longitudinal lips + annular
     //      saw cuts), and O-grid lumen sections capping the ends.
     const buildStent = () => {
-      const R = 0.30, PK = 8, A = 0.050, KS = 120;
+      const R = 0.30, RS = 0.265, PK = 8, A = 0.050, KS = 120;
       const bend = (x) => 0.15 * x * x - 0.09;
       // the device: 13 tight crown rings across the middle window only
       const SLEN = 1.30, NR = 15, gap = SLEN / (NR - 1);
@@ -602,7 +602,7 @@
         for (let k = 0; k <= KS; k++) {
           const th = (k / KS) * Math.PI * 2;
           const x = x0 + A * Math.sin(th * PK + flip);
-          ring.push([x, R * Math.cos(th) + bend(x), R * Math.sin(th)]);
+          ring.push([x, RS * Math.cos(th) + bend(x), RS * Math.sin(th)]);
         }
         rings.push(ring);
       }
@@ -612,8 +612,8 @@
           const xa = -SLEN / 2 + gap * i + A * Math.sin(th * PK + (i % 2) * Math.PI);
           const xb = -SLEN / 2 + gap * (i + 1) + A * Math.sin(th * PK + ((i + 1) % 2) * Math.PI);
           bridges.push([
-            [xa, R * Math.cos(th) + bend(xa), R * Math.sin(th)],
-            [xb, R * Math.cos(th) + bend(xb), R * Math.sin(th)],
+            [xa, RS * Math.cos(th) + bend(xa), RS * Math.sin(th)],
+            [xb, RS * Math.cos(th) + bend(xb), RS * Math.sin(th)],
           ]);
         }
       }
@@ -625,7 +625,7 @@
           const th = ((b2 + 0.5) / 4) * Math.PI * 2;
           const xp = x0 + A * Math.sin(th * PK + (i % 2) * Math.PI);
           bridges.push([
-            [xp, R * Math.cos(th) + bend(xp), R * Math.sin(th)],
+            [xp, RS * Math.cos(th) + bend(xp), RS * Math.sin(th)],
             [xp, R * 1.08 * Math.cos(th) + bend(xp), R * 1.08 * Math.sin(th)],
           ]);
         }
@@ -699,6 +699,18 @@
           ]);
         }
       }
+      // opaque silhouettes for the closed ends: these get filled with the
+      // chamber colour before their mesh strokes, so the tube truly hides
+      // whatever runs inside it (real hidden-line behaviour)
+      const occL = [], occR = [];
+      for (const oc2 of [[-XE, occL], [-WX, occL], [WX, occR], [XE, occR]]) {
+        const ring = [];
+        for (let k = 0; k <= 32; k++) {
+          const th = (k / 32) * PI2;
+          ring.push([oc2[0], VRo * Math.cos(th) + bend(oc2[0]), VRo * Math.sin(th)]);
+        }
+        oc2[1].push(ring);
+      }
       // O-grid lumen sections capping the tube ends
       for (const xe of [-XE, XE]) {
         const be = bend(xe);
@@ -717,12 +729,14 @@
         scale: 0.40, tilt: 0.52, sweep: 0.8, wob: 0.07, path,
         groups: [
           { pl: inner, col: INK, a: 0.18, w: 0.8, flat: true },
+          { pl: bridges, col: GOLD, a: 0.60, w: 1.1 },
+          { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true, track: true },
+          { pl: occL, occ: true },
+          { pl: occR, occ: true },
           { pl: wall, col: TEAL, a: 0.30, w: 0.8, flat: true },
           { pl: caps, col: TEAL, a: 0.30, w: 0.9, flat: true },
           { pl: cut, col: TEAL, a: 0.42, w: 0.8, flat: true },
           { pl: cutEdge, col: INK, a: 0.50, w: 1.1, flat: true },
-          { pl: bridges, col: GOLD, a: 0.60, w: 1.1 },
-          { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true, track: true },
         ],
       };
     };
@@ -986,6 +1000,27 @@
       for (const g of M.groups) {
         const spun = M.spinRate ? g.noSpin !== true : false;
         const tk = trackBB && g.track === true;
+        if (g.occ) {
+          // fake hidden-line removal: fill the convex hull of this group's
+          // projected points with the chamber colour
+          const hp = [];
+          for (const pl of g.pl) for (const p3 of pl) hp.push(pj(p3, spun));
+          hp.sort((u, v) => u[0] - v[0] || u[1] - v[1]);
+          const crs = (o, a2, b2) => (a2[0] - o[0]) * (b2[1] - o[1]) - (a2[1] - o[1]) * (b2[0] - o[0]);
+          const lo2 = [];
+          for (const p3 of hp) { while (lo2.length >= 2 && crs(lo2[lo2.length - 2], lo2[lo2.length - 1], p3) <= 0) lo2.pop(); lo2.push(p3); }
+          const up2 = [];
+          for (let ii = hp.length - 1; ii >= 0; ii--) { const p3 = hp[ii]; while (up2.length >= 2 && crs(up2[up2.length - 2], up2[up2.length - 1], p3) <= 0) up2.pop(); up2.push(p3); }
+          const hull = lo2.slice(0, -1).concat(up2.slice(0, -1));
+          if (hull.length > 2) {
+            ctx.fillStyle = "rgba(9,7,3," + (0.96 * alphaMul).toFixed(3) + ")";
+            ctx.beginPath();
+            for (let ii = 0; ii < hull.length; ii++) (ii ? ctx.lineTo(hull[ii][0], hull[ii][1]) : ctx.moveTo(hull[ii][0], hull[ii][1]));
+            ctx.closePath();
+            ctx.fill();
+          }
+          continue;
+        }
         ctx.lineWidth = g.w;
         if (g.pol || g.hgt) {
           /* field-coloured lattice (rotor heat / terrain altitude): quantise
@@ -1164,6 +1199,7 @@
           bp.u += dt * (0.06 + 0.26 * pulse);
           for (let k2 = 0; k2 < 3; k2++) {
             const pos = pathAt(MODELS[1].path, bp.u - k2 * 0.02);
+            if (Math.abs(pos[0]) > 0.5) continue;
             const scr = lastPj.pj([pos[0], pos[1] + bp.oy * 0.5, pos[2] + bp.oz * 0.5], false);
             const al = (1 - k2 / 3) * (0.30 + 0.55 * pulse) * dA[1] * (1 - morphAct);
             ctx.fillStyle = "rgba(" + TEAL + "," + al.toFixed(3) + ")";
