@@ -44,7 +44,7 @@
      one polar web: rings from the bore out to the boundary. */
   const CX = 0, CY = 0.55;
   const RH = 0.5, RB = 0.22, YB = -1.0, HW = 0.5, TH = 0.08;
-  const NT = 40, NR = 14;
+  const NT = 64, NR = 18;
 
   /* distance from bore centre to the outline along direction a */
   const Rbound = (a) => {
@@ -144,6 +144,7 @@
   });
   for (let j = 0; j < NT; j++) {
     pushSeg(gBore, webPt(0, j, TH), webPt(0, j, -TH));
+    pushSeg(gBore, webPt(0, j, 0), webPt(0, (j + 1) % NT, 0));         // bore wall mid-ring
     pushSeg(gWall, webPt(NR, j, TH), webPt(NR, j, -TH));
   }
   for (let j = 0; j < NT; j++) {                                       // outer wall mid-ring
@@ -171,8 +172,8 @@
       for (let i = 0; i < NR; i++) fineList.push({ a: webPt(i, j, z), b: webPt(i + 1, j, z), r: i + 0.5 });
     }
   });
-  for (let j = 0; j < NT; j += 2) {                                    // through-thickness hex lines at rings 4/9
-    [4, 9].forEach((i) => fineList.push({ a: webPt(i, j, TH), b: webPt(i, j, -TH), r: i + 0.3 }));
+  for (let j = 0; j < NT; j += 2) {                                    // through-thickness hex lines
+    [3, 7, 12].forEach((i) => fineList.push({ a: webPt(i, j, TH), b: webPt(i, j, -TH), r: i + 0.3 }));
   }
   fineList.sort((a, b) => a.r - b.r);
   const fineArr = [];
@@ -217,7 +218,7 @@
   let seed = 20260703;
   const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
   for (let i = 0; i <= NR; i += 2) {
-    for (let j = 0; j < NT; j++) {
+    for (let j = 0; j < NT; j += 2) {
       [TH, -TH].forEach((z) => {
         const p = webPt(i, j, z);
         const th = rnd() * Math.PI * 2, ph = Math.acos(rnd() * 2 - 1), r = 1.7 + rnd() * 1.3;
@@ -269,13 +270,16 @@
   /* ================= camera timeline =================
      compact standing part → frames centred at every key; the mesh act
      dives to the bore, PROVE pulls back up, SHIP goes wide */
+  /* the part is a plate (face normals ±z): every key stays inside the
+     face-visible cone (|θ| ≲ 55°), swinging THROUGH face-on rather than
+     around the edge — no more grazing-sliver compositions */
   const KEYS = [
-    { p: 0.00, th: 0.55, ph: 0.16, d: 3.1, t: [0, 0.05, 0] },
-    { p: 0.20, th: 1.15, ph: 0.30, d: 2.4, t: [0, 0.05, 0] },
-    { p: 0.40, th: 1.85, ph: 0.14, d: 1.9, t: [0, 0.25, 0] },
-    { p: 0.60, th: 3.05, ph: 0.06, d: 0.95, t: [CX, CY, 0] },
-    { p: 0.80, th: 3.85, ph: 0.34, d: 2.3, t: [0, 0.05, 0] },
-    { p: 1.00, th: 4.45, ph: 0.20, d: 3.1, t: [0, 0.02, 0] },
+    { p: 0.00, th: 0.45, ph: 0.16, d: 3.0, t: [0, 0.05, 0] },
+    { p: 0.20, th: -0.60, ph: 0.30, d: 2.35, t: [0, 0.05, 0] },
+    { p: 0.40, th: -0.90, ph: 0.10, d: 1.85, t: [0, 0.30, 0] },
+    { p: 0.60, th: -0.15, ph: 0.04, d: 0.92, t: [CX, CY, 0] },
+    { p: 0.80, th: 0.50, ph: 0.45, d: 2.35, t: [0, 0.05, 0] },
+    { p: 1.00, th: -0.35, ph: 0.12, d: 3.0, t: [0, 0.02, 0] },
   ];
   const cam = (p) => {
     let i = 0;
@@ -418,8 +422,8 @@
     if (hudBar) hudBar.style.transform = "scaleX(" + p.toFixed(4) + ")";
     if (hudCam) {
       const c = cam(p);
-      hudCam.textContent = "θ " + String(Math.round(c.th * 57.3) % 360).padStart(3, "0") + "° · φ " +
-        String(Math.round(c.ph * 57.3)).padStart(2, "0") + "° · z " + c.d.toFixed(2) + "c";
+      hudCam.textContent = "θ " + String(((Math.round(c.th * 57.3) % 360) + 360) % 360).padStart(3, "0") + "° · φ " +
+        String(Math.abs(Math.round(c.ph * 57.3))).padStart(2, "0") + "° · z " + c.d.toFixed(2) + "c";
     }
     if (title) {
       const o = clamp(1 - p / 0.06, 0, 1);
