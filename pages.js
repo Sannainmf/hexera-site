@@ -633,7 +633,7 @@
       // the wall
       const VRi = R * 1.08, VRo = R * 1.34, WX = 0.55, XE = 0.95;
       const PI2 = Math.PI * 2, H1 = Math.PI;
-      const wall = [], inner = [], cut = [], caps = [];
+      const wall = [], inner = [], cut = [], caps = [], occL = [], occR = [];
       const ringAt = (xr, VR2, th0, th1, seg, arr) => {
         const ring = [];
         for (let k = 0; k <= seg; k++) {
@@ -653,10 +653,11 @@
       // closed tube ends, finely meshed all the way round
       // closed regions show ONE surface — the outside — like any solid;
       // the wall thickness is only revealed on the cut faces
-      for (const seg2 of [[-XE, -WX], [WX, XE]]) {
+      for (const seg2 of [[-XE, -WX, occL], [WX, XE, occR]]) {
         for (let i = 0; i <= 21; i++) {
           const xr = seg2[0] + ((seg2[1] - seg2[0]) * i) / 21;
           ringAt(xr, VRo, 0, PI2, 48, wall);
+          ringAt(xr, VRo, 0, PI2, 32, seg2[2]);   // occluder silhouette station
         }
         for (let j = 0; j < 48; j++) railAt((j / 48) * PI2, VRo, seg2[0], seg2[1], 21, wall);
       }
@@ -698,18 +699,6 @@
             [xw, VRo * Math.cos(th) + bw, VRo * Math.sin(th)],
           ]);
         }
-      }
-      // opaque silhouettes for the closed ends: these get filled with the
-      // chamber colour before their mesh strokes, so the tube truly hides
-      // whatever runs inside it (real hidden-line behaviour)
-      const occL = [], occR = [];
-      for (const oc2 of [[-XE, occL], [-WX, occL], [WX, occR], [XE, occR]]) {
-        const ring = [];
-        for (let k = 0; k <= 32; k++) {
-          const th = (k / 32) * PI2;
-          ring.push([oc2[0], VRo * Math.cos(th) + bend(oc2[0]), VRo * Math.sin(th)]);
-        }
-        oc2[1].push(ring);
       }
       // O-grid lumen sections capping the tube ends
       for (const xe of [-XE, XE]) {
@@ -1001,24 +990,19 @@
         const spun = M.spinRate ? g.noSpin !== true : false;
         const tk = trackBB && g.track === true;
         if (g.occ) {
-          // fake hidden-line removal: fill the convex hull of this group's
-          // projected points with the chamber colour
-          const hp = [];
-          for (const pl of g.pl) for (const p3 of pl) hp.push(pj(p3, spun));
-          hp.sort((u, v) => u[0] - v[0] || u[1] - v[1]);
-          const crs = (o, a2, b2) => (a2[0] - o[0]) * (b2[1] - o[1]) - (a2[1] - o[1]) * (b2[0] - o[0]);
-          const lo2 = [];
-          for (const p3 of hp) { while (lo2.length >= 2 && crs(lo2[lo2.length - 2], lo2[lo2.length - 1], p3) <= 0) lo2.pop(); lo2.push(p3); }
-          const up2 = [];
-          for (let ii = hp.length - 1; ii >= 0; ii--) { const p3 = hp[ii]; while (up2.length >= 2 && crs(up2[up2.length - 2], up2[up2.length - 1], p3) <= 0) up2.pop(); up2.push(p3); }
-          const hull = lo2.slice(0, -1).concat(up2.slice(0, -1));
-          if (hull.length > 2) {
-            ctx.fillStyle = "rgba(9,7,3," + (0.96 * alphaMul).toFixed(3) + ")";
-            ctx.beginPath();
-            for (let ii = 0; ii < hull.length; ii++) (ii ? ctx.lineTo(hull[ii][0], hull[ii][1]) : ctx.moveTo(hull[ii][0], hull[ii][1]));
+          // hidden-line removal with the EXACT silhouette: fill the union of
+          // every station ring's projected polygon (nonzero winding), so the
+          // opaque region hugs the bent tube instead of hull-bridging it
+          ctx.fillStyle = "rgba(9,7,3," + (0.96 * alphaMul).toFixed(3) + ")";
+          ctx.beginPath();
+          for (const pl of g.pl) {
+            for (let k = 0; k < pl.length; k++) {
+              const p3 = pj(pl[k], spun);
+              k ? ctx.lineTo(p3[0], p3[1]) : ctx.moveTo(p3[0], p3[1]);
+            }
             ctx.closePath();
-            ctx.fill();
           }
+          ctx.fill();
           continue;
         }
         ctx.lineWidth = g.w;
