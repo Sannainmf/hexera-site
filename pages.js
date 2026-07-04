@@ -620,7 +620,7 @@
       // the wall
       const VRi = R * 1.16, VRo = R * 1.42, WX = 0.55, XE = 0.95;
       const PI2 = Math.PI * 2, H1 = Math.PI;
-      const wall = [], outer = [], cut = [], caps = [];
+      const wall = [], cut = [], caps = [];
       const ringAt = (xr, VR2, th0, th1, seg, arr) => {
         const ring = [];
         for (let k = 0; k <= seg; k++) {
@@ -638,24 +638,23 @@
         arr.push(rail);
       };
       // closed tube ends, finely meshed all the way round
+      // closed regions show ONE surface — the outside — like any solid;
+      // the wall thickness is only revealed on the cut faces
       for (const seg2 of [[-XE, -WX], [WX, XE]]) {
-        for (let i = 0; i <= 11; i++) {
-          const xr = seg2[0] + ((seg2[1] - seg2[0]) * i) / 11;
-          ringAt(xr, VRi, 0, PI2, 36, wall);
-          if (i % 2 === 0) ringAt(xr, VRo, 0, PI2, 36, outer);
+        for (let i = 0; i <= 13; i++) {
+          const xr = seg2[0] + ((seg2[1] - seg2[0]) * i) / 13;
+          ringAt(xr, VRo, 0, PI2, 36, wall);
         }
-        for (let j = 0; j < 36; j++) railAt((j / 36) * PI2, VRi, seg2[0], seg2[1], 11, wall);
-        for (let j = 0; j < 12; j++) railAt((j / 12) * PI2, VRo, seg2[0], seg2[1], 11, outer);
+        for (let j = 0; j < 36; j++) railAt((j / 36) * PI2, VRo, seg2[0], seg2[1], 13, wall);
       }
       // sawn-open middle: the far half remains, meshed finer still
+      // the open window shows the INNER surface of the remaining far half
       const HS = 18;
       for (let i = 0; i <= 48; i++) {
         const xr = -WX + ((2 * WX) * i) / 48;
         ringAt(xr, VRi, H1, PI2, HS, wall);
-        if (i % 2 === 0) ringAt(xr, VRo, H1, PI2, HS, outer);
       }
       for (let j = 0; j <= HS; j++) railAt(H1 + (j / HS) * Math.PI, VRi, -WX, WX, 48, wall);
-      for (let j = 0; j <= 9; j++) railAt(H1 + (j / 9) * Math.PI, VRo, -WX, WX, 24, outer);
       // slice faces: longitudinal lips meshed through the wall thickness…
       const cutEdge = [];
       for (const sgn of [-1, 1]) {
@@ -679,8 +678,8 @@
         ringAt(xw, (VRi + VRo) / 2, 0, H1, 18, cut);
         ringAt(xw, VRi, 0, H1, 18, cutEdge);
         ringAt(xw, VRo, 0, H1, 18, cutEdge);
-        for (let j = 0; j <= 18; j++) {
-          const th = (j / 18) * H1;
+        for (let j = 0; j <= 36; j++) {
+          const th = (j / 36) * H1;
           cut.push([
             [xw, VRi * Math.cos(th) + bw, VRi * Math.sin(th)],
             [xw, VRo * Math.cos(th) + bw, VRo * Math.sin(th)],
@@ -704,8 +703,7 @@
       return {
         scale: 0.40, tilt: 0.52, sweep: 0.8, wob: 0.07, path,
         groups: [
-          { pl: outer, col: TEAL, a: 0.12, w: 0.8, flat: true },
-          { pl: wall, col: TEAL, a: 0.25, w: 0.8, flat: true },
+          { pl: wall, col: TEAL, a: 0.27, w: 0.8, flat: true },
           { pl: caps, col: TEAL, a: 0.30, w: 0.9, flat: true },
           { pl: cut, col: TEAL, a: 0.42, w: 0.8, flat: true },
           { pl: cutEdge, col: INK, a: 0.50, w: 1.1, flat: true },
