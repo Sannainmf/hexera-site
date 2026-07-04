@@ -510,109 +510,79 @@
 
     const yt12 = (t) => 5 * 0.12 * (0.2969 * Math.sqrt(t) - 0.1260 * t - 0.3516 * t * t + 0.2843 * t * t * t - 0.1036 * t * t * t * t);
 
-    // 01 · wind-tunnel scale model — a FULL aircraft on a sting mount, nose
-    //      into the flow: lofted fuselage sections, swept wings, tailplane
-    //      and fin as airfoil lofts — the surface mesh a solver would see
+    // 01 · the wind-tunnel classic: a constant-chord NACA 0012 section
+    //      spanning the test section, wrapped in a structured O-GRID — thin
+    //      geometric-growth boundary layers at the wall (y+ ~ 1), elliptic-
+    //      smoothed outer layers relaxing to the far field, radial lines
+    //      closing the quads. The most recognisable mesh in CFD.
     const buildWing = () => {
-      const pitch = -0.05;                         // slight AoA, baked in
-      const rot = (x, y, z) => {
-        const c = Math.cos(pitch), sn = Math.sin(pitch);
-        return [x * c - y * sn, x * sn + y * c, z];
-      };
-      const lattice = [], accents = [];
-      // fuselage: lofted circular sections, nose upwind (left)
-      const FS = 18, FR = 16, fsecs = [];
-      for (let i = 0; i < FS; i++) {
-        const t = i / (FS - 1);
-        const x = -1.05 + 2.0 * t;
-        const r = Math.max(0.105 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.62)), 0.72), 0.012);
-        const ring = [];
-        for (let k = 0; k <= FR; k++) {
-          const a2 = (k / FR) * Math.PI * 2;
-          ring.push(rot(x, r * Math.cos(a2), r * Math.sin(a2)));
-        }
-        fsecs.push(ring);
-        lattice.push(ring);
+      const NP = 80, CH2 = 1.7, TH = 1.5, D = 0.46;
+      const surf = [];
+      for (let i = 0; i < NP; i++) {
+        const t2 = (i / NP) * Math.PI * 2;
+        const xc = 0.5 * (1 + Math.cos(t2));
+        const sgn = Math.sin(t2) >= 0 ? -1 : 1;
+        surf.push([(xc - 0.5) * CH2, sgn * yt12(xc) * CH2 * TH]);
       }
-      for (let k = 0; k < FR; k += 2) lattice.push(fsecs.map((rg) => rg[k]));
-      accents.push(fsecs.map((rg) => rg[8]));      // crown line
-      accents.push(fsecs[1]);                      // nose ring
-      // lifting-surface loft: airfoil sections swept outboard
-      const loft = (SN, CN, zR, zT, cR, cT, leR, leT, yB, dih, th) => {
-        const secs = [];
-        for (let i = 0; i < SN; i++) {
-          const s2 = i / (SN - 1);
-          const z = zR + (zT - zR) * s2;
-          const c = cR + (cT - cR) * s2;
-          const le = leR + (leT - leR) * s2;
-          const yb = yB + dih * s2;
-          const ring = [];
-          for (let j = 0; j <= CN; j++) {
-            const xc = 0.5 * (1 + Math.cos((Math.PI * j) / CN));
-            ring.push(rot(le + xc * c, yb - yt12(xc) * c * th, z));
-          }
-          for (let j = CN - 1; j > 0; j--) {
-            const xc = 0.5 * (1 + Math.cos((Math.PI * j) / CN));
-            ring.push(rot(le + xc * c, yb + yt12(xc) * c * th, z));
-          }
-          ring.push(ring[0]);
-          secs.push(ring);
+      // hyperbolic marching: offset along normals with geometric growth,
+      // then Laplacian passes (more each layer) — the elliptic-smoothing
+      // trick real grid generators use to round the O out of a sharp TE
+      const layers = [];
+      let prev = surf.map((p2) => p2.slice());
+      let dStep = 0.007;
+      for (let k = 0; k < 12; k++) {
+        const nx = [], ny = [];
+        for (let i = 0; i < NP; i++) {
+          const a2 = prev[(i - 1 + NP) % NP], b2 = prev[(i + 1) % NP];
+          const tx = b2[0] - a2[0], ty = b2[1] - a2[1];
+          const l = Math.hypot(tx, ty) || 1;
+          nx.push(-ty / l); ny.push(tx / l);
         }
-        return secs;
-      };
-      const surf = (secs, CN) => {
-        for (const s2 of secs) lattice.push(s2);
-        for (let j = 0; j < secs[0].length - 1; j += 2) lattice.push(secs.map((rg) => rg[j]));
-        accents.push(secs.map((rg) => rg[CN]));    // leading edge
-        accents.push(secs.map((rg) => rg[0]));     // trailing edge
-        accents.push(secs[secs.length - 1]);       // tip section
-      };
-      for (const side of [1, -1]) {
-        surf(loft(9, 7, side * 0.10, side * 0.95, 0.40, 0.15, -0.32, 0.02, 0, -0.055, 1.25), 7);
-        surf(loft(5, 5, side * 0.05, side * 0.38, 0.20, 0.10, 0.68, 0.80, -0.005, -0.03, 1.2), 5);
+        let cur = prev.map((p2, i) => [p2[0] + nx[i] * dStep, p2[1] + ny[i] * dStep]);
+        const SM = 1 + Math.floor(k * 0.8);
+        for (let s2 = 0; s2 < SM; s2++) {
+          cur = cur.map((p2, i) => {
+            const a2 = cur[(i - 1 + NP) % NP], b2 = cur[(i + 1) % NP];
+            return [p2[0] * 0.5 + (a2[0] + b2[0]) * 0.25, p2[1] * 0.5 + (a2[1] + b2[1]) * 0.25];
+          });
+        }
+        layers.push(cur);
+        prev = cur;
+        dStep *= 1.30;
       }
-      // vertical fin: lofted upward, thickness across z
-      const FN = 6, FC = 5, finSecs = [];
-      for (let i = 0; i < FN; i++) {
-        const s2 = i / (FN - 1);
-        const yb = -0.04 - 0.34 * s2;
-        const c = 0.24 * (1 - 0.55 * s2);
-        const le = 0.60 + 0.24 * s2;
-        const ring = [];
-        for (let j = 0; j <= FC; j++) {
-          const xc = 0.5 * (1 + Math.cos((Math.PI * j) / FC));
-          ring.push(rot(le + xc * c, yb, yt12(xc) * c * 1.25));
-        }
-        for (let j = FC - 1; j > 0; j--) {
-          const xc = 0.5 * (1 + Math.cos((Math.PI * j) / FC));
-          ring.push(rot(le + xc * c, yb, -yt12(xc) * c * 1.25));
-        }
-        ring.push(ring[0]);
-        finSecs.push(ring);
-        lattice.push(ring);
+      const lift = (pts2, z) => pts2.map((p2) => [p2[0], p2[1], z]);
+      const close = (L) => L.concat([L[0]]);
+      const gridBL = [], gridFar = [], radials = [];
+      layers.forEach((L, k) => {
+        (k < 6 ? gridBL : gridFar).push(lift(close(L), D / 2));
+      });
+      for (let i = 0; i < NP; i += 2) {
+        const line = [[surf[i][0], surf[i][1], D / 2]];
+        for (const L of layers) line.push([L[i][0], L[i][1], D / 2]);
+        radials.push(line);
       }
-      for (let j = 0; j < finSecs[0].length - 1; j += 2) lattice.push(finSecs.map((rg) => rg[j]));
-      accents.push(finSecs.map((rg) => rg[FC]));
-      accents.push(finSecs[FN - 1]);
-      // sting mount: the tunnel support cone behind the tail
-      const sRings = [];
-      for (const t of [0, 0.5, 1]) {
-        const x = 0.98 + 0.44 * t, r = 0.016 + 0.05 * t;
-        const ring = [];
-        for (let k = 0; k <= 12; k++) {
-          const a2 = (k / 12) * Math.PI * 2;
-          ring.push(rot(x, r * Math.cos(a2), r * Math.sin(a2)));
-        }
-        sRings.push(ring);
+      // the section spans the tunnel: dim far wall + span struts
+      const backPl = [lift(close(surf), -D / 2)];
+      for (const k of [1, 4, 7, 10]) backPl.push(lift(close(layers[k]), -D / 2));
+      const struts = [];
+      for (let i = 0; i < NP; i += 8) {
+        struts.push([[surf[i][0], surf[i][1], D / 2], [surf[i][0], surf[i][1], -D / 2]]);
       }
-      const sting = sRings.slice();
-      for (let k = 0; k < 12; k += 3) sting.push(sRings.map((rg) => rg[k]));
+      const gold = [
+        lift(close(surf), D / 2),
+        lift(close(surf), -D / 2),
+        [[surf[0][0], surf[0][1], D / 2], [surf[0][0], surf[0][1], -D / 2]],
+        [[surf[NP / 2][0], surf[NP / 2][1], D / 2], [surf[NP / 2][0], surf[NP / 2][1], -D / 2]],
+      ];
       return {
-        scale: 0.44, tilt: 0.55, sweep: 0.9, wob: 0.06,
+        scale: 0.38, tilt: 0.50, sweep: 0.8, wob: 0.05,
         groups: [
-          { pl: sting, col: GOLD, a: 0.30, w: 1, flat: true },
-          { pl: lattice, col: TEAL, a: 0.22, w: 0.8, flat: true },
-          { pl: accents, col: GOLD, a: 0.85, w: 1.4, glow: true },
+          { pl: backPl, col: TEAL, a: 0.10, w: 0.8, flat: true },
+          { pl: struts, col: GOLD, a: 0.14, w: 0.8, flat: true },
+          { pl: gridFar, col: TEAL, a: 0.15, w: 0.8, flat: true },
+          { pl: radials, col: TEAL, a: 0.16, w: 0.8, flat: true },
+          { pl: gridBL, col: TEAL, a: 0.38, w: 0.9, flat: true },
+          { pl: gold, col: GOLD, a: 0.9, w: 1.5, glow: true, track: true },
         ],
       };
     };
@@ -647,23 +617,28 @@
           ]);
         }
       }
-      // the artery wall itself carries a dense swept surface mesh — rings
-      // × rails forming quads, the way stent-FSI walls are actually meshed
+      // the artery wall carries a DENSE swept surface mesh — and the
+      // stented span gets locally REFINED rings (half spacing), exactly
+      // how a real FSI wall mesh grades toward the contact region
       const VR = R * 1.42, vessel = [];
-      for (let i = 0; i <= 20; i++) {
-        const xr = -0.95 + (i / 20) * 1.9;
+      const vring = (xr) => {
         const ring = [];
-        for (let k = 0; k <= 24; k++) {
-          const th = (k / 24) * Math.PI * 2;
+        for (let k = 0; k <= 28; k++) {
+          const th = (k / 28) * Math.PI * 2;
           ring.push([xr, VR * Math.cos(th) + bend(xr), VR * Math.sin(th)]);
         }
-        vessel.push(ring);
+        return ring;
+      };
+      for (let i = 0; i <= 34; i++) {
+        const xr = -0.95 + (i / 34) * 1.9;
+        vessel.push(vring(xr));
+        if (Math.abs(xr) < 0.62 && i < 34) vessel.push(vring(xr + 1.9 / 68));
       }
-      for (let j = 0; j < 12; j++) {
-        const th = (j / 12) * Math.PI * 2;
+      for (let j = 0; j < 18; j++) {
+        const th = (j / 18) * Math.PI * 2;
         const rail = [];
-        for (let k = 0; k <= 24; k++) {
-          const x = -0.95 + (k / 24) * 1.9;
+        for (let k = 0; k <= 36; k++) {
+          const x = -0.95 + (k / 36) * 1.9;
           rail.push([x, VR * Math.cos(th) + bend(x), VR * Math.sin(th)]);
         }
         vessel.push(rail);
@@ -676,9 +651,9 @@
       return {
         scale: 0.40, tilt: 0.35, sweep: 0.8, wob: 0.07, path,
         groups: [
-          { pl: vessel, col: TEAL, a: 0.26, w: 0.9, flat: true },
+          { pl: vessel, col: TEAL, a: 0.20, w: 0.8, flat: true },
           { pl: bridges, col: GOLD, a: 0.60, w: 1.1 },
-          { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true },
+          { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true, track: true },
         ],
       };
     };
@@ -736,7 +711,7 @@
         groups: [
           { pl: [base], col: GOLD, a: 0.35, w: 1.2 },
           { pl: dias, col: TEAL, a: 0.09, w: 0.8, flat: true },
-          { pl: rows, col: TEAL, a: 0.22, w: 0.8, hgt: hRows },
+          { pl: rows, col: TEAL, a: 0.22, w: 0.8, hgt: hRows, track: true },
           { pl: cols, col: TEAL, a: 0.22, w: 0.8, hgt: hCols },
           { pl: contours, col: GOLD, a: 0.40, w: 1, flat: true },
         ],
@@ -863,7 +838,7 @@
           { pl: backR, col: TEAL, a: 0.10, w: 0.8, flat: true },
           { pl: vanes, col: TEAL, a: 0.14, w: 0.8, flat: true },
           { pl: rim, col: GOLD, a: 0.18, w: 0.8, flat: true },
-          { pl: hotPl, col: TEAL, a: 0.22, w: 0.8, pol: hotPol },
+          { pl: hotPl, col: TEAL, a: 0.22, w: 0.8, pol: hotPol, track: true },
           { pl: holes, col: TEAL, a: 0.30, w: 0.8, flat: true },
           { pl: hub, col: GOLD, a: 0.55, w: 1.1 },
           { pl: cal, col: GOLD, a: 0.85, w: 1.8, glow: true, noSpin: true },
@@ -941,8 +916,8 @@
       const NB = 8;                              // colour-quantisation buckets
       for (const g of M.groups) {
         const spun = M.spinRate ? g.noSpin !== true : false;
+        const tk = trackBB && g.track === true;
         ctx.lineWidth = g.w;
-        if (g.glow) { ctx.save(); ctx.shadowColor = "rgba(" + GOLD + ",0.5)"; ctx.shadowBlur = 12; }
         if (g.pol || g.hgt) {
           /* field-coloured lattice (rotor heat / terrain altitude): quantise
              the mix into NB buckets and stroke each bucket once — thousands
@@ -952,10 +927,10 @@
           for (let pi = 0; pi < g.pl.length; pi++) {
             const pl = g.pl[pi];
             let prev = pj(pl[0], spun);
-            if (trackBB) tb(prev);
+            if (tk) tb(prev);
             for (let k = 1; k < pl.length; k++) {
               const cur = pj(pl[k], spun);
-              if (trackBB) tb(cur);
+              if (tk) tb(cur);
               let mix;
               if (g.pol) {
                 const po = g.pol[pi][k];
@@ -989,29 +964,34 @@
             const pl = g.pl[pi];
             for (let k = 0; k < pl.length; k++) {
               const p2 = pj(pl[k], spun);
-              if (trackBB) tb(p2);
+              if (tk) tb(p2);
               k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
             }
           }
           ctx.strokeStyle = "rgba(" + g.col + "," + (g.a * alphaMul).toFixed(3) + ")";
           ctx.stroke();
         } else {
-          for (let pi = 0; pi < g.pl.length; pi++) {
-            const pl = g.pl[pi];
-            let kSum = 0;
-            ctx.beginPath();
-            for (let k = 0; k < pl.length; k++) {
-              const p2 = pj(pl[k], spun);
-              kSum += p2[2];
-              if (trackBB) tb(p2);
-              k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+          // glow = cheap two-pass halo (wide faint + narrow bright); the
+          // canvas shadowBlur API is far too slow for long paths
+          const passes = g.glow ? [[3.2, 0.20], [1, 1]] : [[1, 1]];
+          for (const ps of passes) {
+            ctx.lineWidth = g.w * ps[0];
+            for (let pi = 0; pi < g.pl.length; pi++) {
+              const pl = g.pl[pi];
+              let kSum = 0;
+              ctx.beginPath();
+              for (let k = 0; k < pl.length; k++) {
+                const p2 = pj(pl[k], spun);
+                kSum += p2[2];
+                if (tk) tb(p2);
+                k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+              }
+              const dep = clamp(0.45 + (kSum / pl.length - 0.96) * 5, 0.30, 1.15);
+              ctx.strokeStyle = "rgba(" + g.col + "," + (g.a * ps[1] * dep * alphaMul).toFixed(3) + ")";
+              ctx.stroke();
             }
-            const dep = clamp(0.45 + (kSum / pl.length - 0.96) * 5, 0.30, 1.15);
-            ctx.strokeStyle = "rgba(" + g.col + "," + (g.a * dep * alphaMul).toFixed(3) + ")";
-            ctx.stroke();
           }
         }
-        if (g.glow) ctx.restore();
       }
     };
 
