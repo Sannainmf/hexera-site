@@ -1152,6 +1152,75 @@ html.lenis, html.lenis body { height: auto; }
    Styled as a Hexera instrument: mono header readout, corner
    registration marks, ruled field lines. Injected by waitlist.js.
    ============================================================ */
+/* ============================================================
+   RING DEMO SUMMARY — the four phases + the real NACA 0012 demo
+   tallies as one static mono block. No animation, no telemetry.
+   ============================================================ */
+.ring-console { margin-top: 2.2rem; max-width: 21rem; border-top: 3px solid #2a2319; border-bottom: 3px solid #2a2319;
+  padding: 1rem 0 0.95rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.ring-console__head { margin: 0 0 0.8rem; color: var(--faint); }
+.ring-log { display: flex; flex-direction: column; gap: 0.5rem; }
+.ring-log__ln { margin: 0; display: flex; gap: 1em; color: var(--muted); }
+.ring-log__ln .idx { color: var(--faint); }
+.ring-log__ln.on .nm { color: var(--ink); }
+.ring-log__ln.on .idx { color: var(--gold); }
+.ring-console__strip { margin: 0.9rem 0 0; display: flex; gap: 1.8rem; }
+.ring-console__strip .k { color: var(--faint); }
+.ring-console__strip .v { color: var(--ink); }
+@media (max-width: 900px) { .ring-console { display: none; } }
+
+/* ============================================================
+   INDUSTRIES — the chamber: a real wireframe model re-forms from
+   one industry's geometry to the next as you scroll. Framed in
+   the same heavy rules as the rest of the page; no HUD chrome.
+   ============================================================ */
+.spec { position: relative; height: 420vh; }
+.spec__sticky { position: sticky; top: 0; height: 100vh; display: grid; align-items: center; }
+.spec__grid { position: relative; width: min(100%, 1280px); margin-inline: auto; display: grid;
+  grid-template-columns: 1.15fr 1fr; border-top: 4px solid #2a2319; border-bottom: 4px solid #2a2319;
+  height: min(74vh, 46rem); }
+.spec__grid::after { content: ""; position: absolute; top: 0; bottom: 0; left: 53.5%; width: 4px;
+  transform: translateX(-50%); background: #2a2319; pointer-events: none; }
+.spec-chamber { position: relative; margin: 0; overflow: hidden; }
+.spec-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.spec-copy { display: flex; flex-direction: column; justify-content: center; position: relative;
+  padding: clamp(1.6rem, 4vh, 2.8rem) 0 clamp(1.6rem, 4vh, 2.8rem) clamp(1.6rem, 3.5vw, 3rem); }
+
+.spec-rail { display: flex; gap: 1.6rem; border-bottom: 3px solid #2a2319; padding-bottom: 0.9rem; margin-bottom: 1.7rem; }
+.spec-rail button { all: unset; cursor: pointer; font-family: var(--font-mono); font-size: 0.7rem;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); }
+.spec-rail button:hover { color: var(--muted); }
+.spec-rail button.active { color: var(--ink); }
+.spec-rail button:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
+
+.spec-card { display: none; }
+.spec-card.is-active { display: block; }
+.spec-card__name { margin: 0; font-family: var(--font-body); font-weight: 700; letter-spacing: -0.01em;
+  font-size: clamp(1.6rem, 1.25rem + 1.3vw, 2.2rem); color: var(--ink); }
+.spec-card__list { list-style: none; margin: 1.3rem 0 0; padding: 0; }
+.spec-card__list li { padding: 0.72rem 0; border-bottom: 3px solid #2a2319; color: var(--muted);
+  font-size: clamp(0.9rem, 0.86rem + 0.2vw, 1rem); }
+.spec-card__foot { margin-top: 1.7rem; }
+.spec-card__h { margin: 0; font-family: var(--font-body); font-weight: 700; font-size: 1.05rem; color: var(--ink); }
+.spec-card__p { margin: 0.55rem 0 0; color: var(--muted); font-size: 0.92rem; line-height: 1.6; max-width: 46ch; text-wrap: pretty; }
+
+@media (max-width: 900px) {
+  .spec { height: auto; }
+  .spec__sticky { position: static; height: auto; }
+  .spec__grid { grid-template-columns: 1fr; height: auto; }
+  .spec__grid::after { display: none; }
+  .spec-chamber { min-height: 19rem; border-bottom: 4px solid #2a2319; }
+  .spec-copy { padding: 1.5rem 0 1.75rem; }
+}
+
+/* static fallback (reduced motion / no canvas): unpin, show all four cards */
+.spec--static { height: auto; }
+.spec--static .spec__sticky { position: static; height: auto; }
+.spec--static .spec__grid { height: auto; }
+.spec--static .spec-card { display: block; }
+.spec--static .spec-card + .spec-card { margin-top: 2rem; }
+.spec--static .spec-rail { display: none; }
+
 html.wl-lock, html.wl-lock body { overflow: hidden; }
 
 .wl-overlay {
