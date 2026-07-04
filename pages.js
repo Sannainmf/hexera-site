@@ -510,19 +510,21 @@
 
     const yt12 = (t) => 5 * 0.12 * (0.2969 * Math.sqrt(t) - 0.1260 * t - 0.3516 * t * t + 0.2843 * t * t * t - 0.1036 * t * t * t * t);
 
-    // 01 · swept tapered wing lofted from NACA 0012 sections — section rings ×
-    //      spanwise rails = the surface mesh, winglet curls out of plane,
-    //      prism-layer halos grow off four stations
+    // 01 · swept tapered wing — a TRUE structured surface mesh: 26 spanwise
+    //      stations × 32 chordwise nodes, cosine-clustered at LE/TE and at
+    //      root/tip exactly the way production CFD surface meshes are graded;
+    //      every 5th station rendered heavier as a block boundary
     const buildWing = () => {
-      const ST = 13, CH = 12;
+      const ST = 26, CH = 16;
       const secs = [], le = [], te = [];
       for (let i = 0; i < ST; i++) {
-        const s = i / (ST - 1);
+        const u = i / (ST - 1);
+        const s = 0.5 * (1 - Math.cos(Math.PI * u));
         const span = -0.98 + 1.96 * s;
-        const c = 0.62 * (1 - 0.60 * s);
-        const leY = -0.26 + 0.46 * s;
-        const curl = Math.pow(Math.max(0, (s - 0.86) / 0.14), 2);
-        const zUp = curl * 0.30;
+        const c = 0.70 * (1 - 0.62 * s);
+        const leY = -0.30 + 0.50 * s;
+        const curl = Math.pow(Math.max(0, (s - 0.84) / 0.16), 2);
+        const zUp = curl * 0.34;
         const ring = [];
         for (let j = 0; j <= CH; j++) {
           const xc = 0.5 * (1 + Math.cos((Math.PI * j) / CH));
@@ -538,37 +540,29 @@
         te.push([span, leY + c, zUp]);
       }
       const rails = [];
-      for (let j = 0; j < secs[0].length - 1; j += 2) rails.push(secs.map((r) => r[j]));
-      const halos = [];
-      for (const i of [1, 4, 7, 10]) {
-        const base = secs[i];
-        let cy = 0, cz = 0;
-        for (const p of base) { cy += p[1]; cz += p[2]; }
-        cy /= base.length; cz /= base.length;
-        for (const m of [1.16, 1.34, 1.58]) {
-          halos.push(base.map((p) => [p[0], cy + (p[1] - cy) * (1 + (m - 1) * 0.55), cz + (p[2] - cz) * m]));
-        }
-      }
+      for (let j = 0; j < secs[0].length - 1; j++) rails.push(secs.map((r) => r[j]));
+      const blocks = [5, 10, 15, 20].map((i) => secs[i]);
       return {
-        scale: 0.42, tilt: 0.62, sweep: 0.85, wob: 0.06,
+        scale: 0.42, tilt: 0.64, sweep: 0.85, wob: 0.06,
         groups: [
-          { pl: halos, col: TEAL, a: 0.13, w: 1 },
-          { pl: secs, col: TEAL, a: 0.34, w: 1 },
-          { pl: rails, col: TEAL, a: 0.24, w: 1 },
-          { pl: [le, te, secs[0], secs[ST - 1]], col: GOLD, a: 0.9, w: 1.6, glow: true },
+          { pl: secs, col: TEAL, a: 0.20, w: 0.8, flat: true },
+          { pl: rails, col: TEAL, a: 0.16, w: 0.8, flat: true },
+          { pl: blocks, col: TEAL, a: 0.45, w: 1 },
+          { pl: [le, te, secs[0], secs[ST - 1]], col: GOLD, a: 0.9, w: 1.5, glow: true },
         ],
       };
     };
 
-    // 02 · coronary stent, deployed — laser-cut crown rings in antiphase,
-    //      linked by bridge struts, bent with the vessel, inside a faint
-    //      artery tube; the lumen path carries the pulsatile blood stream
+    // 02 · coronary stent — dense laser-cut lattice: 13 crown rings in
+    //      antiphase with the peaks nearly kissing (gap ≈ strut width scale),
+    //      S-bridges on alternating crowns, inside a quiet artery tube
     const buildStent = () => {
-      const R = 0.30, LEN = 1.9, NR = 9, PK = 6, A = 0.085, KS = 96;
-      const bend = (x) => 0.16 * x * x - 0.10;
+      const R = 0.30, LEN = 1.9, NR = 13, PK = 8, A = 0.052, KS = 120;
+      const bend = (x) => 0.15 * x * x - 0.09;
+      const gap = LEN / (NR - 1);
       const rings = [], bridges = [];
       for (let i = 0; i < NR; i++) {
-        const x0 = -LEN / 2 + (LEN * i) / (NR - 1);
+        const x0 = -LEN / 2 + gap * i;
         const flip = (i % 2) * Math.PI;
         const ring = [];
         for (let k = 0; k <= KS; k++) {
@@ -579,26 +573,26 @@
         rings.push(ring);
       }
       for (let i = 0; i < NR - 1; i++) {
-        for (let b = 0; b < 3; b++) {
-          const th = ((b / 3) + (i % 2 ? 1 / 6 : 0)) * Math.PI * 2 + 0.35;
-          const xa = -LEN / 2 + (LEN * i) / (NR - 1) + A * Math.sin(th * PK + (i % 2) * Math.PI);
-          const xb = -LEN / 2 + (LEN * (i + 1)) / (NR - 1) + A * Math.sin(th * PK + ((i + 1) % 2) * Math.PI);
+        for (let b = 0; b < 4; b++) {
+          const th = ((b + (i % 2) * 0.5) / 4) * Math.PI * 2 + Math.PI / PK;
+          const xa = -LEN / 2 + gap * i + A * Math.sin(th * PK + (i % 2) * Math.PI);
+          const xb = -LEN / 2 + gap * (i + 1) + A * Math.sin(th * PK + ((i + 1) % 2) * Math.PI);
           bridges.push([
             [xa, R * Math.cos(th) + bend(xa), R * Math.sin(th)],
             [xb, R * Math.cos(th) + bend(xb), R * Math.sin(th)],
           ]);
         }
       }
-      const VR = R * 1.5, vessel = [];
-      for (const xr of [-0.92, -0.45, 0, 0.45, 0.92]) {
+      const VR = R * 1.45, vessel = [];
+      for (const xr of [-0.85, 0, 0.85]) {
         const ring = [];
-        for (let k = 0; k <= 24; k++) {
-          const th = (k / 24) * Math.PI * 2;
+        for (let k = 0; k <= 28; k++) {
+          const th = (k / 28) * Math.PI * 2;
           ring.push([xr, VR * Math.cos(th) + bend(xr), VR * Math.sin(th)]);
         }
         vessel.push(ring);
       }
-      for (const th of [0.6, 2.2, 4.0, 5.5]) {
+      for (const th of [0.7, 2.4, 4.1]) {
         const rail = [];
         for (let k = 0; k <= 20; k++) {
           const x = -0.95 + (k / 20) * 1.9;
@@ -614,17 +608,18 @@
       return {
         scale: 0.40, tilt: 0.35, sweep: 0.8, wob: 0.07, path,
         groups: [
-          { pl: vessel, col: TEAL, a: 0.13, w: 1 },
-          { pl: bridges, col: GOLD, a: 0.55, w: 1.3 },
-          { pl: rings, col: GOLD, a: 0.78, w: 1.5, glow: true },
+          { pl: vessel, col: TEAL, a: 0.10, w: 1, flat: true },
+          { pl: bridges, col: GOLD, a: 0.60, w: 1.1 },
+          { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true },
         ],
       };
     };
 
-    // 03 · game terrain tile — low-poly heightfield with ridged peaks and an
-    //      island falloff; wireframe tinted by altitude, base plate framed
+    // 03 · game terrain — 29×29 heightfield, ridged noise + island falloff,
+    //      altitude-tinted wireframe, and marching-squares CONTOUR LINES so
+    //      the tile reads like real topo/level data, framed on a base plate
     const buildTerrain = () => {
-      const G = 21;
+      const G = 29;
       const n2 = (a, b) => { const s2 = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s2 - Math.floor(s2); };
       const smp = (x, y) => {
         const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
@@ -632,13 +627,15 @@
         return n2(xi, yi) * (1 - u) * (1 - v) + n2(xi + 1, yi) * u * (1 - v) + n2(xi, yi + 1) * (1 - u) * v + n2(xi + 1, yi + 1) * u * v;
       };
       const HT = [], V = [];
+      let maxE = 0;
       for (let i = 0; i < G; i++) {
         HT.push([]); V.push([]);
         for (let j = 0; j < G; j++) {
-          let e = 0.58 * smp(i * 0.22, j * 0.22) + 0.30 * smp(i * 0.47 + 7.3, j * 0.47 + 3.1) + 0.12 * smp(i * 0.9 + 13.7, j * 0.9 + 5.9);
-          e = Math.pow(e, 1.6) * 1.35;
+          let e = 0.58 * smp(i * 0.16, j * 0.16) + 0.30 * smp(i * 0.34 + 7.3, j * 0.34 + 3.1) + 0.12 * smp(i * 0.65 + 13.7, j * 0.65 + 5.9);
+          e = Math.pow(e, 1.6) * 1.5;
           const dx = (i / (G - 1) - 0.5) * 2, dy = (j / (G - 1) - 0.5) * 2;
           e *= clamp(1.3 - Math.max(Math.abs(dx), Math.abs(dy)) * 1.25, 0, 1);
+          if (e > maxE) maxE = e;
           HT[i].push(e);
           V[i].push([-0.95 + (1.9 * i) / (G - 1), 0.42 - e * 0.95, -0.95 + (1.9 * j) / (G - 1)]);
         }
@@ -647,79 +644,124 @@
       for (let j = 0; j < G; j++) { rows.push(V.map((col) => col[j])); hRows.push(HT.map((col) => col[j])); }
       for (let i = 0; i < G; i++) { cols.push(V[i]); hCols.push(HT[i]); }
       for (let i = 0; i < G - 1; i++) for (let j = 0; j < G - 1; j++) dias.push([V[i + 1][j], V[i][j + 1]]);
-      const base = [[-0.98, 0.44, -0.98], [0.98, 0.44, -0.98], [0.98, 0.44, 0.98], [-0.98, 0.44, 0.98], [-0.98, 0.44, -0.98]];
+      // marching squares: iso-height contour segments at three levels
+      const contours = [];
+      const gx = (i) => -0.95 + (1.9 * i) / (G - 1);
+      for (const lf of [0.35, 0.55, 0.75]) {
+        const L = lf * maxE, y = 0.42 - L * 0.95;
+        for (let i = 0; i < G - 1; i++) {
+          for (let j = 0; j < G - 1; j++) {
+            const h00 = HT[i][j], h10 = HT[i + 1][j], h01 = HT[i][j + 1], h11 = HT[i + 1][j + 1];
+            const pts = [];
+            if ((h00 < L) !== (h10 < L)) { const q = (L - h00) / (h10 - h00); pts.push([gx(i) + q * (gx(i + 1) - gx(i)), y, gx(j)]); }
+            if ((h01 < L) !== (h11 < L)) { const q = (L - h01) / (h11 - h01); pts.push([gx(i) + q * (gx(i + 1) - gx(i)), y, gx(j + 1)]); }
+            if ((h00 < L) !== (h01 < L)) { const q = (L - h00) / (h01 - h00); pts.push([gx(i), y, gx(j) + q * (gx(j + 1) - gx(j))]); }
+            if ((h10 < L) !== (h11 < L)) { const q = (L - h10) / (h11 - h10); pts.push([gx(i + 1), y, gx(j) + q * (gx(j + 1) - gx(j))]); }
+            if (pts.length >= 2) contours.push([pts[0], pts[1]]);
+            if (pts.length === 4) contours.push([pts[2], pts[3]]);
+          }
+        }
+      }
+      const base = [[-0.97, 0.425, -0.97], [0.97, 0.425, -0.97], [0.97, 0.425, 0.97], [-0.97, 0.425, 0.97], [-0.97, 0.425, -0.97]];
       return {
         scale: 0.46, tilt: 0.82, sweep: 0.7, wob: 0.10,
         groups: [
           { pl: [base], col: GOLD, a: 0.35, w: 1.2 },
-          { pl: dias, col: TEAL, a: 0.13, w: 1 },
-          { pl: rows, col: TEAL, a: 0.30, w: 1, hgt: hRows },
-          { pl: cols, col: TEAL, a: 0.30, w: 1, hgt: hCols },
+          { pl: dias, col: TEAL, a: 0.09, w: 0.8, flat: true },
+          { pl: rows, col: TEAL, a: 0.22, w: 0.8, hgt: hRows },
+          { pl: cols, col: TEAL, a: 0.22, w: 0.8, hgt: hCols },
+          { pl: contours, col: GOLD, a: 0.40, w: 1, flat: true },
         ],
       };
     };
 
-    // 04 · vented brake rotor, fully revolved — drilled friction faces with a
-    //      polar mesh, vane cage between the cheeks, hub + bolt circle, and a
-    //      fixed caliper; the heat field stays anchored to the pad while the
-    //      rotor spins beneath it
+    // 04 · vented rotor — dense polar mesh: 9 face rings × 48 spokes plus 48
+    //      half-spokes refining the outer friction band (refine where the
+    //      gradients live), 12-seg drilled holes each with a local refinement
+    //      halo, hub + bore + 5-bolt circle, spinning under a fixed caliper
     const buildRotor = () => {
-      const RD = [0.42, 0.56, 0.70, 0.84, 0.97], WZ = 0.11;
+      const WZ = 0.10;
+      const RD = [0.42, 0.50, 0.58, 0.66, 0.74, 0.80, 0.86, 0.92, 0.97];
       const hotPl = [], hotPol = [], backR = [], rim = [], holes = [], hub = [], vanes = [], cal = [];
       for (const r of RD) {
         const ring = [], pol = [];
-        for (let k = 0; k <= 40; k++) {
-          const th = (k / 40) * Math.PI * 2;
+        for (let k = 0; k <= 48; k++) {
+          const th = (k / 48) * Math.PI * 2;
           ring.push([r * Math.cos(th), r * Math.sin(th), WZ]);
           pol.push([r, th]);
         }
         hotPl.push(ring); hotPol.push(pol);
-        backR.push(ring.map((p) => [p[0], p[1], -WZ]));
       }
-      for (let k = 0; k < 36; k++) {
-        const th = (k / 36) * Math.PI * 2;
+      for (let k = 0; k < 48; k++) {
+        const th = (k / 48) * Math.PI * 2;
         const sp = [], pol = [];
-        for (let q = 0; q <= 4; q++) {
-          const r = 0.42 + ((0.97 - 0.42) * q) / 4;
+        for (let q = 0; q <= 5; q++) {
+          const r = 0.42 + ((0.97 - 0.42) * q) / 5;
           sp.push([r * Math.cos(th), r * Math.sin(th), WZ]);
           pol.push([r, th]);
         }
         hotPl.push(sp); hotPol.push(pol);
       }
-      for (let k = 0; k < 24; k++) {
-        const th = (k / 24) * Math.PI * 2;
+      for (let k = 0; k < 48; k++) {           // outer-band refinement
+        const th = ((k + 0.5) / 48) * Math.PI * 2;
+        const sp = [], pol = [];
+        for (let q = 0; q <= 3; q++) {
+          const r = 0.80 + ((0.97 - 0.80) * q) / 3;
+          sp.push([r * Math.cos(th), r * Math.sin(th), WZ]);
+          pol.push([r, th]);
+        }
+        hotPl.push(sp); hotPol.push(pol);
+      }
+      for (let ri = 0; ri < RD.length; ri += 2) {
+        const r = RD[ri], ring = [];
+        for (let k = 0; k <= 48; k++) {
+          const th = (k / 48) * Math.PI * 2;
+          ring.push([r * Math.cos(th), r * Math.sin(th), -WZ]);
+        }
+        backR.push(ring);
+      }
+      for (let k = 0; k < 36; k++) {
+        const th = (k / 36) * Math.PI * 2;
         rim.push([[0.97 * Math.cos(th), 0.97 * Math.sin(th), WZ], [0.97 * Math.cos(th), 0.97 * Math.sin(th), -WZ]]);
       }
       for (let k = 0; k < 16; k++) {
         const th = (k / 16) * Math.PI * 2 + 0.1;
         const hr = k % 2 ? 0.715 : 0.585;
         const cx2 = hr * Math.cos(th), cy2 = hr * Math.sin(th);
-        const hole = [];
-        for (let q = 0; q <= 8; q++) {
-          const a2 = (q / 8) * Math.PI * 2;
-          hole.push([cx2 + 0.045 * Math.cos(a2), cy2 + 0.045 * Math.sin(a2), WZ]);
+        for (const [rr, seg] of [[0.040, 12], [0.068, 12]]) {
+          const hole = [];
+          for (let q = 0; q <= seg; q++) {
+            const a2 = (q / seg) * Math.PI * 2;
+            hole.push([cx2 + rr * Math.cos(a2), cy2 + rr * Math.sin(a2), WZ]);
+          }
+          holes.push(hole);
         }
-        holes.push(hole);
       }
       for (const z of [WZ, -WZ]) {
         const ring = [];
-        for (let k = 0; k <= 28; k++) {
-          const th = (k / 28) * Math.PI * 2;
+        for (let k = 0; k <= 32; k++) {
+          const th = (k / 32) * Math.PI * 2;
           ring.push([0.30 * Math.cos(th), 0.30 * Math.sin(th), z]);
         }
         hub.push(ring);
       }
-      for (let k = 0; k < 8; k++) {
-        const th = (k / 8) * Math.PI * 2;
+      const bore = [];
+      for (let k = 0; k <= 24; k++) {
+        const th = (k / 24) * Math.PI * 2;
+        bore.push([0.095 * Math.cos(th), 0.095 * Math.sin(th), WZ]);
+      }
+      hub.push(bore);
+      for (let k = 0; k < 10; k++) {
+        const th = (k / 10) * Math.PI * 2;
         hub.push([[0.30 * Math.cos(th), 0.30 * Math.sin(th), WZ], [0.30 * Math.cos(th), 0.30 * Math.sin(th), -WZ]]);
       }
       for (let k = 0; k < 5; k++) {
         const th = (k / 5) * Math.PI * 2 + 0.4;
-        const bx = 0.19 * Math.cos(th), by = 0.19 * Math.sin(th);
+        const bx = 0.195 * Math.cos(th), by = 0.195 * Math.sin(th);
         const bolt = [];
-        for (let q = 0; q <= 8; q++) {
-          const a2 = (q / 8) * Math.PI * 2;
-          bolt.push([bx + 0.045 * Math.cos(a2), by + 0.045 * Math.sin(a2), WZ]);
+        for (let q = 0; q <= 10; q++) {
+          const a2 = (q / 10) * Math.PI * 2;
+          bolt.push([bx + 0.042 * Math.cos(a2), by + 0.042 * Math.sin(a2), WZ]);
         }
         hub.push(bolt);
       }
@@ -733,28 +775,29 @@
         }
         vanes.push(vn);
       }
-      // caliper: straddles the rim, does NOT spin
       for (const z of [WZ + 0.05, -WZ - 0.05]) {
         const arc = [];
-        for (let k = 0; k <= 8; k++) {
-          const th = -0.90 + (k / 8) * 0.56;
+        for (let k = 0; k <= 10; k++) {
+          const th = -0.90 + (k / 10) * 0.56;
           arc.push([1.06 * Math.cos(th), 1.06 * Math.sin(th), z]);
         }
         cal.push(arc);
       }
-      for (const th of [-0.90, -0.34]) {
+      for (const th of [-0.90, -0.62, -0.34]) {
         cal.push([[1.06 * Math.cos(th), 1.06 * Math.sin(th), WZ + 0.05], [1.06 * Math.cos(th), 1.06 * Math.sin(th), -WZ - 0.05]]);
+      }
+      for (const th of [-0.90, -0.34]) {
         cal.push([[1.06 * Math.cos(th), 1.06 * Math.sin(th), WZ + 0.05], [0.88 * Math.cos(th), 0.88 * Math.sin(th), WZ + 0.02]]);
       }
       return {
         scale: 0.42, tilt: 0.42, sweep: 0.5, wob: 0.05, spinRate: 0.0008,
         groups: [
-          { pl: backR, col: TEAL, a: 0.12, w: 1 },
-          { pl: vanes, col: TEAL, a: 0.20, w: 1 },
-          { pl: rim, col: GOLD, a: 0.22, w: 1 },
-          { pl: hotPl, col: TEAL, a: 0.26, w: 1, pol: hotPol },
-          { pl: holes, col: TEAL, a: 0.34, w: 1 },
-          { pl: hub, col: GOLD, a: 0.55, w: 1.2 },
+          { pl: backR, col: TEAL, a: 0.10, w: 0.8, flat: true },
+          { pl: vanes, col: TEAL, a: 0.14, w: 0.8, flat: true },
+          { pl: rim, col: GOLD, a: 0.18, w: 0.8, flat: true },
+          { pl: hotPl, col: TEAL, a: 0.22, w: 0.8, pol: hotPol },
+          { pl: holes, col: TEAL, a: 0.30, w: 0.8, flat: true },
+          { pl: hub, col: GOLD, a: 0.55, w: 1.1 },
           { pl: cal, col: GOLD, a: 0.85, w: 1.8, glow: true, noSpin: true },
         ],
       };
@@ -827,14 +870,19 @@
         if (p2[1] > lastBB.y1) lastBB.y1 = p2[1];
       };
       const breath = 0.74 + 0.26 * Math.sin(t * 0.0011);
+      const NB = 8;                              // colour-quantisation buckets
       for (const g of M.groups) {
         const spun = M.spinRate ? g.noSpin !== true : false;
         ctx.lineWidth = g.w;
         if (g.glow) { ctx.save(); ctx.shadowColor = "rgba(" + GOLD + ",0.5)"; ctx.shadowBlur = 12; }
-        for (let pi = 0; pi < g.pl.length; pi++) {
-          const pl = g.pl[pi];
-          if (g.pol || g.hgt) {
-            // per-segment colour: thermal field (rotor) or altitude (terrain)
+        if (g.pol || g.hgt) {
+          /* field-coloured lattice (rotor heat / terrain altitude): quantise
+             the mix into NB buckets and stroke each bucket once — thousands
+             of segments for the cost of eight strokes */
+          if (!g._bk) g._bk = Array.from({ length: NB }, () => []);
+          for (let b = 0; b < NB; b++) g._bk[b].length = 0;
+          for (let pi = 0; pi < g.pl.length; pi++) {
+            const pl = g.pl[pi];
             let prev = pj(pl[0], spun);
             if (trackBB) tb(prev);
             for (let k = 1; k < pl.length; k++) {
@@ -844,17 +892,44 @@
               if (g.pol) {
                 const po = g.pol[pi][k];
                 const dRev = ((((po[1] + spin) - PAD_ANG) / (Math.PI * 2)) % 1 + 1) % 1;
-                mix = Math.exp(-Math.pow((po[0] - 0.70) / 0.20, 2)) * (0.16 + 0.84 * Math.exp(-dRev * 2.8)) * breath;
+                mix = Math.exp(-Math.pow((po[0] - 0.72) / 0.22, 2)) * (0.16 + 0.84 * Math.exp(-dRev * 2.8)) * breath;
               } else {
                 mix = clamp(g.hgt[pi][k] * 1.15, 0, 1);
               }
-              const dep = clamp(0.45 + (cur[2] - 0.96) * 5, 0.30, 1.15);
-              const cr = Math.round(15 + 240 * mix), cg2 = Math.round(182 + 4 * mix), cb = Math.round(172 - 172 * mix);
-              ctx.strokeStyle = "rgba(" + cr + "," + cg2 + "," + cb + "," + ((g.a + 0.55 * mix) * dep * alphaMul).toFixed(3) + ")";
-              ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(cur[0], cur[1]); ctx.stroke();
+              const bi = Math.min(NB - 1, (mix * NB) | 0);
+              g._bk[bi].push(prev[0], prev[1], cur[0], cur[1]);
               prev = cur;
             }
-          } else {
+          }
+          for (let b = 0; b < NB; b++) {
+            const seg = g._bk[b];
+            if (!seg.length) continue;
+            const mix = (b + 0.5) / NB;
+            const cr = Math.round(15 + 240 * mix), cg2 = Math.round(182 + 4 * mix), cb = Math.round(172 - 172 * mix);
+            ctx.strokeStyle = "rgba(" + cr + "," + cg2 + "," + cb + "," + ((g.a + 0.55 * mix) * alphaMul).toFixed(3) + ")";
+            ctx.beginPath();
+            for (let q = 0; q < seg.length; q += 4) {
+              ctx.moveTo(seg[q], seg[q + 1]);
+              ctx.lineTo(seg[q + 2], seg[q + 3]);
+            }
+            ctx.stroke();
+          }
+        } else if (g.flat) {
+          // dense single-colour lattice: one path, one stroke
+          ctx.beginPath();
+          for (let pi = 0; pi < g.pl.length; pi++) {
+            const pl = g.pl[pi];
+            for (let k = 0; k < pl.length; k++) {
+              const p2 = pj(pl[k], spun);
+              if (trackBB) tb(p2);
+              k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
+            }
+          }
+          ctx.strokeStyle = "rgba(" + g.col + "," + (g.a * alphaMul).toFixed(3) + ")";
+          ctx.stroke();
+        } else {
+          for (let pi = 0; pi < g.pl.length; pi++) {
+            const pl = g.pl[pi];
             let kSum = 0;
             ctx.beginPath();
             for (let k = 0; k < pl.length; k++) {
