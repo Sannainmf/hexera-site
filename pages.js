@@ -614,42 +614,74 @@
           ]);
         }
       }
-      // the wall mesh ENCAPSULATES the device: the inner surface sits just
-      // off the stent (deployed against the wall), ring spacing halves
-      // through the stented span, and a sparser outer surface carries the
-      // wall thickness — intima tight on the device, adventitia around it
-      const VRi = R * 1.10, VRo = R * 1.30, vessel = [], outer = [];
-      const vring = (xr, VR2, arr) => {
+      // CLIP VIEW, like a published mesh diagram: the vessel is cut in
+      // half lengthwise — half-ring wall surfaces, the CUT PLANE meshed
+      // through the wall thickness (longitudinal lines + radial ties at
+      // every station), and O-grid cross-sections capping the open ends.
+      // The full stent stays visible inside the exposed trough.
+      const VRi = R * 1.14, VRo = R * 1.34;
+      const H1 = Math.PI, H2 = Math.PI * 2;          // kept half: z <= 0
+      const wall = [], outer = [], cut = [], caps = [];
+      const hring = (xr, VR2, arr, seg) => {
         const ring = [];
-        for (let k = 0; k <= 28; k++) {
-          const th = (k / 28) * Math.PI * 2;
+        for (let k = 0; k <= seg; k++) {
+          const th = H1 + ((H2 - H1) * k) / seg;
           ring.push([xr, VR2 * Math.cos(th) + bend(xr), VR2 * Math.sin(th)]);
         }
         arr.push(ring);
       };
       for (let i = 0; i <= 48; i++) {
         const xr = -0.95 + (i / 48) * 1.9;
-        vring(xr, VRi, vessel);
-        if (Math.abs(xr) < 0.62 && i < 48) vring(xr + 1.9 / 96, VRi, vessel);
-        if (i % 3 === 0) vring(xr, VRo, outer);
+        hring(xr, VRi, wall, 14);
+        if (Math.abs(xr) < 0.62 && i < 48) hring(xr + 1.9 / 96, VRi, wall, 14);
+        if (i % 3 === 0) hring(xr, VRo, outer, 14);
       }
-      for (let j = 0; j < 24; j++) {
-        const th = (j / 24) * Math.PI * 2;
+      for (let j = 0; j <= 14; j++) {
+        const th = H1 + ((H2 - H1) * j) / 14;
         const rail = [];
         for (let k = 0; k <= 48; k++) {
           const x = -0.95 + (k / 48) * 1.9;
           rail.push([x, VRi * Math.cos(th) + bend(x), VRi * Math.sin(th)]);
         }
-        vessel.push(rail);
-      }
-      for (let j = 0; j < 8; j++) {
-        const th = (j / 8) * Math.PI * 2;
-        const rail = [];
-        for (let k = 0; k <= 24; k++) {
-          const x = -0.95 + (k / 24) * 1.9;
-          rail.push([x, VRo * Math.cos(th) + bend(x), VRo * Math.sin(th)]);
+        wall.push(rail);
+        if (j % 3 === 0) {
+          const orl = [];
+          for (let k = 0; k <= 24; k++) {
+            const x = -0.95 + (k / 24) * 1.9;
+            orl.push([x, VRo * Math.cos(th) + bend(x), VRo * Math.sin(th)]);
+          }
+          outer.push(orl);
         }
-        outer.push(rail);
+      }
+      for (const sgn of [-1, 1]) {                   // the two cut lips
+        for (let q = 0; q <= 3; q++) {
+          const r2 = VRi + ((VRo - VRi) * q) / 3;
+          const ln = [];
+          for (let k = 0; k <= 48; k++) {
+            const x = -0.95 + (k / 48) * 1.9;
+            ln.push([x, sgn * r2 + bend(x), 0]);
+          }
+          cut.push(ln);
+        }
+        for (let k = 0; k <= 48; k++) {
+          const x = -0.95 + (k / 48) * 1.9;
+          cut.push([[x, sgn * VRi + bend(x), 0], [x, sgn * VRo + bend(x), 0]]);
+        }
+      }
+      for (const xe of [-0.95, 0.95]) {              // O-grid end sections
+        const be = bend(xe);
+        for (const fr of [0.30, 0.55, 0.80]) {
+          const ring = [];
+          for (let k = 0; k <= 12; k++) {
+            const th = H1 + ((H2 - H1) * k) / 12;
+            ring.push([xe, fr * VRi * Math.cos(th) + be, fr * VRi * Math.sin(th)]);
+          }
+          caps.push(ring);
+        }
+        for (let jj = 0; jj <= 8; jj++) {
+          const th = H1 + ((H2 - H1) * jj) / 8;
+          caps.push([[xe, be, 0], [xe, VRo * Math.cos(th) + be, VRo * Math.sin(th)]]);
+        }
       }
       const path = [];
       for (let k = 0; k <= 24; k++) {
@@ -657,10 +689,12 @@
         path.push([x, bend(x), 0]);
       }
       return {
-        scale: 0.40, tilt: 0.35, sweep: 0.8, wob: 0.07, path,
+        scale: 0.40, tilt: 0.52, sweep: 0.8, wob: 0.07, path,
         groups: [
-          { pl: outer, col: TEAL, a: 0.11, w: 0.8, flat: true },
-          { pl: vessel, col: TEAL, a: 0.22, w: 0.8, flat: true },
+          { pl: outer, col: TEAL, a: 0.12, w: 0.8, flat: true },
+          { pl: wall, col: TEAL, a: 0.24, w: 0.8, flat: true },
+          { pl: caps, col: TEAL, a: 0.30, w: 0.9, flat: true },
+          { pl: cut, col: GOLD, a: 0.30, w: 0.9, flat: true },
           { pl: bridges, col: GOLD, a: 0.60, w: 1.1 },
           { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true, track: true },
         ],
