@@ -510,79 +510,76 @@
 
     const yt12 = (t) => 5 * 0.12 * (0.2969 * Math.sqrt(t) - 0.1260 * t - 0.3516 * t * t + 0.2843 * t * t * t - 0.1036 * t * t * t * t);
 
-    // 01 · the wind-tunnel classic: a constant-chord NACA 0012 section
-    //      spanning the test section, wrapped in a structured O-GRID — thin
-    //      geometric-growth boundary layers at the wall (y+ ~ 1), elliptic-
-    //      smoothed outer layers relaxing to the far field, radial lines
-    //      closing the quads. The most recognisable mesh in CFD.
+    // 01 · wind-tunnel launch vehicle — a scale sounding rocket, nose into
+    //      the flow: revolved surface mesh with nose-clustered stations,
+    //      four swept fin lattices, and Mach-cone shock lines flaring off
+    //      the tip. The supersonic tunnel classic.
     const buildWing = () => {
-      const NP = 80, CH2 = 1.7, TH = 1.5, D = 0.46;
-      const surf = [];
-      for (let i = 0; i < NP; i++) {
-        const t2 = (i / NP) * Math.PI * 2;
-        const xc = 0.5 * (1 + Math.cos(t2));
-        const sgn = Math.sin(t2) >= 0 ? -1 : 1;
-        surf.push([(xc - 0.5) * CH2, sgn * yt12(xc) * CH2 * TH]);
-      }
-      // hyperbolic marching: offset along normals with geometric growth,
-      // then Laplacian passes (more each layer) — the elliptic-smoothing
-      // trick real grid generators use to round the O out of a sharp TE
-      const layers = [];
-      let prev = surf.map((p2) => p2.slice());
-      let dStep = 0.007;
-      for (let k = 0; k < 12; k++) {
-        const nx = [], ny = [];
-        for (let i = 0; i < NP; i++) {
-          const a2 = prev[(i - 1 + NP) % NP], b2 = prev[(i + 1) % NP];
-          const tx = b2[0] - a2[0], ty = b2[1] - a2[1];
-          const l = Math.hypot(tx, ty) || 1;
-          nx.push(-ty / l); ny.push(tx / l);
+      const L0 = -1.05, LEN = 2.0, RB = 0.155, NS = 40, NA = 20;
+      const prof = (t) => {
+        if (t < 0.30) return RB * Math.pow(Math.sin((Math.PI / 2) * (t / 0.30)), 0.85);
+        if (t > 0.94) return RB * (1 - 0.35 * ((t - 0.94) / 0.06));
+        return RB;
+      };
+      const secs = [];
+      for (let i = 0; i < NS; i++) {
+        const t = Math.pow(i / (NS - 1), 1.30);        // cluster stations at the nose
+        const x = L0 + LEN * t;
+        const r = Math.max(prof(t), 0.004);
+        const ring = [];
+        for (let k = 0; k <= NA; k++) {
+          const a2 = (k / NA) * Math.PI * 2;
+          ring.push([x, r * Math.cos(a2), r * Math.sin(a2)]);
         }
-        let cur = prev.map((p2, i) => [p2[0] + nx[i] * dStep, p2[1] + ny[i] * dStep]);
-        const SM = 1 + Math.floor(k * 0.8);
-        for (let s2 = 0; s2 < SM; s2++) {
-          cur = cur.map((p2, i) => {
-            const a2 = cur[(i - 1 + NP) % NP], b2 = cur[(i + 1) % NP];
-            return [p2[0] * 0.5 + (a2[0] + b2[0]) * 0.25, p2[1] * 0.5 + (a2[1] + b2[1]) * 0.25];
-          });
+        secs.push(ring);
+      }
+      const lattice = secs.slice();
+      for (let k = 0; k < NA; k++) lattice.push(secs.map((rg) => rg[k]));
+      // four fins, each its own swept quad lattice
+      const fins = [], finAcc = [];
+      for (const ang of [Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4]) {
+        const ca = Math.cos(ang), sa = Math.sin(ang);
+        const FS2 = 6, FC2 = 7, rows2 = [];
+        for (let si = 0; si < FS2; si++) {
+          const sp = si / (FS2 - 1);
+          const rr = RB + 0.30 * sp;
+          const le = 0.52 + 0.28 * sp;
+          const cc = 0.40 - 0.22 * sp;
+          const row = [];
+          for (let ci = 0; ci <= FC2; ci++) {
+            const x = le + (cc * ci) / FC2;
+            row.push([x, rr * ca, rr * sa]);
+          }
+          rows2.push(row);
+          lattice.push(row);
         }
-        layers.push(cur);
-        prev = cur;
-        dStep *= 1.30;
+        for (let ci = 0; ci <= FC2; ci++) fins.push(rows2.map((rw) => rw[ci]));
+        finAcc.push(rows2.map((rw) => rw[0]));
+        finAcc.push(rows2[FS2 - 1]);
       }
-      const lift = (pts2, z) => pts2.map((p2) => [p2[0], p2[1], z]);
-      const close = (L) => L.concat([L[0]]);
-      const gridBL = [], gridFar = [], radials = [];
-      layers.forEach((L, k) => {
-        (k < 6 ? gridBL : gridFar).push(lift(close(L), D / 2));
-      });
-      for (let i = 0; i < NP; i += 2) {
-        const line = [[surf[i][0], surf[i][1], D / 2]];
-        for (const L of layers) line.push([L[i][0], L[i][1], D / 2]);
-        radials.push(line);
+      const accents = finAcc.concat([
+        secs[3], secs[NS - 1],
+        secs.map((rg) => rg[10]),
+        secs.map((rg) => rg[0]),
+      ]);
+      // Mach cone: conical shock lines off the tip, flaring downstream
+      const shock = [];
+      const tanB = Math.tan(0.42);
+      for (const ang of [0.5, 1.6, 2.7, 3.8, 4.9, 6.0]) {
+        const seg = [[L0, 0, 0]];
+        for (const dd of [0.5, 1.0, 1.5, 2.1]) {
+          const rr = dd * tanB;
+          seg.push([L0 + dd, rr * Math.cos(ang), rr * Math.sin(ang)]);
+        }
+        shock.push(seg);
       }
-      // the section spans the tunnel: dim far wall + span struts
-      const backPl = [lift(close(surf), -D / 2)];
-      for (const k of [1, 4, 7, 10]) backPl.push(lift(close(layers[k]), -D / 2));
-      const struts = [];
-      for (let i = 0; i < NP; i += 8) {
-        struts.push([[surf[i][0], surf[i][1], D / 2], [surf[i][0], surf[i][1], -D / 2]]);
-      }
-      const gold = [
-        lift(close(surf), D / 2),
-        lift(close(surf), -D / 2),
-        [[surf[0][0], surf[0][1], D / 2], [surf[0][0], surf[0][1], -D / 2]],
-        [[surf[NP / 2][0], surf[NP / 2][1], D / 2], [surf[NP / 2][0], surf[NP / 2][1], -D / 2]],
-      ];
       return {
-        scale: 0.38, tilt: 0.50, sweep: 0.8, wob: 0.05,
+        scale: 0.42, tilt: 0.52, sweep: 0.85, wob: 0.05,
         groups: [
-          { pl: backPl, col: TEAL, a: 0.10, w: 0.8, flat: true },
-          { pl: struts, col: GOLD, a: 0.14, w: 0.8, flat: true },
-          { pl: gridFar, col: TEAL, a: 0.15, w: 0.8, flat: true },
-          { pl: radials, col: TEAL, a: 0.16, w: 0.8, flat: true },
-          { pl: gridBL, col: TEAL, a: 0.38, w: 0.9, flat: true },
-          { pl: gold, col: GOLD, a: 0.9, w: 1.5, glow: true, track: true },
+          { pl: shock, col: TEAL, a: 0.14, w: 0.8, flat: true },
+          { pl: fins, col: TEAL, a: 0.22, w: 0.8, flat: true },
+          { pl: lattice, col: TEAL, a: 0.26, w: 0.8, flat: true },
+          { pl: accents, col: GOLD, a: 0.85, w: 1.4, glow: true, track: true },
         ],
       };
     };
@@ -617,31 +614,42 @@
           ]);
         }
       }
-      // the artery wall carries a DENSE swept surface mesh — and the
-      // stented span gets locally REFINED rings (half spacing), exactly
-      // how a real FSI wall mesh grades toward the contact region
-      const VR = R * 1.42, vessel = [];
-      const vring = (xr) => {
+      // the wall mesh ENCAPSULATES the device: the inner surface sits just
+      // off the stent (deployed against the wall), ring spacing halves
+      // through the stented span, and a sparser outer surface carries the
+      // wall thickness — intima tight on the device, adventitia around it
+      const VRi = R * 1.10, VRo = R * 1.30, vessel = [], outer = [];
+      const vring = (xr, VR2, arr) => {
         const ring = [];
         for (let k = 0; k <= 28; k++) {
           const th = (k / 28) * Math.PI * 2;
-          ring.push([xr, VR * Math.cos(th) + bend(xr), VR * Math.sin(th)]);
+          ring.push([xr, VR2 * Math.cos(th) + bend(xr), VR2 * Math.sin(th)]);
         }
-        return ring;
+        arr.push(ring);
       };
-      for (let i = 0; i <= 34; i++) {
-        const xr = -0.95 + (i / 34) * 1.9;
-        vessel.push(vring(xr));
-        if (Math.abs(xr) < 0.62 && i < 34) vessel.push(vring(xr + 1.9 / 68));
+      for (let i = 0; i <= 48; i++) {
+        const xr = -0.95 + (i / 48) * 1.9;
+        vring(xr, VRi, vessel);
+        if (Math.abs(xr) < 0.62 && i < 48) vring(xr + 1.9 / 96, VRi, vessel);
+        if (i % 3 === 0) vring(xr, VRo, outer);
       }
-      for (let j = 0; j < 18; j++) {
-        const th = (j / 18) * Math.PI * 2;
+      for (let j = 0; j < 24; j++) {
+        const th = (j / 24) * Math.PI * 2;
         const rail = [];
-        for (let k = 0; k <= 36; k++) {
-          const x = -0.95 + (k / 36) * 1.9;
-          rail.push([x, VR * Math.cos(th) + bend(x), VR * Math.sin(th)]);
+        for (let k = 0; k <= 48; k++) {
+          const x = -0.95 + (k / 48) * 1.9;
+          rail.push([x, VRi * Math.cos(th) + bend(x), VRi * Math.sin(th)]);
         }
         vessel.push(rail);
+      }
+      for (let j = 0; j < 8; j++) {
+        const th = (j / 8) * Math.PI * 2;
+        const rail = [];
+        for (let k = 0; k <= 24; k++) {
+          const x = -0.95 + (k / 24) * 1.9;
+          rail.push([x, VRo * Math.cos(th) + bend(x), VRo * Math.sin(th)]);
+        }
+        outer.push(rail);
       }
       const path = [];
       for (let k = 0; k <= 24; k++) {
@@ -651,7 +659,8 @@
       return {
         scale: 0.40, tilt: 0.35, sweep: 0.8, wob: 0.07, path,
         groups: [
-          { pl: vessel, col: TEAL, a: 0.20, w: 0.8, flat: true },
+          { pl: outer, col: TEAL, a: 0.11, w: 0.8, flat: true },
+          { pl: vessel, col: TEAL, a: 0.22, w: 0.8, flat: true },
           { pl: bridges, col: GOLD, a: 0.60, w: 1.1 },
           { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true, track: true },
         ],
