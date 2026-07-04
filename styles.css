@@ -23,6 +23,12 @@
   --line:      rgba(238, 235, 225, 0.10);
   --line-2:    rgba(238, 235, 225, 0.20);
 
+  /* canvas render colors as raw r,g,b triplets — the wireframe scenes
+     (airfoil, industries chamber) read these so a palette change is CSS-only */
+  --mesh-line-rgb:   15,182,172;
+  --mesh-accent-rgb: 255,186,0;
+  --mesh-ink-rgb:    236,234,229;
+
   --font-display: "Saira Semi Condensed", "Helvetica Neue", Arial, sans-serif;
   --font-body:    "Geist", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --font-mono:    "Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;

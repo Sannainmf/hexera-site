@@ -1,0 +1,31 @@
+/* ============================================================
+   PROTOTYPE — flight-test mono + international orange.
+   Loaded after styles.css on orange.html only; overrides tokens.
+   Grayscale everywhere, one hot accent. Wireframes go light gray,
+   canvas accents go orange. Delete this file if the direction dies.
+   ============================================================ */
+:root {
+  /* the one accent: international orange (X-15, flight test, NASA chase planes) */
+  --gold:      #ff4f00;
+  --gold-soft: #ff7033;
+  --gold-ink:  #1a0a02;
+
+  /* teal retires: interactive accents go bone/gray */
+  --teal:      #d8d6cf;
+  --teal-deep: #a9a79f;
+
+  /* canvas scenes: light-gray wireframes, orange accents */
+  --mesh-line-rgb:   214,212,205;
+  --mesh-accent-rgb: 255,79,0;
+  --mesh-ink-rgb:    236,234,229;
+
+  /* cool the canvas slightly: near-neutral blacks instead of amber-blacks */
+  --bg:    #0d0d0c;
+  --bg-2:  #131312;
+  --black: #0d0d0c;
+  --green: #141413;
+  --faint: oklch(0.60 0 0);
+}
+/* focus/selection inherit the retired teal token; force them readable */
+::selection { background: #ff4f00; color: #fff; }
+:focus-visible { outline-color: #ff4f00; }

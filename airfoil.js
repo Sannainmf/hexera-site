@@ -9,7 +9,15 @@
 (function () {
   "use strict";
 
-  const TEAL = 0x0fb6ac;   // airfoil + mesh share this colour
+  // airfoil + mesh share this colour; themed via --mesh-line-rgb (falls back to teal)
+  const TEAL = (() => {
+    const v = getComputedStyle(document.documentElement).getPropertyValue("--mesh-line-rgb").trim();
+    if (/^\d+\s*,\s*\d+\s*,\s*\d+$/.test(v)) {
+      const [r, g, b] = v.split(",").map((n) => parseInt(n, 10));
+      return (r << 16) | (g << 8) | b;
+    }
+    return 0x0fb6ac;
+  })();
 
   // ─── mesh parsing (verbatim from HEXARA) ───
   function parseMshContent(data) {

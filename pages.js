@@ -248,7 +248,14 @@
     const ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
     const cards = Array.from(spec.querySelectorAll("[data-spec-card]"));
     const railStops = Array.from(spec.querySelectorAll("[data-spec-go]"));
-    const GOLD = "255,186,0", TEAL = "15,182,172", INK = "236,234,229";
+    const cssRGB = (name, fallback) => {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return /^\d+\s*,\s*\d+\s*,\s*\d+$/.test(v) ? v.replace(/\s+/g, "") : fallback;
+    };
+    const GOLD = cssRGB("--mesh-accent-rgb", "255,186,0");
+    const TEAL = cssRGB("--mesh-line-rgb", "15,182,172");
+    const INK = cssRGB("--mesh-ink-rgb", "236,234,229");
+    const LINE3 = TEAL.split(",").map(Number), ACC3 = GOLD.split(",").map(Number);
     const sstep = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * k * (k * (k * 6 - 15) + 10));
     const MW = 0.11;                                 // gate window, in total-scroll units
 
@@ -782,7 +789,9 @@
             const seg = g._bk[b];
             if (!seg.length) continue;
             const mix = (b + 0.5) / NB;
-            const cr = Math.round(15 + 240 * mix), cg2 = Math.round(182 + 4 * mix), cb = Math.round(172 - 172 * mix);
+            const cr = Math.round(LINE3[0] + (ACC3[0] - LINE3[0]) * mix),
+              cg2 = Math.round(LINE3[1] + (ACC3[1] - LINE3[1]) * mix),
+              cb = Math.round(LINE3[2] + (ACC3[2] - LINE3[2]) * mix);
             ctx.strokeStyle = "rgba(" + cr + "," + cg2 + "," + cb + "," + ((g.a + 0.55 * mix) * alphaMul).toFixed(3) + ")";
             ctx.beginPath();
             for (let q = 0; q < seg.length; q += 4) {
