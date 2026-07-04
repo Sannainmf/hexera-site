@@ -257,7 +257,7 @@
     const INK = cssRGB("--mesh-ink-rgb", "236,234,229");
     const LINE3 = TEAL.split(",").map(Number), ACC3 = GOLD.split(",").map(Number);
     const sstep = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * k * (k * (k * 6 - 15) + 10));
-    const MW = 0.11;                                 // gate window, in total-scroll units
+    const MW = 0.16;                                 // blend window, in total-scroll units
 
     /* ================= real 3D specimens =================
        Every specimen is a genuine 3D wireframe model, CAD'd procedurally in
@@ -320,21 +320,9 @@
         secs.map((rg) => rg[10]),
         secs.map((rg) => rg[0]),
       ]);
-      // Mach cone: conical shock lines off the tip, flaring downstream
-      const shock = [];
-      const tanB = Math.tan(0.42);
-      for (const ang of [0.5, 1.6, 2.7, 3.8, 4.9, 6.0]) {
-        const seg = [[L0, 0, 0]];
-        for (const dd of [0.5, 1.0, 1.5, 2.1]) {
-          const rr = dd * tanB;
-          seg.push([L0 + dd, rr * Math.cos(ang), rr * Math.sin(ang)]);
-        }
-        shock.push(seg);
-      }
       return {
         scale: 0.42, tilt: 0.52, sweep: 0.85, wob: 0.05,
         groups: [
-          { pl: shock, col: TEAL, a: 0.14, w: 0.8, flat: true },
           { pl: fins, col: TEAL, a: 0.22, w: 0.8, flat: true },
           { pl: lattice, col: TEAL, a: 0.26, w: 0.8, flat: true },
           { pl: accents, col: GOLD, a: 0.85, w: 1.4, glow: true, track: true },
@@ -699,6 +687,20 @@
 
     /* ---- state ---- */
     let W = 0, H = 0, sref = 0, lastBB = null, lastPj = null;
+    // blood cells riding the stent lumen (biomedical phase only)
+    const BLOOD = Array.from({ length: 12 }, (_, i) => ({
+      u: i / 12, oy: (Math.random() - 0.5) * 0.30, oz: (Math.random() - 0.5) * 0.30,
+    }));
+    const pathAt = (P, u) => {
+      const m = P.length - 1;
+      const d = clamp(u - Math.floor(u), 0, 1) * m;
+      const i = Math.min(Math.floor(d), m - 1), q = d - i;
+      return [
+        P[i][0] + (P[i + 1][0] - P[i][0]) * q,
+        P[i][1] + (P[i + 1][1] - P[i][1]) * q,
+        P[i][2] + (P[i + 1][2] - P[i][2]) * q,
+      ];
+    };
     const build = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = canvas.clientWidth; H = canvas.clientHeight;
@@ -839,19 +841,38 @@
     };
 
 
-    /* ---- one frame: the current model, crossfaded at the boundaries.
-       t is passed as 0 so the pose is driven by scroll alone. ---- */
-    const drawFrame = (s, pNow) => {
+    /* ---- one frame: the current model, eased crossfade at the boundaries,
+       gentle idle drift, rotor spin, and blood cells in the bio phase ---- */
+    const drawFrame = (s, t, dt, pNow) => {
       ctx.clearRect(0, 0, W, H);
       const iA = Math.min(Math.floor(s), 2);
       const f = clamp(s - iA, 0, 1);
       const morph = f > 0.001 && f < 0.999;
+      const ef = sstep(f);                       /* eased blend — no pop */
       const local = pNow >= 0.999 ? 1 : (pNow % 0.25) / 0.25;
       if (!morph) {
-        drawModel(Math.round(s), 0, local - 0.5, 1, true);
+        drawModel(Math.round(s), t, local - 0.5, 1, true);
       } else {
-        drawModel(iA, 0, 0, 1 - f, f < 0.5);
-        drawModel(iA + 1, 0, 0, f, f >= 0.5);
+        drawModel(iA, t, 0, 1 - ef, f < 0.5);
+        drawModel(iA + 1, t, 0, ef, f >= 0.5);
+      }
+
+      /* blood cells streaming through the stent lumen — small ink dots on
+         the systole rhythm, no glow, only near the biomedical plateau */
+      const dBio = clamp(1 - Math.abs(s - 1) * 2.4, 0, 1);
+      if (dBio > 0.01 && lastPj && dt > 0 && MODELS[1].path) {
+        const pulse = Math.pow(Math.max(Math.sin(t * 0.00754), 0), 2);   /* 72 bpm */
+        for (const bp of BLOOD) {
+          bp.u += dt * (0.05 + 0.20 * pulse);
+          for (let k = 0; k < 3; k++) {
+            const pos = pathAt(MODELS[1].path, bp.u - k * 0.02);
+            if (Math.abs(pos[0]) > 0.95) continue;
+            const scr = lastPj.pj([pos[0], pos[1] + bp.oy * 0.5, pos[2] + bp.oz * 0.5], false);
+            const al = (1 - k / 3) * (0.14 + 0.26 * pulse) * dBio;
+            ctx.fillStyle = "rgba(" + INK + "," + al.toFixed(3) + ")";
+            ctx.beginPath(); ctx.arc(scr[0], scr[1], (1.8 - k * 0.4) * scr[2], 0, 7); ctx.fill();
+          }
+        }
       }
     };
 
@@ -867,7 +888,7 @@
     if (reduce || !ctx) {
       /* static fallback: unpin the stage, show all four cards, draw specimen 01 once */
       spec.classList.add("spec--static");
-      if (ctx) { build(); drawFrame(0, 0.125); }
+      if (ctx) { build(); drawFrame(0, 0, 0, 0.125); }
     } else {
       build();
 
@@ -880,22 +901,20 @@
       window.addEventListener("scroll", onScroll, { passive: true });
       onScroll();
 
-      let running = false, rafId = 0, lastP = -1;
-      const loop = () => {
+      let running = false, rafId = 0, lastT = 0;
+      const loop = (t) => {
         if (!running) return;
-        if (Math.abs(p - lastP) > 1e-5) {
-          lastP = p;
-          let s = 0;
-          for (let b = 1; b < 4; b++) s += sstep((p - (b * 0.25 - MW / 2)) / MW);
-          setIdx(Math.round(s));
-          drawFrame(s, p);
-        }
+        const dt = Math.min((t - lastT) / 1000, 0.05); lastT = t;
+        let s = 0;
+        for (let b = 1; b < 4; b++) s += sstep((p - (b * 0.25 - MW / 2)) / MW);
+        setIdx(Math.round(s));
+        drawFrame(s, t, dt, p);
         rafId = requestAnimationFrame(loop);
       };
       const io = new IntersectionObserver((entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting && !running) {
-            running = true; lastP = -1;
+            running = true; lastT = performance.now();
             rafId = requestAnimationFrame(loop);
           } else if (!e.isIntersecting && running) {
             running = false; cancelAnimationFrame(rafId);
@@ -917,7 +936,7 @@
       let rsT = 0;
       window.addEventListener("resize", () => {
         clearTimeout(rsT);
-        rsT = setTimeout(() => { build(); onScroll(); lastP = -1; }, 120);
+        rsT = setTimeout(() => { build(); onScroll(); }, 120);
       });
     }
   }
