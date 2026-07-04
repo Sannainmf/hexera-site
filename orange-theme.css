@@ -34,3 +34,6 @@
 /* focus/selection inherit the retired teal token; force them readable */
 ::selection { background: #ff4f00; color: #fff; }
 :focus-visible { outline-color: #ff4f00; }
+
+/* hero art: the same background image, hue-mapped jade→steel, gold→orange */
+.hero-art { background: var(--bg) url("assets/hero-bg-orange.jpg") center / cover no-repeat; }
