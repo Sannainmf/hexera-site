@@ -593,7 +593,7 @@
       const R = 0.30, PK = 8, A = 0.050, KS = 120;
       const bend = (x) => 0.15 * x * x - 0.09;
       // the device: 13 tight crown rings across the middle window only
-      const SLEN = 1.05, NR = 13, gap = SLEN / (NR - 1);
+      const SLEN = 1.30, NR = 15, gap = SLEN / (NR - 1);
       const rings = [], bridges = [];
       for (let i = 0; i < NR; i++) {
         const x0 = -SLEN / 2 + gap * i;
@@ -617,10 +617,23 @@
           ]);
         }
       }
+      // deployment contact: short gold ties from crown peaks to the wall —
+      // the device is pressed into the vessel, not floating in it
+      for (let i = 0; i < NR; i += 2) {
+        const x0 = -SLEN / 2 + gap * i;
+        for (let b2 = 0; b2 < 4; b2++) {
+          const th = ((b2 + 0.5) / 4) * Math.PI * 2;
+          const xp = x0 + A * Math.sin(th * PK + (i % 2) * Math.PI);
+          bridges.push([
+            [xp, R * Math.cos(th) + bend(xp), R * Math.sin(th)],
+            [xp, R * 1.08 * Math.cos(th) + bend(xp), R * 1.08 * Math.sin(th)],
+          ]);
+        }
+      }
       // the wall
-      const VRi = R * 1.16, VRo = R * 1.42, WX = 0.55, XE = 0.95;
+      const VRi = R * 1.08, VRo = R * 1.34, WX = 0.55, XE = 0.95;
       const PI2 = Math.PI * 2, H1 = Math.PI;
-      const wall = [], cut = [], caps = [];
+      const wall = [], inner = [], cut = [], caps = [];
       const ringAt = (xr, VR2, th0, th1, seg, arr) => {
         const ring = [];
         for (let k = 0; k <= seg; k++) {
@@ -641,20 +654,20 @@
       // closed regions show ONE surface — the outside — like any solid;
       // the wall thickness is only revealed on the cut faces
       for (const seg2 of [[-XE, -WX], [WX, XE]]) {
-        for (let i = 0; i <= 13; i++) {
-          const xr = seg2[0] + ((seg2[1] - seg2[0]) * i) / 13;
-          ringAt(xr, VRo, 0, PI2, 36, wall);
+        for (let i = 0; i <= 21; i++) {
+          const xr = seg2[0] + ((seg2[1] - seg2[0]) * i) / 21;
+          ringAt(xr, VRo, 0, PI2, 48, wall);
         }
-        for (let j = 0; j < 36; j++) railAt((j / 36) * PI2, VRo, seg2[0], seg2[1], 13, wall);
+        for (let j = 0; j < 48; j++) railAt((j / 48) * PI2, VRo, seg2[0], seg2[1], 21, wall);
       }
       // sawn-open middle: the far half remains, meshed finer still
       // the open window shows the INNER surface of the remaining far half
       const HS = 18;
       for (let i = 0; i <= 48; i++) {
         const xr = -WX + ((2 * WX) * i) / 48;
-        ringAt(xr, VRi, H1, PI2, HS, wall);
+        ringAt(xr, VRi, H1, PI2, HS, inner);
       }
-      for (let j = 0; j <= HS; j++) railAt(H1 + (j / HS) * Math.PI, VRi, -WX, WX, 48, wall);
+      for (let j = 0; j <= HS; j++) railAt(H1 + (j / HS) * Math.PI, VRi, -WX, WX, 48, inner);
       // slice faces: longitudinal lips meshed through the wall thickness…
       const cutEdge = [];
       for (const sgn of [-1, 1]) {
@@ -703,7 +716,8 @@
       return {
         scale: 0.40, tilt: 0.52, sweep: 0.8, wob: 0.07, path,
         groups: [
-          { pl: wall, col: TEAL, a: 0.27, w: 0.8, flat: true },
+          { pl: inner, col: INK, a: 0.18, w: 0.8, flat: true },
+          { pl: wall, col: TEAL, a: 0.30, w: 0.8, flat: true },
           { pl: caps, col: TEAL, a: 0.30, w: 0.9, flat: true },
           { pl: cut, col: TEAL, a: 0.42, w: 0.8, flat: true },
           { pl: cutEdge, col: INK, a: 0.50, w: 1.1, flat: true },
