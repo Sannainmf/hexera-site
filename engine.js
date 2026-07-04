@@ -252,6 +252,14 @@
   lineObj(blArr, blMat, 4); lineObj(volArr, volMat, 4); lineObj(spokeArr, spokeMat, 4); lineObj(wakeArr, wakeMat, 4);
   const insMid = [0.5 * CR + XO + 0.1, chordY, INS_Z + ZO];
 
+  /* ---- CAD viewport ground grid: anchors the model in space ---- */
+  const grid = new T.GridHelper(6, 30, 0x0e544e, 0x11332f);
+  grid.position.y = -0.42;
+  grid.material.transparent = true;
+  grid.material.opacity = 0;
+  grid.renderOrder = 0;
+  scene.add(grid);
+
   /* ---- assemble cloud ---- */
   const cloud = [];
   let seed = 20260703;
@@ -313,14 +321,17 @@
   const crateObj = lineObj(crateArr, crateMat, 6);
   crateObj.geometry.setDrawRange(0, 0);
 
-  /* ================= camera timeline ================= */
+  /* ================= camera timeline =================
+     all keys view from the leading-edge side (−x): the wing presents
+     LE-forward, root lower-left, tip receding upper-right — the way
+     you'd actually frame a wing */
   const KEYS = [
-    { p: 0.00, th: 0.90, ph: 0.50, d: 3.3, t: [0, 0, 0] },
-    { p: 0.20, th: 1.50, ph: 0.62, d: 2.35, t: [0, 0, 0] },
-    { p: 0.40, th: 2.20, ph: 0.60, d: 2.1, t: [0, 0, 0.05] },
-    { p: 0.60, th: 2.69, ph: 0.14, d: 1.25, t: insMid },
-    { p: 0.80, th: 3.60, ph: 0.90, d: 2.6, t: [0, 0, 0] },
-    { p: 1.00, th: 4.30, ph: 0.40, d: 3.3, t: [0, 0, 0] },
+    { p: 0.00, th: 3.80, ph: 0.34, d: 3.4, t: [0, 0.02, 0] },
+    { p: 0.20, th: 4.35, ph: 0.50, d: 2.45, t: [0, 0, 0] },
+    { p: 0.40, th: 4.95, ph: 0.55, d: 2.15, t: [0, 0, 0.05] },
+    { p: 0.60, th: 6.10, ph: 0.13, d: 1.3, t: insMid },
+    { p: 0.80, th: 6.80, ph: 0.95, d: 2.6, t: [0, 0, 0] },
+    { p: 1.00, th: 7.45, ph: 0.38, d: 3.4, t: [0, 0, 0] },
   ];
   const cam = (p) => {
     let i = 0;
@@ -380,6 +391,7 @@
 
     /* solid occluder appears once the shape has mostly landed */
     solidMesh.visible = wingA > 0.3;
+    grid.material.opacity = 0.13 * wingA * (1 - 0.65 * sstep((a2 - 0.55) / 0.3) * (1 - sstep(a3 / 0.3)));
 
     /* CAD skin + classification pulses */
     const order = [0, 1, 2, 3];
