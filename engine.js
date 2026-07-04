@@ -1,22 +1,26 @@
 /* ============================================================
    Hexera — engine.html: "Inside the engine"
-   Scroll-scrubbed 3D story, rendered with Three.js using the
-   standard CAD hidden-line technique: a background-coloured
-   solid occluder mesh (polygonOffset) under depth-tested line
-   overlays — the far side of the part is genuinely hidden, so
-   the render reads like a CAD viewport, not wireframe soup.
+   Scroll-scrubbed 3D story rendered with Three.js using the CAD
+   hidden-line technique: a background-coloured solid occluder
+   (polygonOffset) under depth-tested line overlays.
 
-   The specimen: a light-aircraft wing in the RV-12 mould —
-   constant chord, no sweep, gentle dihedral, square tip,
-   full-span flaperon, two spars, evenly spaced ribs.
+   The specimen: a lifting-lug bracket — the canonical FEA case.
+   A standing plate with a semicircular head, a large pin bore,
+   and a clamped base. The mesh is the classic butterfly web:
+   rings radiating from the bore to the part outline, spokes
+   forming quads, geometric clustering into the bore edge where
+   the stress concentration lives, and hex layers through the
+   thickness. The quality pass flags the bore edge — where lug
+   stress actually peaks — and re-refines it on the spot.
 
-   The mesh follows real rules:
-     · chordwise cells cosine-clustered at LE and TE
-     · spanwise blocks split exactly at the flaperon side edges,
-       Chebyshev-clustered into root / tip / both block bounds
-     · 8 prism layers at growth 1.25 (~3.5% chord)
-     · O-grid volume rings at growth 1.38 with radial spokes
-       and a wake block behind the TE
+   Acts:
+     00 READ   · the part assembles from a scattered point cloud
+     01 TAG    · bore / clamped base / walls / faces classified
+     02 MESH   · the web generates ring-by-ring from the bore
+                 while the camera dives to the hole
+     03 PROVE  · a gate sweeps the part; the bore edge flashes
+                 and picks up an h-refinement band
+     04 SHIP   · export crate draws closed, camera pulls wide
    ============================================================ */
 (() => {
   "use strict";
@@ -32,80 +36,51 @@
   const sstep = (t) => { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); };
   const lerp = (a, b, t) => a + (b - a) * t;
 
-  /* ================= wing definition (RV-12 style) ================= */
-  const S = 1.8, CR = 0.72, DIHED = 0.035;
-  const dihedY = (z) => DIHED * z;
-  const XO = -0.36, YO = -0.05, ZO = -0.92;
+  /* ================= lug geometry =================
+     outline: shank |x| ≤ 0.5 from y = −1.0 up to y = 0.55, then a
+     semicircular head of radius 0.5 centred on the bore centre C.
+     bore r = 0.22 at C = (0, 0.55). thickness 0.16 (z ± 0.08).
+     the domain is star-shaped about C, so the whole part meshes as
+     one polar web: rings from the bore out to the boundary. */
+  const CX = 0, CY = 0.55;
+  const RH = 0.5, RB = 0.22, YB = -1.0, HW = 0.5, TH = 0.08;
+  const NT = 40, NR = 14;
 
-  const P = 56, H = P / 2;
-  const M2 = 0.02, P4 = 0.4;
-  const ycam = (x) => x < P4 ? (M2 / (P4 * P4)) * (2 * P4 * x - x * x)
-                             : (M2 / ((1 - P4) * (1 - P4))) * ((1 - 2 * P4) + 2 * P4 * x - x * x);
-  const ythk = (x) => 5 * 0.12 * (0.2969 * Math.sqrt(x) - 0.1260 * x - 0.3516 * x * x + 0.2843 * x ** 3 - 0.1036 * x ** 4);
-  const LX = [], LY = [], LN = [];
-  {
-    const pts = [];
-    for (let i = 0; i <= H; i++) { const x = 0.5 * (1 + Math.cos(Math.PI * i / H)); pts.push([x, ycam(x) + ythk(x)]); }
-    for (let i = 1; i < H; i++) { const x = 0.5 * (1 - Math.cos(Math.PI * i / H)); pts.push([x, ycam(x) - ythk(x)]); }
-    pts.forEach(([x, y]) => { LX.push(x); LY.push(y); });
-    for (let i = 0; i < P; i++) {
-      const a = (i - 1 + P) % P, b = (i + 1) % P;
-      const tx = LX[b] - LX[a], ty = LY[b] - LY[a];
-      const l = Math.hypot(tx, ty) || 1;
-      LN.push([-ty / l, tx / l]);
-    }
-  }
-  const LEI = H;
-  const jFor = (xc, upper) => {
-    let best = upper ? 0 : P - 1, bd = 9;
-    for (let j = 0; j < P; j++) {
-      if ((j <= H) !== !!upper) continue;
-      const d = Math.abs(LX[j] - xc);
-      if (d < bd) { bd = d; best = j; }
-    }
-    return best;
+  /* distance from bore centre to the outline along direction a */
+  const Rbound = (a) => {
+    const dx = Math.cos(a), dy = Math.sin(a);
+    if (dy >= 0) return RH;                                  // head arc (centred on C)
+    const cands = [];
+    if (dx > 1e-6) cands.push((HW - CX) / dx);
+    if (dx < -1e-6) cands.push((-HW - CX) / dx);
+    cands.push((YB - CY) / dy);
+    return Math.min(...cands.filter((c) => c > 0));
   };
-  const secAt = (z, scale) => {
-    const sc = scale || 1, ch = CR * sc, dy = dihedY(Math.min(z, S));
-    const x0 = (1 - sc) * CR * 0.5;
-    const out = [];
-    for (let j = 0; j < P; j++) {
-      out.push([x0 + LX[j] * ch + XO, LY[j] * ch * Math.min(sc * 1.3, 1) + dy + YO, z + ZO]);
-    }
-    return out;
+  /* radial clustering into the bore edge (stress-raiser refinement) */
+  const rAt = (a, i) => {
+    const t = Math.pow(i / NR, 1.55);
+    return lerp(RB, Rbound(a), t);
   };
-
-  const RIBZ = [];
-  for (let z = 0; z <= S + 1e-6; z += 0.15) RIBZ.push(+z.toFixed(2));
-  const stations = RIBZ.map((z) => ({ pts: secAt(z), z }));
-  stations.push({ pts: secAt(S + 0.035, 0.62), z: S + 0.035 });
-  stations.push({ pts: secAt(S + 0.06, 0.26), z: S + 0.06 });
-  const NSTA = stations.length, tipIdx = RIBZ.length - 1;
-
-  const FLAP0 = 0.18, FLAP1 = 1.68, HINGE = 0.74;
-  const tagOf = (j, z) => {
-    if (z > S - 0.06 || z < 0.05) return 3;
-    if (LX[j] < 0.14) return 1;
-    if (LX[j] > HINGE && z > FLAP0 && z < FLAP1) return 2;
-    return 0;
+  const webPt = (i, j, z) => {
+    const a = (j / NT) * Math.PI * 2 + Math.PI / 2;          // spoke 0 points up through the head
+    return [CX + Math.cos(a) * rAt(a, i), CY + Math.sin(a) * rAt(a, i), z];
   };
 
   /* ================= scene ================= */
   const renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
   renderer.setClearColor(0x000000, 0);
   const scene = new T.Scene();
-  scene.fog = new T.Fog(0x060402, 2.0, 7.0);
+  scene.fog = new T.Fog(0x060402, 2.0, 8.0);
   const camera = new T.PerspectiveCamera(40, 1, 0.05, 40);
 
-  const mats = [];                                     // [material, baseOpacity]
+  const mats = [];
   const lineMat = (hex, op, noDepth) => {
     const m = new T.LineBasicMaterial({ color: hex, transparent: true, opacity: op });
-    if (noDepth) { m.depthTest = false; }
+    if (noDepth) m.depthTest = false;
     mats.push([m, op]);
     return m;
   };
   const TEAL = 0x0fb6ac, GOLD = 0xffba00, INK = 0xebe9e2;
-
   const lineObj = (arr, mat, order) => {
     const g = new T.BufferGeometry();
     g.setAttribute("position", new T.Float32BufferAttribute(arr, 3));
@@ -116,161 +91,140 @@
   };
   const pushSeg = (arr, a, b) => { arr.push(a[0], a[1], a[2], b[0], b[1], b[2]); };
 
-  /* ---- solid occluder: the hidden-line trick ---- */
+  /* ---- solid occluder: front + back faces, bore wall, outer wall ---- */
+  let solidMesh;
   {
     const pos = [];
     const quad = (a, b, c, d) => { pos.push(...a, ...b, ...c, ...a, ...c, ...d); };
-    for (let s = 0; s < NSTA - 1; s++) {
-      for (let j = 0; j < P; j++) {
-        quad(stations[s].pts[j], stations[s + 1].pts[j], stations[s + 1].pts[(j + 1) % P], stations[s].pts[(j + 1) % P]);
+    [TH, -TH].forEach((z) => {
+      for (let i = 0; i < NR; i++) {
+        for (let j = 0; j < NT; j++) {
+          quad(webPt(i, j, z), webPt(i + 1, j, z), webPt(i + 1, (j + 1) % NT, z), webPt(i, (j + 1) % NT, z));
+        }
       }
-    }
-    [0, NSTA - 1].forEach((si) => {
-      const ring = stations[si].pts;
-      const c0 = [0, 0, 0];
-      ring.forEach((p) => { c0[0] += p[0] / P; c0[1] += p[1] / P; c0[2] += p[2] / P; });
-      for (let j = 0; j < P; j++) pos.push(...c0, ...ring[j], ...ring[(j + 1) % P]);
     });
+    for (let j = 0; j < NT; j++) {
+      quad(webPt(0, j, TH), webPt(0, (j + 1) % NT, TH), webPt(0, (j + 1) % NT, -TH), webPt(0, j, -TH));
+      quad(webPt(NR, j, TH), webPt(NR, (j + 1) % NT, TH), webPt(NR, (j + 1) % NT, -TH), webPt(NR, j, -TH));
+    }
     const g = new T.BufferGeometry();
     g.setAttribute("position", new T.Float32BufferAttribute(pos, 3));
     const m = new T.MeshBasicMaterial({ color: 0x080603, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2, side: T.DoubleSide });
-    const solid = new T.Mesh(g, m);
-    solid.renderOrder = 0;
-    scene.add(solid);
-    var solidMesh = solid;
+    solidMesh = new T.Mesh(g, m);
+    solidMesh.renderOrder = 0;
+    scene.add(solidMesh);
   }
 
-  /* ---- CAD skin grid, split by tag group for the classify act ---- */
-  const tagArr = [[], [], [], []];
-  stations.forEach((st) => {
-    for (let j = 0; j < P; j++) pushSeg(tagArr[tagOf(j, st.z)], st.pts[j], st.pts[(j + 1) % P]);
-  });
-  for (let j = 0; j < P; j += 2) {
-    for (let s = 0; s < NSTA - 1; s++) {
-      pushSeg(tagArr[tagOf(j, stations[s].z)], stations[s].pts[j], stations[s + 1].pts[j]);
-    }
-  }
-  const tagMats = [0, 1, 2, 3].map(() => lineMat(TEAL, 0.34));
-  const tagObjs = tagArr.map((arr, i) => lineObj(arr, tagMats[i], 2));
-
-  /* ---- feature edges ---- */
+  /* ---- feature edges: outlines, bore rims, shank corners ---- */
   const featArr = [];
-  const featAlong = (j, s0, s1) => { for (let s = s0; s < s1; s++) pushSeg(featArr, stations[s].pts[j], stations[s + 1].pts[j]); };
-  featAlong(LEI, 0, NSTA - 1); featAlong(0, 0, NSTA - 1); featAlong(P - 1, 0, NSTA - 1);
-  [0, tipIdx].forEach((si) => { for (let j = 0; j < P; j++) pushSeg(featArr, stations[si].pts[j], stations[si].pts[(j + 1) % P]); });
-  const sparJs = [];
-  [0.30, 0.70].forEach((xc) => {
-    const ju = jFor(xc, true), jl = jFor(xc, false);
-    sparJs.push([ju, jl]);
-    featAlong(ju, 0, tipIdx); featAlong(jl, 0, tipIdx);
+  [TH, -TH].forEach((z) => {
+    for (let j = 0; j < NT; j++) {
+      pushSeg(featArr, webPt(NR, j, z), webPt(NR, (j + 1) % NT, z));   // outline
+      pushSeg(featArr, webPt(0, j, z), webPt(0, (j + 1) % NT, z));     // bore rim
+    }
   });
-  const jH = jFor(HINGE, true);
-  const stIdxAt = (z) => { let b = 0, bd = 9; RIBZ.forEach((rz, i) => { const d = Math.abs(rz - z); if (d < bd) { bd = d; b = i; } }); return b; };
-  featAlong(jH, stIdxAt(FLAP0), stIdxAt(FLAP1));
-  [FLAP0, FLAP1].forEach((z) => {
-    const sec = secAt(z);
-    for (let j = 0; j < jH; j++) pushSeg(featArr, sec[j], sec[j + 1]);
-    for (let j = P - 1; j > P - 1 - jH; j--) pushSeg(featArr, sec[j], sec[j - 1]);
+  [[HW, YB], [-HW, YB], [HW, CY], [-HW, CY]].forEach(([x, y]) => {
+    pushSeg(featArr, [x, y, TH], [x, y, -TH]);                          // corner verticals
   });
+  pushSeg(featArr, [-HW, YB, TH], [HW, YB, TH]);
+  pushSeg(featArr, [-HW, YB, -TH], [HW, YB, -TH]);
   const featMat = lineMat(INK, 0.85);
   lineObj(featArr, featMat, 3);
 
-  /* ---- internal structure: ghosted through the skin ---- */
-  const intArr = [];
-  for (let s = 0; s <= tipIdx; s++) {
-    sparJs.forEach(([ju, jl]) => pushSeg(intArr, stations[s].pts[ju], stations[s].pts[jl]));
-    for (let j = 0; j < P; j += 4) pushSeg(intArr, stations[s].pts[j], stations[s].pts[(j + 4) % P]);
+  /* ---- tag groups for the classify act ----
+     0 faces (front web, sparse) · 1 bore wall · 2 outer walls · 3 clamped base */
+  const gFace = [], gBore = [], gWall = [], gBase = [];
+  [TH, -TH].forEach((z) => {
+    for (let i = 2; i <= NR; i += 2) {
+      for (let j = 0; j < NT; j++) pushSeg(gFace, webPt(i, j, z), webPt(i, (j + 1) % NT, z));
+    }
+    for (let j = 0; j < NT; j += 2) {
+      for (let i = 0; i < NR; i++) pushSeg(gFace, webPt(i, j, z), webPt(i + 1, j, z));
+    }
+  });
+  for (let j = 0; j < NT; j++) {
+    pushSeg(gBore, webPt(0, j, TH), webPt(0, j, -TH));
+    pushSeg(gWall, webPt(NR, j, TH), webPt(NR, j, -TH));
   }
-  const intMat = lineMat(TEAL, 0.05, true);
-  lineObj(intArr, intMat, 1);
+  for (let j = 0; j < NT; j++) {                                       // outer wall mid-ring
+    pushSeg(gWall, webPt(NR, j, 0), webPt(NR, (j + 1) % NT, 0));
+  }
+  {
+    const xs = 10;
+    for (let k = 0; k <= xs; k++) {
+      const x = lerp(-HW, HW, k / xs);
+      pushSeg(gBase, [x, YB, TH], [x, YB, -TH]);
+    }
+  }
+  const tagMats = [lineMat(TEAL, 0.3), lineMat(TEAL, 0.5), lineMat(TEAL, 0.4), lineMat(TEAL, 0.5)];
+  lineObj(gFace, tagMats[0], 2); lineObj(gBore, tagMats[1], 2);
+  lineObj(gWall, tagMats[2], 2); lineObj(gBase, tagMats[3], 2);
 
-  /* ---- fine surface mesh: multiblock, sorted LE→TE for the sweep reveal ---- */
-  const cheb = (a, b, n, skipFirst) => {
-    const out = [];
-    for (let i = skipFirst ? 1 : 0; i <= n; i++) out.push(lerp(a, b, 0.5 - 0.5 * Math.cos(Math.PI * i / n)));
-    return out;
-  };
-  const fineZ = [...cheb(0, FLAP0, 4), ...cheb(FLAP0, FLAP1, 20, true), ...cheb(FLAP1, S, 5, true)];
-  const fineSecs = fineZ.map((z) => secAt(z));
+  /* ---- fine web: full rings + spokes, ordered bore → boundary for the
+         generation bloom; plus back face + through-thickness hex lines ---- */
   const fineList = [];
-  for (let s = 0; s < fineSecs.length; s++) {
-    for (let j = 0; j < P; j++) {
-      fineList.push({ a: fineSecs[s][j], b: fineSecs[s][(j + 1) % P], d: Math.abs(j - LEI) / H });
+  [TH, -TH].forEach((z) => {
+    for (let i = 1; i <= NR; i++) {
+      for (let j = 0; j < NT; j++) fineList.push({ a: webPt(i, j, z), b: webPt(i, (j + 1) % NT, z), r: i });
     }
-  }
-  for (let j = 0; j < P; j++) {
-    for (let s = 0; s < fineSecs.length - 1; s++) {
-      fineList.push({ a: fineSecs[s][j], b: fineSecs[s + 1][j], d: Math.abs(j - LEI) / H });
+    for (let j = 0; j < NT; j++) {
+      for (let i = 0; i < NR; i++) fineList.push({ a: webPt(i, j, z), b: webPt(i + 1, j, z), r: i + 0.5 });
     }
+  });
+  for (let j = 0; j < NT; j += 2) {                                    // through-thickness hex lines at rings 4/9
+    [4, 9].forEach((i) => fineList.push({ a: webPt(i, j, TH), b: webPt(i, j, -TH), r: i + 0.3 }));
   }
-  fineList.sort((a, b) => a.d - b.d);
+  fineList.sort((a, b) => a.r - b.r);
   const fineArr = [];
   fineList.forEach((g) => pushSeg(fineArr, g.a, g.b));
-  const fineMat = lineMat(TEAL, 0.4);
+  const fineMat = lineMat(TEAL, 0.42);
   const fineObj = lineObj(fineArr, fineMat, 2);
   const FINE_N = fineList.length;
   fineObj.geometry.setDrawRange(0, 0);
 
-  /* ---- O-grid slice at the inspection station ---- */
-  const INS_Z = 0.93;
-  const insSec = secAt(INS_Z);
-  const NBL = 8, GBL = 1.25, NVOL = 10, GVOL = 1.38;
-  const offs = [];
-  {
-    const totBL = 0.035 * CR;
-    const d0 = totBL * (GBL - 1) / (Math.pow(GBL, NBL) - 1);
-    let acc = 0;
-    for (let k = 0; k < NBL; k++) { acc += d0 * Math.pow(GBL, k); offs.push(acc); }
-    let dv = d0 * Math.pow(GBL, NBL);
-    for (let k = 0; k < NVOL; k++) { acc += dv; offs.push(acc); dv *= GVOL; }
-  }
-  const ringPts = offs.map((d) => insSec.map((p, j) => [p[0] + LN[j][0] * d, p[1] + LN[j][1] * d, p[2]]));
-  const blArr = [], volArr = [], spokeArr = [], wakeArr = [];
-  ringPts.forEach((ring, k) => {
-    const arr = k < NBL ? blArr : volArr;
-    for (let j = 0; j < P; j++) pushSeg(arr, ring[j], ring[(j + 1) % P]);
-  });
-  for (let j = 0; j < P; j += 2) {
-    for (let k = 0; k < offs.length; k++) {
-      pushSeg(spokeArr, k === 0 ? insSec[j] : ringPts[k - 1][j], ringPts[k][j]);
+  /* ---- h-refinement band at the bore: appears when PROVE flags it ---- */
+  const refArr = [];
+  [TH, -TH].forEach((z) => {
+    for (let i = 0; i <= 3; i++) {
+      for (let j = 0; j < NT * 2; j++) {
+        const a1 = (j / (NT * 2)) * Math.PI * 2 + Math.PI / 2;
+        const a2 = ((j + 1) / (NT * 2)) * Math.PI * 2 + Math.PI / 2;
+        const rr1 = lerp(RB, Rbound(a1), Math.pow((i + 0.5) / NR / 2, 1.55) * 2);
+        const rr2 = lerp(RB, Rbound(a2), Math.pow((i + 0.5) / NR / 2, 1.55) * 2);
+        refArr.push(CX + Math.cos(a1) * rr1, CY + Math.sin(a1) * rr1, z,
+                    CX + Math.cos(a2) * rr2, CY + Math.sin(a2) * rr2, z);
+      }
     }
-  }
-  const WXs = [0.10, 0.22, 0.38, 0.58];
-  const chordY = dihedY(INS_Z) + YO;
-  const wakeOf = (p, wx) => [p[0] + wx, p[1] + (p[1] - chordY) * wx * 0.5, p[2]];
-  [[0], [P - 1]].forEach(([jj]) => {
-    const row = [insSec[jj], ...ringPts.map((r) => r[jj])];
-    row.forEach((p) => {
-      let prev = p;
-      WXs.forEach((wx) => { const q = wakeOf(p, wx); pushSeg(wakeArr, prev, q); prev = q; });
-    });
-    WXs.forEach((wx) => {
-      for (let k = 0; k < row.length - 1; k++) pushSeg(wakeArr, wakeOf(row[k], wx), wakeOf(row[k + 1], wx));
-    });
+    for (let j = 0; j < NT * 2; j++) {
+      const a = (j / (NT * 2)) * Math.PI * 2 + Math.PI / 2;
+      const r1 = RB, r2 = lerp(RB, Rbound(a), Math.pow(3.5 / NR / 2, 1.55) * 2);
+      refArr.push(CX + Math.cos(a) * r1, CY + Math.sin(a) * r1, z,
+                  CX + Math.cos(a) * r2, CY + Math.sin(a) * r2, z);
+    }
   });
-  const blMat = lineMat(TEAL, 0.62), volMat = lineMat(TEAL, 0.3), spokeMat = lineMat(TEAL, 0.3), wakeMat = lineMat(TEAL, 0.26);
-  lineObj(blArr, blMat, 4); lineObj(volArr, volMat, 4); lineObj(spokeArr, spokeMat, 4); lineObj(wakeArr, wakeMat, 4);
-  const insMid = [0.5 * CR + XO + 0.1, chordY, INS_Z + ZO];
+  const refMat = lineMat(TEAL, 0.0);
+  lineObj(refArr, refMat, 4);
 
-  /* ---- CAD viewport ground grid: anchors the model in space ---- */
+  /* ---- CAD viewport ground grid ---- */
   const grid = new T.GridHelper(6, 30, 0x0e544e, 0x11332f);
-  grid.position.y = -0.42;
+  grid.position.y = YB - 0.28;
   grid.material.transparent = true;
   grid.material.opacity = 0;
-  grid.renderOrder = 0;
   scene.add(grid);
 
   /* ---- assemble cloud ---- */
   const cloud = [];
   let seed = 20260703;
   const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
-  stations.forEach((st) => {
-    for (let j = 0; j < P; j += 2) {
-      const p = st.pts[j];
-      const th = rnd() * Math.PI * 2, ph = Math.acos(rnd() * 2 - 1), r = 1.8 + rnd() * 1.3;
-      cloud.push({ t: p, s: [Math.sin(ph) * Math.cos(th) * r, Math.cos(ph) * r * 0.75, Math.sin(ph) * Math.sin(th) * r], st: rnd() * 0.55 });
+  for (let i = 0; i <= NR; i += 2) {
+    for (let j = 0; j < NT; j++) {
+      [TH, -TH].forEach((z) => {
+        const p = webPt(i, j, z);
+        const th = rnd() * Math.PI * 2, ph = Math.acos(rnd() * 2 - 1), r = 1.7 + rnd() * 1.3;
+        cloud.push({ t: p, s: [Math.sin(ph) * Math.cos(th) * r, Math.cos(ph) * r * 0.85, Math.sin(ph) * Math.sin(th) * r], st: rnd() * 0.55 });
+      });
     }
-  });
+  }
   const cloudPos = new Float32Array(cloud.length * 3);
   const cloudGeo = new T.BufferGeometry();
   cloudGeo.setAttribute("position", new T.BufferAttribute(cloudPos, 3));
@@ -280,13 +234,13 @@
   cloudObj.renderOrder = 5;
   scene.add(cloudObj);
 
-  /* ---- gate, flag rings, crate ---- */
+  /* ---- quality gate (sweeps vertically), bore flag ring, crate ---- */
   const gateGeo = new T.BufferGeometry();
   {
-    const gx0 = XO - 0.1, gx1 = CR + XO + 0.1, gy0 = -0.12 + YO, gy1 = 0.16 + YO;
+    const gx = HW + 0.16, gz = TH + 0.14;
     gateGeo.setAttribute("position", new T.Float32BufferAttribute([
-      gx0, gy0, 0, gx1, gy0, 0, gx1, gy0, 0, gx1, gy1, 0,
-      gx1, gy1, 0, gx0, gy1, 0, gx0, gy1, 0, gx0, gy0, 0,
+      -gx, 0, -gz, gx, 0, -gz, gx, 0, -gz, gx, 0, gz,
+      gx, 0, gz, -gx, 0, gz, -gx, 0, gz, -gx, 0, -gz,
     ], 3));
   }
   const gateMat = lineMat(GOLD, 0.55);
@@ -294,26 +248,17 @@
   gateObj.renderOrder = 6;
   scene.add(gateObj);
 
-  const flagObjs = [FLAP0, FLAP1].map((z) => {
-    const sec = secAt(z);
-    const arr = [];
-    for (let j = 0; j < P; j++) pushSeg(arr, sec[j], sec[(j + 1) % P]);
-    const m = lineMat(GOLD, 0.0);
-    const o = lineObj(arr, m, 6);
-    o.userData.z = z + ZO;
-    o.userData.mat = m;
-    return o;
+  const flagArr = [];
+  [TH + 0.004, -TH - 0.004].forEach((z) => {
+    for (let j = 0; j < NT; j++) pushSeg(flagArr, webPt(0, j, z), webPt(0, (j + 1) % NT, z));
   });
+  const flagMat = lineMat(GOLD, 0.0);
+  lineObj(flagArr, flagMat, 6);
 
-  let bb = [9, 9, 9, -9, -9, -9];
-  stations.forEach((st) => st.pts.forEach((p) => {
-    bb = [Math.min(bb[0], p[0]), Math.min(bb[1], p[1]), Math.min(bb[2], p[2]),
-          Math.max(bb[3], p[0]), Math.max(bb[4], p[1]), Math.max(bb[5], p[2])];
-  }));
-  const MG = 0.14;
+  const MGx = 0.62, MGy0 = YB - 0.14, MGy1 = CY + RH + 0.14, MGz = 0.34;
   const cnr = [
-    [bb[0]-MG, bb[1]-MG, bb[2]-MG], [bb[3]+MG, bb[1]-MG, bb[2]-MG], [bb[3]+MG, bb[4]+MG, bb[2]-MG], [bb[0]-MG, bb[4]+MG, bb[2]-MG],
-    [bb[0]-MG, bb[1]-MG, bb[5]+MG], [bb[3]+MG, bb[1]-MG, bb[5]+MG], [bb[3]+MG, bb[4]+MG, bb[5]+MG], [bb[0]-MG, bb[4]+MG, bb[5]+MG],
+    [-MGx, MGy0, -MGz], [MGx, MGy0, -MGz], [MGx, MGy1, -MGz], [-MGx, MGy1, -MGz],
+    [-MGx, MGy0, MGz], [MGx, MGy0, MGz], [MGx, MGy1, MGz], [-MGx, MGy1, MGz],
   ];
   const crateArr = [];
   [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].forEach(([a, b]) => pushSeg(crateArr, cnr[a], cnr[b]));
@@ -322,16 +267,15 @@
   crateObj.geometry.setDrawRange(0, 0);
 
   /* ================= camera timeline =================
-     all keys view from the leading-edge side (−x): the wing presents
-     LE-forward, root lower-left, tip receding upper-right — the way
-     you'd actually frame a wing */
+     compact standing part → frames centred at every key; the mesh act
+     dives to the bore, PROVE pulls back up, SHIP goes wide */
   const KEYS = [
-    { p: 0.00, th: 3.80, ph: 0.34, d: 3.4, t: [0, 0.02, 0] },
-    { p: 0.20, th: 4.35, ph: 0.50, d: 2.45, t: [0, 0, 0] },
-    { p: 0.40, th: 4.95, ph: 0.55, d: 2.15, t: [0, 0, 0.05] },
-    { p: 0.60, th: 6.10, ph: 0.13, d: 1.3, t: insMid },
-    { p: 0.80, th: 6.80, ph: 0.95, d: 2.6, t: [0, 0, 0] },
-    { p: 1.00, th: 7.45, ph: 0.38, d: 3.4, t: [0, 0, 0] },
+    { p: 0.00, th: 0.55, ph: 0.16, d: 3.1, t: [0, 0.05, 0] },
+    { p: 0.20, th: 1.15, ph: 0.30, d: 2.4, t: [0, 0.05, 0] },
+    { p: 0.40, th: 1.85, ph: 0.14, d: 1.9, t: [0, 0.25, 0] },
+    { p: 0.60, th: 3.05, ph: 0.06, d: 0.95, t: [CX, CY, 0] },
+    { p: 0.80, th: 3.85, ph: 0.34, d: 2.3, t: [0, 0.05, 0] },
+    { p: 1.00, th: 4.45, ph: 0.20, d: 3.1, t: [0, 0.02, 0] },
   ];
   const cam = (p) => {
     let i = 0;
@@ -368,15 +312,14 @@
       c.tz + c.d * Math.cos(ph) * Math.cos(th)
     );
     camera.lookAt(c.tx, c.ty, c.tz);
-    scene.fog.near = c.d * 0.55;
-    scene.fog.far = c.d * 3.2;
+    scene.fog.near = c.d * 0.6;
+    scene.fog.far = c.d * 3.4;
 
     const a0 = actWin(p, 0), a1 = actWin(p, 1), a2 = actWin(p, 2), a3 = actWin(p, 3), a4 = actWin(p, 4);
-    const wingA = sstep((a0 - 0.42) / 0.58);
+    const partA = sstep((a0 - 0.42) / 0.58);
     const meshOn = sstep(a2 / 0.4);
     const shipDim = 1 - 0.4 * sstep(a4);
 
-    /* assemble cloud */
     cloudObj.visible = a0 < 1;
     if (cloudObj.visible) {
       for (let i = 0; i < cloud.length; i++) {
@@ -386,57 +329,48 @@
         cloudPos[i * 3 + 2] = lerp(q.s[2], q.t[2], k);
       }
       cloudGeo.attributes.position.needsUpdate = true;
-      cloudMat.opacity = 0.85 * (1 - wingA * 0.95);
+      cloudMat.opacity = 0.85 * (1 - partA * 0.95);
     }
 
-    /* solid occluder appears once the shape has mostly landed */
-    solidMesh.visible = wingA > 0.3;
-    grid.material.opacity = 0.13 * wingA * (1 - 0.65 * sstep((a2 - 0.55) / 0.3) * (1 - sstep(a3 / 0.3)));
+    solidMesh.visible = partA > 0.3;
+    grid.material.opacity = 0.13 * partA * (1 - 0.6 * sstep((a2 - 0.5) / 0.3) * (1 - sstep(a3 / 0.3)));
 
-    /* CAD skin + classification pulses */
+    /* CAD groups + classification pulses: faces → bore → walls → base */
+    const baseOps = [0.3, 0.5, 0.4, 0.5];
     const order = [0, 1, 2, 3];
     tagMats.forEach((m, i) => {
-      let op = 0.34 * wingA * (1 - 0.55 * meshOn) * shipDim;
+      let op = baseOps[i] * partA * (1 - (i === 0 ? 0.55 : 0.25) * meshOn) * shipDim;
       m.color.copy(cTeal);
       if (a1 > 0) {
-        const at = clamp(a1 * 4.4 - order.indexOf(i) * 1.05, 0, 1);
+        const at = clamp(a1 * 4.4 - order[i] * 1.05, 0, 1);
         if (at > 0 && at < 1) {
           const pulse = Math.sin(at * Math.PI);
           m.color.lerpColors(cTeal, cGold, pulse);
-          op = Math.max(op, 0.75 * pulse);
-        } else if (at >= 1 && i > 0) op *= 1.35;
+          op = Math.max(op, 0.8 * pulse);
+        } else if (at >= 1 && i > 0) op *= 1.3;
       }
       m.opacity = op;
     });
-    featMat.opacity = 0.85 * wingA * shipDim;
-    intMat.opacity = 0.05 * wingA * shipDim;
+    featMat.opacity = 0.85 * partA * shipDim;
 
-    /* fine mesh sweep LE → TE */
-    const gt = sstep(a2 / 0.5);
-    fineObj.geometry.setDrawRange(0, Math.floor(FINE_N * sstep(gt * 1.15)) * 2);
-    fineMat.opacity = 0.4 * shipDim;
+    /* mesh generation: web blooms outward from the bore */
+    const gt = sstep(a2 / 0.55);
+    fineObj.geometry.setDrawRange(0, Math.floor(FINE_N * sstep(gt * 1.1)) * 2);
+    fineMat.opacity = 0.42 * shipDim;
 
-    /* O-grid staged build-out */
-    const bl = sstep((a2 - 0.4) / 0.25), sp = sstep((a2 - 0.52) / 0.28), vl = sstep((a2 - 0.62) / 0.3), wk = sstep((a2 - 0.74) / 0.26);
-    const ogDim = (1 - sstep((a4 - 0.05) / 0.35));
-    blMat.opacity = 0.62 * bl * ogDim;
-    spokeMat.opacity = 0.3 * sp * ogDim;
-    volMat.opacity = 0.3 * vl * ogDim;
-    wakeMat.opacity = 0.26 * wk * ogDim;
+    /* quality gate + bore hotspot + h-refinement */
+    gateObj.visible = a3 > 0 && a3 < 1;
+    let refOn = 0;
+    if (a3 > 0) {
+      const scanY = lerp(YB - 0.2, CY + RH + 0.2, sstep(a3));
+      gateObj.position.y = scanY;
+      gateMat.opacity = gateObj.visible ? 0.55 * (1 - sstep((a3 - 0.8) / 0.2)) * sstep(a3 / 0.1) : 0;
+      const passed = scanY - CY;                       // gate reaching the bore centre
+      flagMat.opacity = (passed > 0 && passed < 0.5) ? 0.85 * Math.sin(passed / 0.5 * Math.PI) : 0;
+      refOn = sstep((passed - 0.15) / 0.3);
+    } else flagMat.opacity = 0;
+    refMat.opacity = 0.5 * refOn * shipDim * (a3 > 0 || a2 >= 1 ? 1 : 0);
 
-    /* quality gate */
-    gateObj.visible = a3 > 0 && a3 < 1.15;
-    if (gateObj.visible) {
-      const scanZ = lerp(bb[2] - 0.1, bb[5] + 0.1, sstep(a3));
-      gateObj.position.z = scanZ;
-      gateMat.opacity = 0.55 * (1 - Math.abs(a3 - 0.5) * 0.8);
-      flagObjs.forEach((o) => {
-        const passed = scanZ - o.userData.z;
-        o.userData.mat.opacity = (passed > 0 && passed < 0.38) ? 0.8 * Math.sin(passed / 0.38 * Math.PI) : 0;
-      });
-    } else flagObjs.forEach((o) => { o.userData.mat.opacity = 0; });
-
-    /* export crate */
     crateObj.geometry.setDrawRange(0, Math.floor(12 * clamp(a4 * 1.9, 0, 1)) * 2);
     crateMat.opacity = 0.55;
 

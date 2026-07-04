@@ -50,7 +50,7 @@
         <div class="eng-title" data-eng-title>
           <span class="kicker">Hexera · flight through the pipeline</span>
           <h1>Inside the <em>engine</em>.</h1>
-          <p>One wing, five acts. Every line below is computed live in your browser — scroll to fly the pipeline.</p>
+          <p>One part, five acts. Every line below is computed live in your browser — scroll to run the pipeline.</p>
         </div>
         <div class="eng-cue" data-eng-cue>scroll to run</div>
 
@@ -84,25 +84,25 @@
         <aside class="eng-cap eng-cap--r" data-eng-cap="1">
           <span class="eng-cap__eyebrow">act 02 · tag</span>
           <h2>Every surface <em>gets a job</em>.</h2>
-          <p>Skin, leading edge, flaperon, root and tip — classified from your intent, not hand-clicked. <span class="mono">walls · inlet · outlet · symmetry</span>, named the way your solver expects.</p>
+          <p>Faces, pin bore, side walls, clamped base — classified from your intent, not hand-clicked. <span class="mono">fixed · bearing load · free</span>, named the way your solver expects.</p>
         </aside>
 
         <aside class="eng-cap eng-cap--l" data-eng-cap="2">
           <span class="eng-cap__eyebrow">act 03 · mesh</span>
-          <h2>Boundary layers grown <em>like they were drawn by hand</em>.</h2>
-          <p>Blocks split exactly at the flaperon edges, cells packed into the leading and trailing edges. Then the section fills: eight prism layers at <span class="mono">1.25</span> growth, an O-grid marching out to the far field, and a wake block trailing the TE.</p>
+          <h2>A mesh built the way <em>an analyst would build it</em>.</h2>
+          <p>A butterfly web radiates from the bore — quads everywhere, rings geometrically clustered into the hole edge where stress concentrates, hex elements through the thickness. Watch it generate outward, ring by ring.</p>
         </aside>
 
         <aside class="eng-cap eng-cap--r" data-eng-cap="3">
           <span class="eng-cap__eyebrow">act 04 · prove</span>
           <h2>It grades its own work <em>before you see it</em>.</h2>
-          <p>A quality gate sweeps every station — skewness, orthogonality, volume ratio. What fails gets re-refined on the spot and swept again, then the report is signed.</p>
+          <p>A quality gate sweeps the part — aspect ratio, jacobian, skew. It knows the bore edge is where lug stress peaks, flags it, and drops an h-refinement band on the spot before signing the report.</p>
         </aside>
 
         <aside class="eng-cap eng-cap--c" data-eng-cap="4">
           <span class="eng-cap__eyebrow">act 05 · ship</span>
           <h2>Solver-ready is the <em>only</em> definition of done.</h2>
-          <p>Crated and shipped: <span class="mono">.cgns · .msh · .su2</span> with zones named for your solver, plus the full quality report and the script that built it.</p>
+          <p>Crated and shipped: <span class="mono">.inp · .cdb · .bdf</span> with sets named for your solver, plus the full quality report and the script that built it.</p>
           <div class="eng-cap__act">
             <a class="btn btn--gold" href="contact.html">Join waitlist <span aria-hidden="true">→</span></a>
           </div>
@@ -113,7 +113,7 @@
     <!-- ===== What ships with every mesh ===== -->
     <section class="eng-ship" aria-label="What ships with every mesh">
       <div class="eng-ship__grid">
-        <div class="eng-ship__cell reveal"><b>solver decks</b><span>.cgns, .msh and .su2 exports with boundary zones pre-named for OpenFOAM, Fluent, SU2 and Abaqus.</span></div>
+        <div class="eng-ship__cell reveal"><b>solver decks</b><span>.cgns, .msh, .su2 or .inp — CFD or FEA, with zones and sets pre-named for your solver.</span></div>
         <div class="eng-ship__cell reveal"><b>quality report</b><span>Signed skewness, orthogonality and y+ distributions — the evidence, not just the claim.</span></div>
         <div class="eng-ship__cell reveal"><b>the script</b><span>The exact Gmsh Python the agent wrote and debugged. Edit a parameter, re-run it yourself.</span></div>
         <div class="eng-ship__cell reveal"><b>the replay</b><span>Every decision the agent made, step by step — auditable like a senior engineer's notebook.</span></div>
