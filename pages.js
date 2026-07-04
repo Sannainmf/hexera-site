@@ -497,7 +497,7 @@
     const railFill = spec.querySelector("[data-spec-fill]");
     const railStops = Array.from(spec.querySelectorAll("[data-spec-go]"));
 
-    const GOLD = "255,186,0", TEAL = "15,182,172";
+    const GOLD = "255,186,0", TEAL = "15,182,172", INK = "236,234,229";
     const sstep = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * k * (k * (k * 6 - 15) + 10));
     const MW = 0.11;                                 // gate window, in total-scroll units
 
@@ -644,7 +644,7 @@
           ringAt(xr, VRi, 0, PI2, 36, wall);
           if (i % 2 === 0) ringAt(xr, VRo, 0, PI2, 36, outer);
         }
-        for (let j = 0; j < 24; j++) railAt((j / 24) * PI2, VRi, seg2[0], seg2[1], 11, wall);
+        for (let j = 0; j < 36; j++) railAt((j / 36) * PI2, VRi, seg2[0], seg2[1], 11, wall);
         for (let j = 0; j < 12; j++) railAt((j / 12) * PI2, VRo, seg2[0], seg2[1], 11, outer);
       }
       // sawn-open middle: the far half remains, meshed finer still
@@ -657,6 +657,7 @@
       for (let j = 0; j <= HS; j++) railAt(H1 + (j / HS) * Math.PI, VRi, -WX, WX, 48, wall);
       for (let j = 0; j <= 9; j++) railAt(H1 + (j / 9) * Math.PI, VRo, -WX, WX, 24, outer);
       // slice faces: longitudinal lips meshed through the wall thickness…
+      const cutEdge = [];
       for (const sgn of [-1, 1]) {
         for (let q = 0; q <= 5; q++) {
           const r2 = VRi + ((VRo - VRi) * q) / 5;
@@ -665,7 +666,7 @@
             const x = -WX + ((2 * WX) * k) / 48;
             ln.push([x, sgn * r2 + bend(x), 0]);
           }
-          cut.push(ln);
+          (q === 0 || q === 5 ? cutEdge : cut).push(ln);
         }
         for (let k = 0; k <= 48; k++) {
           const x = -WX + ((2 * WX) * k) / 48;
@@ -675,7 +676,9 @@
       // …and the two annular saw-cut faces where the near half was removed
       for (const xw of [-WX, WX]) {
         const bw = bend(xw);
-        for (const VR2 of [VRi, (VRi + VRo) / 2, VRo]) ringAt(xw, VR2, 0, H1, 18, cut);
+        ringAt(xw, (VRi + VRo) / 2, 0, H1, 18, cut);
+        ringAt(xw, VRi, 0, H1, 18, cutEdge);
+        ringAt(xw, VRo, 0, H1, 18, cutEdge);
         for (let j = 0; j <= 18; j++) {
           const th = (j / 18) * H1;
           cut.push([
@@ -704,7 +707,8 @@
           { pl: outer, col: TEAL, a: 0.12, w: 0.8, flat: true },
           { pl: wall, col: TEAL, a: 0.25, w: 0.8, flat: true },
           { pl: caps, col: TEAL, a: 0.30, w: 0.9, flat: true },
-          { pl: cut, col: GOLD, a: 0.32, w: 0.9, flat: true },
+          { pl: cut, col: TEAL, a: 0.42, w: 0.8, flat: true },
+          { pl: cutEdge, col: INK, a: 0.50, w: 1.1, flat: true },
           { pl: bridges, col: GOLD, a: 0.60, w: 1.1 },
           { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true, track: true },
         ],
