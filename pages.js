@@ -632,7 +632,8 @@
         }
       }
       // the sectioned wall: kept half is z <= 0 (we look into the trough)
-      const NX = 56, NA2 = 20;
+      const NX = 64, NA2 = 28;                     // near-square surface quads
+      const GR = [0, 0.08, 0.19, 0.34, 0.55, 0.78, 1]; // wall layers graded to the lumen
       const innerG = [], outerG = [], ledge = [], ledgeEdge = [], endFace = [];
       const half = (VR2, arr, xStep, aStep) => {
         for (let i = 0; i <= NX; i += xStep) {
@@ -654,52 +655,77 @@
           arr.push(rail);
         }
       };
-      half(VRi, innerG, 1, 1);
+      // inner lumen surface: every station, plus half-spacing refinement
+      // rings through the stented span (grade where the device contacts)
+      for (let i = 0; i <= NX; i++) {
+        const xr = -XE + (2 * XE * i) / NX;
+        const mk = (x2) => {
+          const ring = [];
+          for (let k = 0; k <= NA2; k++) {
+            const th = H1 + (H1 * k) / NA2;
+            ring.push([x2, VRi * Math.cos(th) + bend(x2), VRi * Math.sin(th)]);
+          }
+          innerG.push(ring);
+        };
+        mk(xr);
+        if (Math.abs(xr) < 0.62 && i < NX) mk(xr + XE / NX);
+      }
+      for (let j = 0; j <= NA2; j++) {
+        const th = H1 + (H1 * j) / NA2;
+        const rail = [];
+        for (let k = 0; k <= NX; k++) {
+          const x = -XE + (2 * XE * k) / NX;
+          rail.push([x, VRi * Math.cos(th) + bend(x), VRi * Math.sin(th)]);
+        }
+        innerG.push(rail);
+      }
       half(VRo, outerG, 2, 2);
       // flat cut decks along both lips, meshed through the wall thickness
       for (const sgn of [-1, 1]) {
-        for (let q = 0; q <= 5; q++) {
-          const r2 = VRi + ((VRo - VRi) * q) / 5;
+        for (let q = 0; q < GR.length; q++) {
+          const r2 = VRi + (VRo - VRi) * GR[q];
           const ln = [];
           for (let k = 0; k <= NX; k++) {
             const x = -XE + (2 * XE * k) / NX;
             ln.push([x, sgn * r2 + bend(x), 0]);
           }
-          (q === 0 || q === 5 ? ledgeEdge : ledge).push(ln);
+          (q === 0 || q === GR.length - 1 ? ledgeEdge : ledge).push(ln);
         }
         for (let k = 0; k <= NX; k++) {
           const x = -XE + (2 * XE * k) / NX;
           ledge.push([[x, sgn * VRi + bend(x), 0], [x, sgn * VRo + bend(x), 0]]);
         }
       }
-      // end cross-sections: wall half-annulus + O-grid half-disc lumen
+      // end cross-sections: wall annulus with the SAME graded layers as the
+      // decks, and a lumen polar grid clustered toward the wall (y+ rule)
       for (const xe of [-XE, XE]) {
         const be = bend(xe);
-        for (const VR2 of [VRi, (VRi + VRo) / 2, VRo]) {
+        for (let q = 0; q < GR.length; q++) {
+          const VR2 = VRi + (VRo - VRi) * GR[q];
           const arc = [];
-          for (let k = 0; k <= 18; k++) {
-            const th = H1 + (H1 * k) / 18;
+          for (let k = 0; k <= 24; k++) {
+            const th = H1 + (H1 * k) / 24;
             arc.push([xe, VR2 * Math.cos(th) + be, VR2 * Math.sin(th)]);
           }
-          endFace.push(arc);
+          (q === 0 || q === GR.length - 1 ? ledgeEdge : endFace).push(arc);
         }
-        for (let j = 0; j <= 18; j += 2) {
-          const th = H1 + (H1 * j) / 18;
+        for (let j = 0; j <= 24; j++) {
+          const th = H1 + (H1 * j) / 24;
           endFace.push([
             [xe, VRi * Math.cos(th) + be, VRi * Math.sin(th)],
             [xe, VRo * Math.cos(th) + be, VRo * Math.sin(th)],
           ]);
         }
-        for (const fr of [0.35, 0.70]) {
+        for (const fr of [0.30, 0.55, 0.75, 0.88, 0.96]) {
           const arc = [];
-          for (let k = 0; k <= 12; k++) {
-            const th = H1 + (H1 * k) / 12;
+          for (let k = 0; k <= 16; k++) {
+            const th = H1 + (H1 * k) / 16;
             arc.push([xe, fr * VRi * Math.cos(th) + be, fr * VRi * Math.sin(th)]);
           }
           endFace.push(arc);
         }
-        for (let j = 0; j <= 8; j += 2) {
-          const th = H1 + (H1 * j) / 8;
+        for (let j = 0; j <= 12; j++) {
+          const th = H1 + (H1 * j) / 12;
           endFace.push([[xe, be, 0], [xe, VRi * Math.cos(th) + be, VRi * Math.sin(th)]]);
         }
       }
@@ -1051,24 +1077,24 @@
           ctx.strokeStyle = "rgba(" + g.col + "," + (g.a * alphaMul).toFixed(3) + ")";
           ctx.stroke();
         } else {
-          // glow = cheap two-pass halo (wide faint + narrow bright); the
-          // canvas shadowBlur API is far too slow for long paths
+          // glow = cheap two-pass halo (wide faint + narrow bright), built
+          // as a Path2D so each polyline is projected exactly once
           const passes = g.glow ? [[3.2, 0.20], [1, 1]] : [[1, 1]];
-          for (const ps of passes) {
-            ctx.lineWidth = g.w * ps[0];
-            for (let pi = 0; pi < g.pl.length; pi++) {
-              const pl = g.pl[pi];
-              let kSum = 0;
-              ctx.beginPath();
-              for (let k = 0; k < pl.length; k++) {
-                const p2 = pj(pl[k], spun);
-                kSum += p2[2];
-                if (tk) tb(p2);
-                k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
-              }
-              const dep = clamp(0.45 + (kSum / pl.length - 0.96) * 5, 0.30, 1.15);
+          for (let pi = 0; pi < g.pl.length; pi++) {
+            const pl = g.pl[pi];
+            const path = new Path2D();
+            let kSum = 0;
+            for (let k = 0; k < pl.length; k++) {
+              const p2 = pj(pl[k], spun);
+              kSum += p2[2];
+              if (tk) tb(p2);
+              k ? path.lineTo(p2[0], p2[1]) : path.moveTo(p2[0], p2[1]);
+            }
+            const dep = clamp(0.45 + (kSum / pl.length - 0.96) * 5, 0.30, 1.15);
+            for (const ps of passes) {
+              ctx.lineWidth = g.w * ps[0];
               ctx.strokeStyle = "rgba(" + g.col + "," + (g.a * ps[1] * dep * alphaMul).toFixed(3) + ")";
-              ctx.stroke();
+              ctx.stroke(path);
             }
           }
         }
