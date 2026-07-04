@@ -10,12 +10,12 @@
   --gold-soft: #ff7033;
   --gold-ink:  #1a0a02;
 
-  /* teal retires: interactive accents go steel (unpainted airframe metal) */
-  --teal:      #7e8893;
-  --teal-deep: #626c78;
+  /* teal retires: interactive accents go bone/gray */
+  --teal:      #d8d6cf;
+  --teal-deep: #a9a79f;
 
-  /* canvas scenes: steel wireframes, orange accents */
-  --mesh-line-rgb:   126,136,147;
+  /* canvas scenes: light-gray wireframes, orange accents */
+  --mesh-line-rgb:   214,212,205;
   --mesh-accent-rgb: 255,79,0;
   --mesh-ink-rgb:    236,234,229;
 
