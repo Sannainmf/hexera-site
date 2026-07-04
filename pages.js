@@ -510,45 +510,109 @@
 
     const yt12 = (t) => 5 * 0.12 * (0.2969 * Math.sqrt(t) - 0.1260 * t - 0.3516 * t * t + 0.2843 * t * t * t - 0.1036 * t * t * t * t);
 
-    // 01 · swept tapered wing — a TRUE structured surface mesh: 26 spanwise
-    //      stations × 32 chordwise nodes, cosine-clustered at LE/TE and at
-    //      root/tip exactly the way production CFD surface meshes are graded;
-    //      every 5th station rendered heavier as a block boundary
+    // 01 · wind-tunnel scale model — a FULL aircraft on a sting mount, nose
+    //      into the flow: lofted fuselage sections, swept wings, tailplane
+    //      and fin as airfoil lofts — the surface mesh a solver would see
     const buildWing = () => {
-      const ST = 26, CH = 16;
-      const secs = [], le = [], te = [];
-      for (let i = 0; i < ST; i++) {
-        const u = i / (ST - 1);
-        const s = 0.5 * (1 - Math.cos(Math.PI * u));
-        const span = -0.98 + 1.96 * s;
-        const c = 0.70 * (1 - 0.62 * s);
-        const leY = -0.30 + 0.50 * s;
-        const curl = Math.pow(Math.max(0, (s - 0.84) / 0.16), 2);
-        const zUp = curl * 0.34;
+      const pitch = -0.05;                         // slight AoA, baked in
+      const rot = (x, y, z) => {
+        const c = Math.cos(pitch), sn = Math.sin(pitch);
+        return [x * c - y * sn, x * sn + y * c, z];
+      };
+      const lattice = [], accents = [];
+      // fuselage: lofted circular sections, nose upwind (left)
+      const FS = 18, FR = 16, fsecs = [];
+      for (let i = 0; i < FS; i++) {
+        const t = i / (FS - 1);
+        const x = -1.05 + 2.0 * t;
+        const r = Math.max(0.105 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.62)), 0.72), 0.012);
         const ring = [];
-        for (let j = 0; j <= CH; j++) {
-          const xc = 0.5 * (1 + Math.cos((Math.PI * j) / CH));
-          ring.push([span, leY + xc * c, zUp + yt12(xc) * c * 1.7]);
+        for (let k = 0; k <= FR; k++) {
+          const a2 = (k / FR) * Math.PI * 2;
+          ring.push(rot(x, r * Math.cos(a2), r * Math.sin(a2)));
         }
-        for (let j = CH - 1; j > 0; j--) {
-          const xc = 0.5 * (1 + Math.cos((Math.PI * j) / CH));
-          ring.push([span, leY + xc * c, zUp - yt12(xc) * c * 1.7]);
+        fsecs.push(ring);
+        lattice.push(ring);
+      }
+      for (let k = 0; k < FR; k += 2) lattice.push(fsecs.map((rg) => rg[k]));
+      accents.push(fsecs.map((rg) => rg[8]));      // crown line
+      accents.push(fsecs[1]);                      // nose ring
+      // lifting-surface loft: airfoil sections swept outboard
+      const loft = (SN, CN, zR, zT, cR, cT, leR, leT, yB, dih, th) => {
+        const secs = [];
+        for (let i = 0; i < SN; i++) {
+          const s2 = i / (SN - 1);
+          const z = zR + (zT - zR) * s2;
+          const c = cR + (cT - cR) * s2;
+          const le = leR + (leT - leR) * s2;
+          const yb = yB + dih * s2;
+          const ring = [];
+          for (let j = 0; j <= CN; j++) {
+            const xc = 0.5 * (1 + Math.cos((Math.PI * j) / CN));
+            ring.push(rot(le + xc * c, yb - yt12(xc) * c * th, z));
+          }
+          for (let j = CN - 1; j > 0; j--) {
+            const xc = 0.5 * (1 + Math.cos((Math.PI * j) / CN));
+            ring.push(rot(le + xc * c, yb + yt12(xc) * c * th, z));
+          }
+          ring.push(ring[0]);
+          secs.push(ring);
+        }
+        return secs;
+      };
+      const surf = (secs, CN) => {
+        for (const s2 of secs) lattice.push(s2);
+        for (let j = 0; j < secs[0].length - 1; j += 2) lattice.push(secs.map((rg) => rg[j]));
+        accents.push(secs.map((rg) => rg[CN]));    // leading edge
+        accents.push(secs.map((rg) => rg[0]));     // trailing edge
+        accents.push(secs[secs.length - 1]);       // tip section
+      };
+      for (const side of [1, -1]) {
+        surf(loft(9, 7, side * 0.10, side * 0.95, 0.40, 0.15, -0.32, 0.02, 0, -0.055, 1.25), 7);
+        surf(loft(5, 5, side * 0.05, side * 0.38, 0.20, 0.10, 0.68, 0.80, -0.005, -0.03, 1.2), 5);
+      }
+      // vertical fin: lofted upward, thickness across z
+      const FN = 6, FC = 5, finSecs = [];
+      for (let i = 0; i < FN; i++) {
+        const s2 = i / (FN - 1);
+        const yb = -0.04 - 0.34 * s2;
+        const c = 0.24 * (1 - 0.55 * s2);
+        const le = 0.60 + 0.24 * s2;
+        const ring = [];
+        for (let j = 0; j <= FC; j++) {
+          const xc = 0.5 * (1 + Math.cos((Math.PI * j) / FC));
+          ring.push(rot(le + xc * c, yb, yt12(xc) * c * 1.25));
+        }
+        for (let j = FC - 1; j > 0; j--) {
+          const xc = 0.5 * (1 + Math.cos((Math.PI * j) / FC));
+          ring.push(rot(le + xc * c, yb, -yt12(xc) * c * 1.25));
         }
         ring.push(ring[0]);
-        secs.push(ring);
-        le.push([span, leY, zUp]);
-        te.push([span, leY + c, zUp]);
+        finSecs.push(ring);
+        lattice.push(ring);
       }
-      const rails = [];
-      for (let j = 0; j < secs[0].length - 1; j++) rails.push(secs.map((r) => r[j]));
-      const blocks = [5, 10, 15, 20].map((i) => secs[i]);
+      for (let j = 0; j < finSecs[0].length - 1; j += 2) lattice.push(finSecs.map((rg) => rg[j]));
+      accents.push(finSecs.map((rg) => rg[FC]));
+      accents.push(finSecs[FN - 1]);
+      // sting mount: the tunnel support cone behind the tail
+      const sRings = [];
+      for (const t of [0, 0.5, 1]) {
+        const x = 0.98 + 0.44 * t, r = 0.016 + 0.05 * t;
+        const ring = [];
+        for (let k = 0; k <= 12; k++) {
+          const a2 = (k / 12) * Math.PI * 2;
+          ring.push(rot(x, r * Math.cos(a2), r * Math.sin(a2)));
+        }
+        sRings.push(ring);
+      }
+      const sting = sRings.slice();
+      for (let k = 0; k < 12; k += 3) sting.push(sRings.map((rg) => rg[k]));
       return {
-        scale: 0.42, tilt: 0.64, sweep: 0.85, wob: 0.06,
+        scale: 0.44, tilt: 0.55, sweep: 0.9, wob: 0.06,
         groups: [
-          { pl: secs, col: TEAL, a: 0.20, w: 0.8, flat: true },
-          { pl: rails, col: TEAL, a: 0.16, w: 0.8, flat: true },
-          { pl: blocks, col: TEAL, a: 0.45, w: 1 },
-          { pl: [le, te, secs[0], secs[ST - 1]], col: GOLD, a: 0.9, w: 1.5, glow: true },
+          { pl: sting, col: GOLD, a: 0.30, w: 1, flat: true },
+          { pl: lattice, col: TEAL, a: 0.22, w: 0.8, flat: true },
+          { pl: accents, col: GOLD, a: 0.85, w: 1.4, glow: true },
         ],
       };
     };
@@ -583,19 +647,23 @@
           ]);
         }
       }
-      const VR = R * 1.45, vessel = [];
-      for (const xr of [-0.85, 0, 0.85]) {
+      // the artery wall itself carries a dense swept surface mesh — rings
+      // × rails forming quads, the way stent-FSI walls are actually meshed
+      const VR = R * 1.42, vessel = [];
+      for (let i = 0; i <= 20; i++) {
+        const xr = -0.95 + (i / 20) * 1.9;
         const ring = [];
-        for (let k = 0; k <= 28; k++) {
-          const th = (k / 28) * Math.PI * 2;
+        for (let k = 0; k <= 24; k++) {
+          const th = (k / 24) * Math.PI * 2;
           ring.push([xr, VR * Math.cos(th) + bend(xr), VR * Math.sin(th)]);
         }
         vessel.push(ring);
       }
-      for (const th of [0.7, 2.4, 4.1]) {
+      for (let j = 0; j < 12; j++) {
+        const th = (j / 12) * Math.PI * 2;
         const rail = [];
-        for (let k = 0; k <= 20; k++) {
-          const x = -0.95 + (k / 20) * 1.9;
+        for (let k = 0; k <= 24; k++) {
+          const x = -0.95 + (k / 24) * 1.9;
           rail.push([x, VR * Math.cos(th) + bend(x), VR * Math.sin(th)]);
         }
         vessel.push(rail);
@@ -608,7 +676,7 @@
       return {
         scale: 0.40, tilt: 0.35, sweep: 0.8, wob: 0.07, path,
         groups: [
-          { pl: vessel, col: TEAL, a: 0.10, w: 1, flat: true },
+          { pl: vessel, col: TEAL, a: 0.26, w: 0.9, flat: true },
           { pl: bridges, col: GOLD, a: 0.60, w: 1.1 },
           { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true },
         ],
