@@ -48,59 +48,41 @@
 
         <!-- opening title -->
         <div class="eng-title" data-eng-title>
-          <span class="kicker">Hexera · flight through the pipeline</span>
           <h1>Inside the <em>engine</em>.</h1>
-          <p>One part, five acts. Every line below is computed live in your browser — scroll to run the pipeline.</p>
-        </div>
-        <div class="eng-cue" data-eng-cue>scroll to run</div>
-
-        <!-- HUD chrome -->
-        <div class="eng-hud" aria-hidden="true">
-          <div class="eng-hud__bar"><span data-eng-fill></span></div>
-          <div class="eng-hud__act" data-eng-act>01 · read</div>
-          <div class="eng-hud__cam" data-eng-cam>θ 035° · φ 12° · z 4.10c</div>
-          <i class="eng-hud__corner eng-hud__corner--tl"></i>
-          <i class="eng-hud__corner eng-hud__corner--tr"></i>
-          <i class="eng-hud__corner eng-hud__corner--bl"></i>
-          <i class="eng-hud__corner eng-hud__corner--br"></i>
+          <p>One part, five steps. Everything below is computed live in your browser — scroll to run the pipeline.</p>
         </div>
 
         <!-- act rail -->
         <div class="eng-rail" aria-hidden="true">
-          <button data-eng-go="0" class="active" title="01 · read"></button>
-          <button data-eng-go="1" title="02 · tag"></button>
-          <button data-eng-go="2" title="03 · mesh"></button>
-          <button data-eng-go="3" title="04 · prove"></button>
-          <button data-eng-go="4" title="05 · ship"></button>
+          <button data-eng-go="0" class="active" title="Read"></button>
+          <button data-eng-go="1" title="Tag"></button>
+          <button data-eng-go="2" title="Mesh"></button>
+          <button data-eng-go="3" title="Prove"></button>
+          <button data-eng-go="4" title="Ship"></button>
         </div>
 
         <!-- act captions -->
         <aside class="eng-cap eng-cap--l" data-eng-cap="0">
-          <span class="eng-cap__eyebrow">act 01 · read</span>
           <h2>It reads the part, <em>not a picture</em> of it.</h2>
           <p>Two thousand scattered B-rep faces resolve into one watertight body — edges sewn, slivers healed, tolerances understood before a single cell exists.</p>
         </aside>
 
         <aside class="eng-cap eng-cap--r" data-eng-cap="1">
-          <span class="eng-cap__eyebrow">act 02 · tag</span>
           <h2>Every surface <em>gets a job</em>.</h2>
           <p>Faces, pin bore, side walls, clamped base — classified from your intent, not hand-clicked. <span class="mono">fixed · bearing load · free</span>, named the way your solver expects.</p>
         </aside>
 
         <aside class="eng-cap eng-cap--l" data-eng-cap="2">
-          <span class="eng-cap__eyebrow">act 03 · mesh</span>
           <h2>A mesh built the way <em>an analyst would build it</em>.</h2>
           <p>A butterfly web radiates from the bore — quads everywhere, rings geometrically clustered into the hole edge where stress concentrates, hex elements through the thickness. Watch it generate outward, ring by ring.</p>
         </aside>
 
         <aside class="eng-cap eng-cap--r" data-eng-cap="3">
-          <span class="eng-cap__eyebrow">act 04 · prove</span>
           <h2>It grades its own work <em>before you see it</em>.</h2>
           <p>A quality gate sweeps the part — aspect ratio, jacobian, skew. It knows the bore edge is where lug stress peaks, flags it, and drops an h-refinement band on the spot before signing the report.</p>
         </aside>
 
         <aside class="eng-cap eng-cap--c" data-eng-cap="4">
-          <span class="eng-cap__eyebrow">act 05 · ship</span>
           <h2>Solver-ready is the <em>only</em> definition of done.</h2>
           <p>Crated and shipped: <span class="mono">.inp · .cdb · .bdf</span> with sets named for your solver, plus the full quality report and the script that built it.</p>
           <div class="eng-cap__act">
@@ -134,11 +116,6 @@
 
   <!-- ===== Footer ===== -->
   <footer class="footer">
-    <div class="footer__status">
-      <span class="footer__stat"><i class="footer__pulse" aria-hidden="true"></i>All systems nominal</span>
-      <span class="footer__stat footer__clock" data-clock>00:00:00 UTC</span>
-      <span class="footer__stat">Remote · aerospace corridors</span>
-    </div>
     <div class="footer__top">
       <div class="footer__brand">
         <a class="brand" href="index.html" aria-label="Hexera home">

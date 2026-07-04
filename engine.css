@@ -21,30 +21,6 @@
 .eng-title h1 em { font-style: normal; color: var(--gold); }
 .eng-title p { margin: 1.1rem auto 0; max-width: 46ch; color: var(--muted); font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1.05rem); }
 
-.eng-cue { position: absolute; left: 50%; bottom: 4.5vh; transform: translateX(-50%); z-index: 3; pointer-events: none;
-  font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--faint);
-  display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
-.eng-cue::after { content: ""; width: 1px; height: 34px; background: linear-gradient(180deg, var(--teal), transparent);
-  animation: engCue 1.8s var(--ease-expo) infinite; }
-@keyframes engCue { 0% { transform: scaleY(0); transform-origin: top; } 55% { transform: scaleY(1); transform-origin: top; }
-  56% { transform-origin: bottom; } 100% { transform: scaleY(0); transform-origin: bottom; } }
-
-/* ---------- HUD chrome ---------- */
-.eng-hud { position: absolute; inset: 0; pointer-events: none; z-index: 2;
-  font-family: var(--font-mono); text-transform: uppercase; }
-.eng-hud__act { position: absolute; top: calc(var(--nav-h) + 1.4rem); left: var(--pad-x);
-  font-size: 0.72rem; letter-spacing: 0.24em; color: var(--gold); }
-.eng-hud__cam { position: absolute; bottom: 1.6rem; right: var(--pad-x);
-  font-size: 0.62rem; letter-spacing: 0.18em; color: var(--faint); font-variant-numeric: tabular-nums; }
-.eng-hud__bar { position: absolute; top: calc(var(--nav-h) + 1.15rem); left: var(--pad-x); right: var(--pad-x); height: 1px; background: var(--line); }
-.eng-hud__bar span { position: absolute; inset: 0; background: var(--gold); transform: scaleX(0); transform-origin: left; }
-/* corner brackets — the stage reads as an instrument viewport */
-.eng-hud__corner { position: absolute; width: 18px; height: 18px; border: 1px solid var(--line-2); opacity: 0.9; }
-.eng-hud__corner--tl { top: calc(var(--nav-h) + 2.6rem); left: var(--pad-x); border-right: 0; border-bottom: 0; }
-.eng-hud__corner--tr { top: calc(var(--nav-h) + 2.6rem); right: var(--pad-x); border-left: 0; border-bottom: 0; }
-.eng-hud__corner--bl { bottom: 1.4rem; left: var(--pad-x); border-right: 0; border-top: 0; }
-.eng-hud__corner--br { bottom: 3.4rem; right: var(--pad-x); border-left: 0; border-top: 0; }
-
 /* ---------- act rail (right edge) ---------- */
 .eng-rail { position: absolute; right: calc(var(--pad-x) * 0.5); top: 50%; transform: translateY(-50%);
   display: flex; flex-direction: column; gap: 0.9rem; z-index: 4; }
@@ -55,9 +31,7 @@
 
 /* ---------- act captions ---------- */
 .eng-cap { position: absolute; z-index: 3; max-width: 24rem; opacity: 0; visibility: hidden; pointer-events: none; }
-.eng-cap__eyebrow { font-family: var(--font-mono); font-weight: 500; font-size: 0.66rem; letter-spacing: 0.24em;
-  text-transform: uppercase; color: var(--gold); }
-.eng-cap h2 { margin: 0.7rem 0 0; font-family: var(--font-display); font-weight: 500;
+.eng-cap h2 { margin: 0; font-family: var(--font-display); font-weight: 500;
   font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.3rem); line-height: 1.05; color: var(--ink); text-wrap: balance; }
 .eng-cap h2 em { font-style: normal; color: var(--teal); }
 .eng-cap p { margin: 0.9rem 0 0; color: var(--muted); font-size: 0.98rem; line-height: 1.6; }
@@ -84,13 +58,11 @@
   .eng-cap--l, .eng-cap--r { left: var(--pad-x); right: auto; top: auto; bottom: 10vh; transform: none; text-align: left; }
   .eng-cap--c { bottom: 10vh; }
   .eng-rail { display: none; }
-  .eng-hud__cam { display: none; }
   .eng-ship__grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 560px) { .eng-ship__grid { grid-template-columns: 1fr; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .eng-cue::after { animation: none; }
   .eng-cap { opacity: 1 !important; visibility: visible !important; transform: none !important; position: relative;
     inset: auto; margin: 1.5rem var(--pad-x); }
 }
