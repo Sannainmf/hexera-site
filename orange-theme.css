@@ -20,6 +20,10 @@
   --mesh-accent-rgb: 255,79,0;
   --mesh-ink-rgb:    236,234,229;
 
+  /* hero fluid: steel streamlines, orange flow-accent */
+  --fluid-line-rgb:   126,136,147;
+  --fluid-accent-rgb: 255,79,0;
+
   /* cool the canvas slightly: near-neutral blacks instead of amber-blacks */
   --bg:    #0d0d0c;
   --bg-2:  #131312;

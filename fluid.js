@@ -1255,13 +1255,24 @@ function correctDeltaY (delta) {
     return delta;
 }
 
-// Brand-coloured fluid: strictly alternates teal flow-accent and gold
-// streamlines (no random runs, so it never dwells on one colour).
+// Brand-coloured fluid: strictly alternates the line colour and the accent
+// (no random runs, so it never dwells on one colour). Themed via the
+// --fluid-line-rgb / --fluid-accent-rgb tokens; falls back to teal/gold.
 let nextGold = true;
+let fluidPalette = null;
 function generateColor () {
-    const teal = { r: 0.10, g: 0.78, b: 0.72 };
-    const gold = { r: 1.00, g: 0.72, b: 0.10 };
-    const c = nextGold ? gold : teal;
+    if (!fluidPalette) {
+        const cs = getComputedStyle(document.documentElement);
+        const rgb = (name, fb) => {
+            const m = cs.getPropertyValue(name).trim().match(/^(\d+)\s*,\s*(\d+)\s*,\s*(\d+)$/);
+            return m ? { r: m[1] / 255, g: m[2] / 255, b: m[3] / 255 } : fb;
+        };
+        fluidPalette = {
+            line: rgb("--fluid-line-rgb", { r: 0.10, g: 0.78, b: 0.72 }),
+            accent: rgb("--fluid-accent-rgb", { r: 1.00, g: 0.72, b: 0.10 }),
+        };
+    }
+    const c = nextGold ? fluidPalette.accent : fluidPalette.line;
     nextGold = !nextGold;
     const i = 0.3; // vivid — bright, saturated glow
     return { r: c.r * i, g: c.g * i, b: c.b * i };
