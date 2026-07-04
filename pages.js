@@ -584,23 +584,25 @@
       };
     };
 
-    // 02 · stented coronary artery, CLIP VIEW — built like the published
-    //      mesh diagrams: finely meshed closed tube at both ends, the
-    //      stented middle sawn open to expose the device, the slice faces
-    //      meshed through the wall thickness (longitudinal lips + annular
-    //      saw cuts), and O-grid lumen sections capping the ends.
+    // 02 · stented artery, longitudinal section — one continuous half-pipe
+    //      like the published clip views: THICK wall (inner + outer half
+    //      surfaces), wide flat cut decks meshed through the thickness the
+    //      whole length, meshed cross-sections at both ends, and the stent
+    //      deployed openly in the trough. Nothing overlaps, nothing hides.
     const buildStent = () => {
-      const R = 0.30, RS = 0.265, PK = 8, A = 0.050, KS = 120;
-      const bend = (x) => 0.15 * x * x - 0.09;
-      // the device: 13 tight crown rings across the middle window only
-      const SLEN = 1.30, NR = 15, gap = SLEN / (NR - 1);
+      const RS = 0.28, PK = 8, A = 0.048, KS = 110;
+      const bend = (x) => 0.12 * x * x - 0.07;
+      const VRi = 0.34, VRo = 0.52, XE = 1.0;
+      const H1 = Math.PI, PI2 = Math.PI * 2;
+      // the device: crowns across the middle of the trough
+      const SLEN = 1.1, NR = 13, gap = SLEN / (NR - 1);
       const rings = [], bridges = [];
       for (let i = 0; i < NR; i++) {
         const x0 = -SLEN / 2 + gap * i;
         const flip = (i % 2) * Math.PI;
         const ring = [];
         for (let k = 0; k <= KS; k++) {
-          const th = (k / KS) * Math.PI * 2;
+          const th = (k / KS) * PI2;
           const x = x0 + A * Math.sin(th * PK + flip);
           ring.push([x, RS * Math.cos(th) + bend(x), RS * Math.sin(th)]);
         }
@@ -608,7 +610,7 @@
       }
       for (let i = 0; i < NR - 1; i++) {
         for (let b2 = 0; b2 < 4; b2++) {
-          const th = ((b2 + (i % 2) * 0.5) / 4) * Math.PI * 2 + Math.PI / PK;
+          const th = ((b2 + (i % 2) * 0.5) / 4) * PI2 + Math.PI / PK;
           const xa = -SLEN / 2 + gap * i + A * Math.sin(th * PK + (i % 2) * Math.PI);
           const xb = -SLEN / 2 + gap * (i + 1) + A * Math.sin(th * PK + ((i + 1) % 2) * Math.PI);
           bridges.push([
@@ -617,115 +619,105 @@
           ]);
         }
       }
-      // deployment contact: short gold ties from crown peaks to the wall —
-      // the device is pressed into the vessel, not floating in it
+      // deployment contact ties from crown peaks to the inner wall
       for (let i = 0; i < NR; i += 2) {
         const x0 = -SLEN / 2 + gap * i;
         for (let b2 = 0; b2 < 4; b2++) {
-          const th = ((b2 + 0.5) / 4) * Math.PI * 2;
+          const th = ((b2 + 0.5) / 4) * PI2;
           const xp = x0 + A * Math.sin(th * PK + (i % 2) * Math.PI);
           bridges.push([
             [xp, RS * Math.cos(th) + bend(xp), RS * Math.sin(th)],
-            [xp, R * 1.08 * Math.cos(th) + bend(xp), R * 1.08 * Math.sin(th)],
+            [xp, VRi * Math.cos(th) + bend(xp), VRi * Math.sin(th)],
           ]);
         }
       }
-      // the wall
-      const VRi = R * 1.08, VRo = R * 1.34, WX = 0.55, XE = 0.95;
-      const PI2 = Math.PI * 2, H1 = Math.PI;
-      const wall = [], inner = [], cut = [], caps = [], occL = [], occR = [];
-      const ringAt = (xr, VR2, th0, th1, seg, arr) => {
-        const ring = [];
-        for (let k = 0; k <= seg; k++) {
-          const th = th0 + ((th1 - th0) * k) / seg;
-          ring.push([xr, VR2 * Math.cos(th) + bend(xr), VR2 * Math.sin(th)]);
+      // the sectioned wall: kept half is z <= 0 (we look into the trough)
+      const NX = 56, NA2 = 20;
+      const innerG = [], outerG = [], ledge = [], ledgeEdge = [], endFace = [];
+      const half = (VR2, arr, xStep, aStep) => {
+        for (let i = 0; i <= NX; i += xStep) {
+          const xr = -XE + (2 * XE * i) / NX;
+          const ring = [];
+          for (let k = 0; k <= NA2; k++) {
+            const th = H1 + (H1 * k) / NA2;
+            ring.push([xr, VR2 * Math.cos(th) + bend(xr), VR2 * Math.sin(th)]);
+          }
+          arr.push(ring);
         }
-        arr.push(ring);
+        for (let j = 0; j <= NA2; j += aStep) {
+          const th = H1 + (H1 * j) / NA2;
+          const rail = [];
+          for (let k = 0; k <= NX; k++) {
+            const x = -XE + (2 * XE * k) / NX;
+            rail.push([x, VR2 * Math.cos(th) + bend(x), VR2 * Math.sin(th)]);
+          }
+          arr.push(rail);
+        }
       };
-      const railAt = (th, VR2, xa, xb, seg, arr) => {
-        const rail = [];
-        for (let k = 0; k <= seg; k++) {
-          const x = xa + ((xb - xa) * k) / seg;
-          rail.push([x, VR2 * Math.cos(th) + bend(x), VR2 * Math.sin(th)]);
-        }
-        arr.push(rail);
-      };
-      // closed tube ends, finely meshed all the way round
-      // closed regions show ONE surface — the outside — like any solid;
-      // the wall thickness is only revealed on the cut faces
-      for (const seg2 of [[-XE, -WX, occL], [WX, XE, occR]]) {
-        for (let i = 0; i <= 21; i++) {
-          const xr = seg2[0] + ((seg2[1] - seg2[0]) * i) / 21;
-          ringAt(xr, VRo, 0, PI2, 48, wall);
-          ringAt(xr, VRo, 0, PI2, 32, seg2[2]);   // occluder silhouette station
-        }
-        for (let j = 0; j < 48; j++) railAt((j / 48) * PI2, VRo, seg2[0], seg2[1], 21, wall);
-      }
-      // sawn-open middle: the far half remains, meshed finer still
-      // the open window shows the INNER surface of the remaining far half
-      const HS = 18;
-      for (let i = 0; i <= 48; i++) {
-        const xr = -WX + ((2 * WX) * i) / 48;
-        ringAt(xr, VRi, H1, PI2, HS, inner);
-      }
-      for (let j = 0; j <= HS; j++) railAt(H1 + (j / HS) * Math.PI, VRi, -WX, WX, 48, inner);
-      // slice faces: longitudinal lips meshed through the wall thickness…
-      const cutEdge = [];
+      half(VRi, innerG, 1, 1);
+      half(VRo, outerG, 2, 2);
+      // flat cut decks along both lips, meshed through the wall thickness
       for (const sgn of [-1, 1]) {
         for (let q = 0; q <= 5; q++) {
           const r2 = VRi + ((VRo - VRi) * q) / 5;
           const ln = [];
-          for (let k = 0; k <= 48; k++) {
-            const x = -WX + ((2 * WX) * k) / 48;
+          for (let k = 0; k <= NX; k++) {
+            const x = -XE + (2 * XE * k) / NX;
             ln.push([x, sgn * r2 + bend(x), 0]);
           }
-          (q === 0 || q === 5 ? cutEdge : cut).push(ln);
+          (q === 0 || q === 5 ? ledgeEdge : ledge).push(ln);
         }
-        for (let k = 0; k <= 48; k++) {
-          const x = -WX + ((2 * WX) * k) / 48;
-          cut.push([[x, sgn * VRi + bend(x), 0], [x, sgn * VRo + bend(x), 0]]);
-        }
-      }
-      // …and the two annular saw-cut faces where the near half was removed
-      for (const xw of [-WX, WX]) {
-        const bw = bend(xw);
-        ringAt(xw, (VRi + VRo) / 2, 0, H1, 18, cut);
-        ringAt(xw, VRi, 0, H1, 18, cutEdge);
-        ringAt(xw, VRo, 0, H1, 18, cutEdge);
-        for (let j = 0; j <= 36; j++) {
-          const th = (j / 36) * H1;
-          cut.push([
-            [xw, VRi * Math.cos(th) + bw, VRi * Math.sin(th)],
-            [xw, VRo * Math.cos(th) + bw, VRo * Math.sin(th)],
-          ]);
+        for (let k = 0; k <= NX; k++) {
+          const x = -XE + (2 * XE * k) / NX;
+          ledge.push([[x, sgn * VRi + bend(x), 0], [x, sgn * VRo + bend(x), 0]]);
         }
       }
-      // O-grid lumen sections capping the tube ends
+      // end cross-sections: wall half-annulus + O-grid half-disc lumen
       for (const xe of [-XE, XE]) {
         const be = bend(xe);
-        for (const fr of [0.30, 0.55, 0.78, 1.0]) ringAt(xe, fr * VRi, 0, PI2, 24, caps);
-        for (let j = 0; j < 16; j++) {
-          const th = (j / 16) * PI2;
-          caps.push([[xe, be, 0], [xe, VRo * Math.cos(th) + be, VRo * Math.sin(th)]]);
+        for (const VR2 of [VRi, (VRi + VRo) / 2, VRo]) {
+          const arc = [];
+          for (let k = 0; k <= 18; k++) {
+            const th = H1 + (H1 * k) / 18;
+            arc.push([xe, VR2 * Math.cos(th) + be, VR2 * Math.sin(th)]);
+          }
+          endFace.push(arc);
+        }
+        for (let j = 0; j <= 18; j += 2) {
+          const th = H1 + (H1 * j) / 18;
+          endFace.push([
+            [xe, VRi * Math.cos(th) + be, VRi * Math.sin(th)],
+            [xe, VRo * Math.cos(th) + be, VRo * Math.sin(th)],
+          ]);
+        }
+        for (const fr of [0.35, 0.70]) {
+          const arc = [];
+          for (let k = 0; k <= 12; k++) {
+            const th = H1 + (H1 * k) / 12;
+            arc.push([xe, fr * VRi * Math.cos(th) + be, fr * VRi * Math.sin(th)]);
+          }
+          endFace.push(arc);
+        }
+        for (let j = 0; j <= 8; j += 2) {
+          const th = H1 + (H1 * j) / 8;
+          endFace.push([[xe, be, 0], [xe, VRi * Math.cos(th) + be, VRi * Math.sin(th)]]);
         }
       }
       const path = [];
       for (let k = 0; k <= 24; k++) {
-        const x = -1.02 + (k / 24) * 2.04;
+        const x = -0.98 + (k / 24) * 1.96;
         path.push([x, bend(x), 0]);
       }
       return {
-        scale: 0.40, tilt: 0.52, sweep: 0.8, wob: 0.07, path,
+        scale: 0.42, tilt: 0.55, sweep: 0.8, wob: 0.07, path,
         groups: [
-          { pl: inner, col: INK, a: 0.18, w: 0.8, flat: true },
+          { pl: outerG, col: TEAL, a: 0.16, w: 0.8, flat: true },
+          { pl: innerG, col: TEAL, a: 0.26, w: 0.8, flat: true },
+          { pl: endFace, col: TEAL, a: 0.34, w: 0.9, flat: true },
+          { pl: ledge, col: TEAL, a: 0.42, w: 0.8, flat: true },
+          { pl: ledgeEdge, col: INK, a: 0.55, w: 1.1, flat: true },
           { pl: bridges, col: GOLD, a: 0.60, w: 1.1 },
           { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true, track: true },
-          { pl: occL, occ: true },
-          { pl: occR, occ: true },
-          { pl: wall, col: TEAL, a: 0.30, w: 0.8, flat: true },
-          { pl: caps, col: TEAL, a: 0.30, w: 0.9, flat: true },
-          { pl: cut, col: TEAL, a: 0.42, w: 0.8, flat: true },
-          { pl: cutEdge, col: INK, a: 0.50, w: 1.1, flat: true },
         ],
       };
     };
@@ -1183,7 +1175,7 @@
           bp.u += dt * (0.06 + 0.26 * pulse);
           for (let k2 = 0; k2 < 3; k2++) {
             const pos = pathAt(MODELS[1].path, bp.u - k2 * 0.02);
-            if (Math.abs(pos[0]) > 0.5) continue;
+            if (Math.abs(pos[0]) > 0.95) continue;
             const scr = lastPj.pj([pos[0], pos[1] + bp.oy * 0.5, pos[2] + bp.oz * 0.5], false);
             const al = (1 - k2 / 3) * (0.30 + 0.55 * pulse) * dA[1] * (1 - morphAct);
             ctx.fillStyle = "rgba(" + TEAL + "," + al.toFixed(3) + ")";
