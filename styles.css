@@ -720,20 +720,16 @@ html.lenis, html.lenis body { height: auto; }
    ============================================================ */
 .ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
 .ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); }
-/* streamline backdrop with creep: the layer extends 45vh ABOVE the stage,
-   so as you scroll past the mesh scroll the upper wisps poke out of the
-   section before you reach it — near-invisible at first, growing to the
-   dim cap at the pin, mirrored on exit. The extension's own top dissolves
-   through a mask so it never ends in an edge. Scroll handler drives
-   --ringveil (0 → 0.55 max). */
-.ring-sticky::before { content: ""; position: absolute; left: 0; right: 0; top: -45vh; bottom: 0; z-index: 0;
+/* streamline backdrop, strictly inside the section — no overhang, no mask,
+   nothing that can draw an edge. The asset's body is true #000 and the
+   layer screen-blends, so it can only ever ADD ribbon light: the seam from
+   the mesh scroll stays plain black, and the smoke condenses in from zero
+   as the section rises to its pin (mirrored on exit). Scroll handler
+   drives --ringveil (0 → 0.55 max). */
+.ring-sticky::before { content: ""; position: absolute; inset: 0; z-index: 0;
   background: url("assets/ring-bg2.png") center / cover no-repeat;
   opacity: var(--ringveil, 0);
-  /* screen blend: the image's black body adds nothing, so only the ribbon
-     light shows — no gray plate, no mask banding, seamless over any black */
-  mix-blend-mode: screen;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 34%);
-  mask-image: linear-gradient(180deg, transparent 0, #000 34%); }
+  mix-blend-mode: screen; }
 .ring-grid { position: relative; z-index: 1; width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
 
 .ring-copy { max-width: 30ch; }

@@ -133,17 +133,15 @@
       const rect = ring.getBoundingClientRect();
       const scrollable = ring.offsetHeight - window.innerHeight;
       const p = clamp(-rect.top / Math.max(scrollable, 1), 0, 1);
-      /* creep ramp: the backdrop layer sticks out 45vh above the stage, so
-         the ramp starts as that overhang clears the fold (rect.top ~1.45vh)
-         — wisps creep out of the section while you're finishing the mesh
-         scroll, grow to the dim cap at the pin, mirrored on exit via the
-         section bottom. Smoothstepped, capped 0.55. */
+      /* condense ramp: keyed to section entry only — zero at the seam,
+         near-invisible through the first half of the entry, dim cap at the
+         pin, mirrored on exit via the section bottom. Squared smoothstep
+         keeps the early presence a whisper. */
       const vh = window.innerHeight;
-      const fin = clamp((vh * 1.45 - rect.top) / (vh * 1.6), 0, 1);
+      const fin = clamp((vh - rect.top) / (vh * 1.25), 0, 1);
       const fout = clamp(rect.bottom / (vh * 0.9), 0, 1);
       const vt = Math.min(fin, fout);
       const ss = vt * vt * (3 - 2 * vt);
-      /* squared smoothstep: whisper-quiet through the creep, full only at the pin */
       ring.style.setProperty("--ringveil", (0.55 * ss * ss).toFixed(3));
       // marker travels the full circle starting at the top (-90°)
       const ang = (-90 + p * 360) * (Math.PI / 180);
@@ -203,7 +201,8 @@
       // (~2.2px per scroll px) and tapers gently to ~1.1, never stalling.
       // Wraps at one set height either direction, so the loop stays seamless.
       if (lastScr === null) lastScr = scrolled;
-      const screenRate = 2.2 * (1 - 0.5 * pFull);
+      /* 40% slower by the end of the section, easing down the whole way */
+      const screenRate = 2.2 * (1 - 0.4 * pFull);
       listD += (scrolled - lastScr) * (screenRate / Math.max(zoom, 0.2));
       lastScr = scrolled;
       const ty = loopH > 0 ? (((listD % loopH) + loopH) % loopH) - loopH : 0;
