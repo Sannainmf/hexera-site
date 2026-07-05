@@ -47,3 +47,4 @@ assets/*
 !assets/rocket.json.gz
 !assets/ring-bg2.png
 !assets/car.json.gz
+!assets/bridge.png

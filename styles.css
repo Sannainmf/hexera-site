@@ -718,6 +718,14 @@ html.lenis, html.lenis body { height: auto; }
    ORBITAL PROCESS RING — pinned section; a marker travels the
    ring as you scroll, the left copy + bottom tabs track phase.
    ============================================================ */
+/* transition bridge between the mesh scroll and the loop: an in-flow band
+   whose smoke bloom is baked into the artwork — its top and bottom edges
+   are true #000, so both hand-offs are black meeting black. No masks, no
+   opacity ramps; you simply scroll through it. */
+.flow-bridge { height: 74vh; margin-top: -1px;
+  background: url("assets/bridge.png") center / cover no-repeat;
+  mix-blend-mode: screen; }
+
 .ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
 .ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); }
 /* streamline backdrop, strictly inside the section — no overhang, no mask,
