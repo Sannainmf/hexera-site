@@ -745,6 +745,21 @@ html.lenis, html.lenis body { height: auto; }
 .ring-node-label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; fill: var(--faint); text-transform: uppercase; transition: fill 0.4s; }
 .ring-node-label.active { fill: var(--ink); }
 .ring-marker { fill: var(--gold); filter: drop-shadow(0 0 8px rgba(255,186,0,0.8)); }
+
+/* Rehaan's phase console: demo-mesh log under the copy, phases light up
+   in step with the dial */
+.ring-console { margin-top: 2.2rem; max-width: 21rem; border-top: 3px solid #2a2319; border-bottom: 3px solid #2a2319;
+  padding: 1rem 0 0.95rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.ring-console__head { margin: 0 0 0.8rem; color: var(--faint); }
+.ring-log { display: flex; flex-direction: column; gap: 0.5rem; }
+.ring-log__ln { margin: 0; display: flex; gap: 1em; color: var(--muted); }
+.ring-log__ln .idx { color: var(--faint); }
+.ring-log__ln.on .nm { color: var(--ink); }
+.ring-log__ln.on .idx { color: var(--gold); }
+.ring-console__strip { margin: 0.9rem 0 0; display: flex; gap: 1.8rem; }
+.ring-console__strip .k { color: var(--faint); }
+.ring-console__strip .v { color: var(--ink); }
+@media (max-width: 900px) { .ring-console { display: none; } }
 .ring-center { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.3em; fill: var(--faint); text-transform: uppercase; }
 
 /* ============================================================
