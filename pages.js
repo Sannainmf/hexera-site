@@ -133,10 +133,15 @@
       const rect = ring.getBoundingClientRect();
       const scrollable = ring.offsetHeight - window.innerHeight;
       const p = clamp(-rect.top / Math.max(scrollable, 1), 0, 1);
-      /* backdrop drifts up + breathes in over the first ~30% of the pin and
-         back out at the end, so both seams stay pure black */
+      /* backdrop crossfades across the seam itself: the ramp starts while the
+         section is still sliding up over the mesh scroll (top falling from
+         100vh to -50vh), so the smoke is already ghosting in inside the black
+         band as it covers the airfoil — no switch-on at the pin. Fades back
+         out at the exit. */
+      const vh = window.innerHeight;
+      const g = clamp((vh - rect.top) / (vh * 1.5), 0, 1);
       ring.style.setProperty("--ringbg",
-        Math.min(clamp(p * 3.2, 0, 1), clamp((1 - p) * 8, 0, 1)).toFixed(3));
+        Math.min(g, clamp((1 - p) * 8, 0, 1)).toFixed(3));
       // marker travels the full circle starting at the top (-90°)
       const ang = (-90 + p * 360) * (Math.PI / 180);
       if (svgMarker) {
@@ -190,8 +195,10 @@
       const centerShift = pFull * Math.max(window.innerWidth * 0.5 - ambPad, 0) * 0.5;
       // INFINITE LOOP: a slow, continuous translate that wraps at one set height, so
       // the list never reaches an end — it keeps scrolling even as the section exits.
+      // Runs downward (with the scroll direction): start one period up and ease
+      // toward 0 so the wrap point stays seamless.
       const loopRate = 0.30;
-      const ty = loopH > 0 ? -(scrolled * loopRate) % loopH : 0;
+      const ty = loopH > 0 ? ((scrolled * loopRate) % loopH) - loopH : 0;
       // fade in early (invisible -> visible) so the text is readable while it keeps zooming.
       const fadeP = clamp(scrolled / (vh * 2), 0, 1);
       list.style.transform = "translateX(" + centerShift.toFixed(1) + "px) scale(" + zoom.toFixed(3) + ") translateY(" + ty.toFixed(1) + "px)";
