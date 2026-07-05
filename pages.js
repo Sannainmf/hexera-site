@@ -863,7 +863,7 @@
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
-      3: { url: "assets/car.json.gz",    ry: 0.78, rx: -0.42, sc: 0.50, cx: 0.60, cy: 0.47, f3: 3.4 },
+      3: { url: "assets/car.json.gz",    ry: 0.80, rx: -0.50, sc: 0.50, cx: 0.60, cy: 0.45, f3: 3.4, gy: 0.307 },
     };
     for (const k in REAL) {
       const e = REAL[k];
@@ -959,6 +959,29 @@
           let a1 = lastPj.pj([u, yF, -EX], false), a2 = lastPj.pj([u, yF, EX], false);
           ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.stroke();
           a1 = lastPj.pj([-EX, yF, u], false); a2 = lastPj.pj([EX, yF, u], false);
+          ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.stroke();
+        }
+      }
+
+      /* wind-tunnel floor under the car (automotive phase) — a ground plane
+         at the wheels' contact line so the car sits planted, not floating.
+         Projected with the car's own baked pose. Drawn first, car on top. */
+      const carR = REAL[3];
+      if (dA[3] > 0.01 && carR && carR.pj) {
+        const gy = carR.gy, GX = 1.75, GZ = 1.08, NX = 20, NZ = 12;
+        ctx.lineWidth = 1;
+        for (let gi = 0; gi <= NX; gi++) {
+          const u = -GX + (2 * GX * gi) / NX;
+          const fade = 1 - Math.abs(gi / NX - 0.5) * 1.05;
+          ctx.strokeStyle = "rgba(" + TEAL + "," + (0.085 * dA[3] * Math.max(fade, 0.12)).toFixed(3) + ")";
+          const a1 = carR.pj.pj([u, gy, -GZ]), a2 = carR.pj.pj([u, gy, GZ]);
+          ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.stroke();
+        }
+        for (let gj = 0; gj <= NZ; gj++) {
+          const w = -GZ + (2 * GZ * gj) / NZ;
+          const fade = 1 - Math.abs(gj / NZ - 0.5) * 1.05;
+          ctx.strokeStyle = "rgba(" + TEAL + "," + (0.085 * dA[3] * Math.max(fade, 0.12)).toFixed(3) + ")";
+          const a1 = carR.pj.pj([-GX, gy, w]), a2 = carR.pj.pj([GX, gy, w]);
           ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.stroke();
         }
       }
