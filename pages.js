@@ -901,6 +901,33 @@
         const y1 = p[1] * cx - z1 * sx, z2 = p[1] * sx + z1 * cx, k = F3 / (F3 - z2);
         return [cx0 + x1 * Sc * k, cy0 + y1 * Sc * k, k];
       } };
+      /* pooled ground grid (entries with gy): short segments whose alpha
+         falls off gaussian from the model's footprint, so the floor
+         dissolves into black with no edges — baked with the mesh */
+      if (e.gy !== undefined) {
+        const gyv = e.gy, GX = 3.4, GZ = 2.3, STEP = 0.24, NSEG = 20;
+        const aAt = (px2, pz2) => {
+          const dx = px2 / 2.7, dz = pz2 / 1.9;
+          return 0.46 * Math.exp(-(dx * dx + dz * dz) * 1.15);
+        };
+        const seg = (p0, p1, al) => {
+          if (al <= 0.004) return;
+          g.strokeStyle = "rgba(" + TEAL + "," + al.toFixed(3) + ")";
+          const A = e.pj.pj(p0), B = e.pj.pj(p1);
+          g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke();
+        };
+        g.lineWidth = 1;
+        for (let u = -GX; u <= GX + 1e-9; u += STEP)
+          for (let si = 0; si < NSEG; si++) {
+            const z0 = -GZ + (2 * GZ * si) / NSEG, z1b = -GZ + (2 * GZ * (si + 1)) / NSEG;
+            seg([u, gyv, z0], [u, gyv, z1b], aAt(u, (z0 + z1b) / 2));
+          }
+        for (let w = -GZ; w <= GZ + 1e-9; w += STEP)
+          for (let si = 0; si < NSEG; si++) {
+            const x0 = -GX + (2 * GX * si) / NSEG, x1b = -GX + (2 * GX * (si + 1)) / NSEG;
+            seg([x0, gyv, w], [x1b, gyv, w], aAt((x0 + x1b) / 2, w));
+          }
+      }
       const NB = 9, buckets = Array.from({ length: NB }, () => []), zr = (zmax - zmin) || 1, ne = e.E.length / 2;
       for (let i = 0; i < ne; i++) {
         const a = e.E[i * 2], b = e.E[i * 2 + 1];
@@ -963,44 +990,6 @@
         }
       }
 
-      /* wind-tunnel corner around the car (automotive phase) — floor grid,
-         back wall, and a test-platform outline under the wheelbase, all
-         projected with the car's own baked pose so it sits planted in a
-         room instead of floating. Drawn first, car on top. */
-      const carR = REAL[3];
-      if (dA[3] > 0.01 && carR && carR.pj) {
-        const gy = carR.gy, GX = 2.2, GZ = 1.3, WH = 1.35;
-        const seg = (a, b, al) => {
-          ctx.strokeStyle = "rgba(" + TEAL + "," + (al * dA[3]).toFixed(3) + ")";
-          const A = carR.pj.pj(a), B = carR.pj.pj(b);
-          ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
-        };
-        ctx.lineWidth = 1;
-        for (let gi = 0; gi <= 22; gi++) {          /* floor */
-          const u = -GX + (2 * GX * gi) / 22, f = 1 - Math.abs(gi / 22 - 0.5);
-          seg([u, gy, -GZ], [u, gy, GZ], 0.34 * Math.max(f, 0.12));
-        }
-        for (let gj = 0; gj <= 12; gj++) {
-          const w = -GZ + (2 * GZ * gj) / 12, f = 1 - Math.abs(gj / 12 - 0.5);
-          seg([-GX, gy, w], [GX, gy, w], 0.34 * Math.max(f, 0.12));
-        }
-        for (let gi = 0; gi <= 22; gi++) {          /* back wall */
-          const u = -GX + (2 * GX * gi) / 22, f = 1 - Math.abs(gi / 22 - 0.5);
-          seg([u, gy, -GZ], [u, gy - WH, -GZ], 0.20 * Math.max(f, 0.10));
-        }
-        for (let gk = 0; gk <= 6; gk++) {
-          const h = gy - (WH * gk) / 6;
-          seg([-GX, h, -GZ], [GX, h, -GZ], 0.20);
-        }
-        seg([-GX, gy, -GZ], [GX, gy, -GZ], 0.5);    /* corner edge */
-        const px = 1.25, pz = 0.55;                 /* test platform */
-        seg([-px, gy, -pz], [px, gy, -pz], 0.65); seg([px, gy, -pz], [px, gy, pz], 0.65);
-        seg([px, gy, pz], [-px, gy, pz], 0.65);   seg([-px, gy, pz], [-px, gy, -pz], 0.65);
-        for (let gj = 1; gj < 4; gj++) {
-          const w = -pz + (2 * pz * gj) / 4;
-          seg([-px, gy, w], [px, gy, w], 0.30);
-        }
-      }
 
       const drawOne = (mi, sweep, alpha, track) => {
         const rm = REAL[mi];
