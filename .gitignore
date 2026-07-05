@@ -44,3 +44,4 @@ assets/*
 !assets/hero-bg-orange.jpg
 !assets/airfoil.msh.gz
 !assets/logos/
+!assets/rocket.json.gz

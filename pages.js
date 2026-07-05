@@ -236,17 +236,19 @@
     window.addEventListener("resize", updInd);
   }
 
-  /* ---------- Industries: the chamber ----------
-     Four real 3D wireframe models pinned in a sticky stage, each
-     CAD'd procedurally: a lofted swept wing, a deployed coronary
-     stent, a low-poly terrain tile, and a vented brake rotor.
-     Scroll crossfades one finished mesh into the next; the copy
-     deck and rail swap in step. No HUD, no particles. */
+  /* ---------- Industries: four workbenches ----------
+     Four real 3D wireframe models pinned in one full-viewport stage,
+     each CAD'd procedurally: a lofted swept wing, a deployed coronary
+     stent, a low-poly terrain tile, and a vented brake rotor. Each
+     phase dresses the stage as that discipline's software viewport
+     (CFD tunnel, hemodynamics, DCC grid, FEA thermal); scroll
+     crossfades one environment into the next. */
   const spec = document.querySelector("[data-spec]");
   if (spec) {
     const canvas = spec.querySelector("[data-spec-canvas]");
     const ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
-    const cards = Array.from(spec.querySelectorAll("[data-spec-card]"));
+    const envs = Array.from(spec.querySelectorAll("[data-spec-env]"));
+    const stage = spec.querySelector(".spec__sticky");
     const railStops = Array.from(spec.querySelectorAll("[data-spec-go]"));
     const cssRGB = (name, fallback) => {
       const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -257,7 +259,7 @@
     const INK = cssRGB("--mesh-ink-rgb", "236,234,229");
     const LINE3 = TEAL.split(",").map(Number), ACC3 = GOLD.split(",").map(Number);
     const sstep = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * k * (k * (k * 6 - 15) + 10));
-    const MW = 0.11;                                 // gate window, in total-scroll units
+    const MW = 0.16;                                 // blend window, in total-scroll units
 
     /* ================= real 3D specimens =================
        Every specimen is a genuine 3D wireframe model, CAD'd procedurally in
@@ -320,21 +322,9 @@
         secs.map((rg) => rg[10]),
         secs.map((rg) => rg[0]),
       ]);
-      // Mach cone: conical shock lines off the tip, flaring downstream
-      const shock = [];
-      const tanB = Math.tan(0.42);
-      for (const ang of [0.5, 1.6, 2.7, 3.8, 4.9, 6.0]) {
-        const seg = [[L0, 0, 0]];
-        for (const dd of [0.5, 1.0, 1.5, 2.1]) {
-          const rr = dd * tanB;
-          seg.push([L0 + dd, rr * Math.cos(ang), rr * Math.sin(ang)]);
-        }
-        shock.push(seg);
-      }
       return {
         scale: 0.42, tilt: 0.52, sweep: 0.85, wob: 0.05,
         groups: [
-          { pl: shock, col: TEAL, a: 0.14, w: 0.8, flat: true },
           { pl: fins, col: TEAL, a: 0.22, w: 0.8, flat: true },
           { pl: lattice, col: TEAL, a: 0.26, w: 0.8, flat: true },
           { pl: accents, col: GOLD, a: 0.85, w: 1.4, glow: true, track: true },
@@ -699,6 +689,21 @@
 
     /* ---- state ---- */
     let W = 0, H = 0, sref = 0, lastBB = null, lastPj = null;
+    const lastRot = { y: 0, x: 0 };
+    // blood cells riding the stent lumen (biomedical phase only)
+    const BLOOD = Array.from({ length: 12 }, (_, i) => ({
+      u: i / 12, oy: (Math.random() - 0.5) * 0.30, oz: (Math.random() - 0.5) * 0.30,
+    }));
+    const pathAt = (P, u) => {
+      const m = P.length - 1;
+      const d = clamp(u - Math.floor(u), 0, 1) * m;
+      const i = Math.min(Math.floor(d), m - 1), q = d - i;
+      return [
+        P[i][0] + (P[i + 1][0] - P[i][0]) * q,
+        P[i][1] + (P[i + 1][1] - P[i][1]) * q,
+        P[i][2] + (P[i + 1][2] - P[i][2]) * q,
+      ];
+    };
     const build = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       W = canvas.clientWidth; H = canvas.clientHeight;
@@ -706,6 +711,7 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       sref = Math.min(W, H);
       lastBB = { x0: W * 0.25, y0: H * 0.25, x1: W * 0.75, y1: H * 0.75 };
+      if (rocketV) renderRocket();
     };
 
     /* ---- one 3D model pass: rotate → project → depth-shaded wireframe ---- */
@@ -729,6 +735,7 @@
       };
       if (trackBB) {
         lastPj = { pj };
+        lastRot.y = rotY; lastRot.x = rotX;
         lastBB.x0 = 1e9; lastBB.y0 = 1e9; lastBB.x1 = -1e9; lastBB.y1 = -1e9;
       }
       const tb = (p2) => {
@@ -839,40 +846,196 @@
     };
 
 
-    /* ---- one frame: the current model, crossfaded at the boundaries.
-       t is passed as 0 so the pose is driven by scroll alone. ---- */
-    const drawFrame = (s, pNow) => {
+    /* ---- real sounding-rocket CAD (Gmsh surface remesh): a dense mesh baked
+       once to an offscreen buffer at a fixed 3/4 pose, then blitted each
+       frame so it never costs a per-frame redraw ---- */
+    let rocketReady = false, rocketV = null, rocketE = null, rocketPj = null, rocketBB = null;
+    const rocketCanvas = document.createElement("canvas");
+    const roctx = rocketCanvas.getContext("2d");
+    const ROCK_RY = 0.62, ROCK_RX = -0.18;
+
+    const renderRocket = () => {
+      if (!rocketV || !W || !H) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      rocketCanvas.width = Math.round(W * dpr); rocketCanvas.height = Math.round(H * dpr);
+      roctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      roctx.clearRect(0, 0, W, H);
+      const cy = Math.cos(ROCK_RY), sy = Math.sin(ROCK_RY), cx = Math.cos(ROCK_RX), sx = Math.sin(ROCK_RX);
+      const Sc = sref * 1.18, cx0 = W * 0.56, cy0 = H * 0.46, F3 = 3.4;
+      const nv = rocketV.length / 3;
+      const PX = new Float32Array(nv), PY = new Float32Array(nv), PZ = new Float32Array(nv);
+      let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9, zmin = 1e9, zmax = -1e9;
+      for (let i = 0; i < nv; i++) {
+        const x = rocketV[i * 3], y = rocketV[i * 3 + 1], z = rocketV[i * 3 + 2];
+        const x1 = x * cy + z * sy, z1 = -x * sy + z * cy;
+        const y1 = y * cx - z1 * sx, z2 = y * sx + z1 * cx;
+        const k = F3 / (F3 - z2);
+        const sxp = cx0 + x1 * Sc * k, syp = cy0 + y1 * Sc * k;
+        PX[i] = sxp; PY[i] = syp; PZ[i] = z2;
+        if (sxp < bx0) bx0 = sxp; if (sxp > bx1) bx1 = sxp;
+        if (syp < by0) by0 = syp; if (syp > by1) by1 = syp;
+        if (z2 < zmin) zmin = z2; if (z2 > zmax) zmax = z2;
+      }
+      rocketBB = { x0: bx0, y0: by0, x1: bx1, y1: by1 };
+      rocketPj = { pj: (p) => {
+        const x1 = p[0] * cy + p[2] * sy, z1 = -p[0] * sy + p[2] * cy;
+        const y1 = p[1] * cx - z1 * sx, z2 = p[1] * sx + z1 * cx, k = F3 / (F3 - z2);
+        return [cx0 + x1 * Sc * k, cy0 + y1 * Sc * k, k];
+      } };
+      const NB = 9, buckets = Array.from({ length: NB }, () => []), zr = (zmax - zmin) || 1, ne = rocketE.length / 2;
+      for (let i = 0; i < ne; i++) {
+        const a = rocketE[i * 2], b = rocketE[i * 2 + 1];
+        const d = ((PZ[a] + PZ[b]) * 0.5 - zmin) / zr;
+        buckets[Math.min(NB - 1, (d * NB) | 0)].push(PX[a], PY[a], PX[b], PY[b]);
+      }
+      roctx.lineWidth = 1;
+      for (let bkt = 0; bkt < NB; bkt++) {
+        const seg = buckets[bkt]; if (!seg.length) continue;
+        roctx.strokeStyle = "rgba(" + TEAL + "," + (0.13 + 0.34 * (bkt / (NB - 1))).toFixed(3) + ")";
+        roctx.beginPath();
+        for (let q = 0; q < seg.length; q += 4) { roctx.moveTo(seg[q], seg[q + 1]); roctx.lineTo(seg[q + 2], seg[q + 3]); }
+        roctx.stroke();
+      }
+      rocketReady = true;
+    };
+
+    const blitRocket = (alphaMul, track) => {
+      if (track) { lastPj = rocketPj; lastRot.y = ROCK_RY; lastRot.x = ROCK_RX; lastBB = rocketBB; }
+      ctx.globalAlpha = alphaMul; ctx.drawImage(rocketCanvas, 0, 0, W, H); ctx.globalAlpha = 1;
+    };
+
+    if (typeof pako !== "undefined") {
+      fetch("assets/rocket.json.gz").then((r) => r.arrayBuffer()).then((buf) => {
+        const d = JSON.parse(pako.inflate(new Uint8Array(buf), { to: "string" }));
+        rocketV = new Float32Array(d.v.length);
+        for (let i = 0; i < d.v.length; i++) rocketV[i] = d.v[i] / 32767;
+        rocketE = Int32Array.from(d.e);
+        renderRocket();
+      }).catch(() => {});
+    }
+
+    /* ---- one frame: the current model, eased crossfade at the boundaries,
+       plus each discipline's viewport furniture at its own plateau ---- */
+    const drawFrame = (s, t, dt, pNow) => {
       ctx.clearRect(0, 0, W, H);
       const iA = Math.min(Math.floor(s), 2);
       const f = clamp(s - iA, 0, 1);
       const morph = f > 0.001 && f < 0.999;
+      const ef = sstep(f);                       /* eased blend — no pop */
       const local = pNow >= 0.999 ? 1 : (pNow % 0.25) / 0.25;
+      const dA = [0, 1, 2, 3].map((i) => clamp(1 - Math.abs(s - i) * 2.4, 0, 1));
+
+      /* DCC floor grid under the terrain tile (gaming phase) — drawn first
+         so the model sits on it */
+      if (dA[2] > 0.01 && lastPj) {
+        const yF = 0.58, EX = 1.9, NL = 14;
+        ctx.lineWidth = 1;
+        for (let gi = 0; gi <= NL; gi++) {
+          const u = -EX + (2 * EX * gi) / NL;
+          const fade = 1 - Math.abs(gi / NL - 0.5) * 1.1;
+          ctx.strokeStyle = "rgba(" + TEAL + "," + (0.10 * dA[2] * Math.max(fade, 0.15)).toFixed(3) + ")";
+          let a1 = lastPj.pj([u, yF, -EX], false), a2 = lastPj.pj([u, yF, EX], false);
+          ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.stroke();
+          a1 = lastPj.pj([-EX, yF, u], false); a2 = lastPj.pj([EX, yF, u], false);
+          ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.stroke();
+        }
+      }
+
+      const drawOne = (mi, sweep, alpha, track) =>
+        (mi === 0 && rocketReady) ? blitRocket(alpha, track) : drawModel(mi, t, sweep, alpha, track);
       if (!morph) {
-        drawModel(Math.round(s), 0, local - 0.5, 1, true);
+        drawOne(Math.round(s), local - 0.5, 1, true);
       } else {
-        drawModel(iA, 0, 0, 1 - f, f < 0.5);
-        drawModel(iA + 1, 0, 0, f, f >= 0.5);
+        drawOne(iA, 0, 1 - ef, f < 0.5);
+        drawOne(iA + 1, 0, ef, f >= 0.5);
+      }
+
+      /* blood cells + pulse trace (biomedical phase) — ink dots riding the
+         lumen on the systole rhythm; the waveform is the same function */
+      const pulse = Math.pow(Math.max(Math.sin(t * 0.00754), 0), 2);       /* 72 bpm */
+      if (dA[1] > 0.01 && lastPj && dt > 0 && MODELS[1].path) {
+        for (const bp of BLOOD) {
+          bp.u += dt * (0.05 + 0.20 * pulse);
+          for (let k = 0; k < 3; k++) {
+            const pos = pathAt(MODELS[1].path, bp.u - k * 0.02);
+            if (Math.abs(pos[0]) > 0.95) continue;
+            const scr = lastPj.pj([pos[0], pos[1] + bp.oy * 0.5, pos[2] + bp.oz * 0.5], false);
+            const al = (1 - k / 3) * (0.14 + 0.26 * pulse) * dA[1];
+            ctx.fillStyle = "rgba(" + INK + "," + al.toFixed(3) + ")";
+            ctx.beginPath(); ctx.arc(scr[0], scr[1], (1.8 - k * 0.4) * scr[2], 0, 7); ctx.fill();
+          }
+        }
+        /* pulse strip along the bottom: sin²-systole traced across time */
+        const wy = H * 0.90, amp = H * 0.035, span = W * 0.30, x0 = W * 0.06;
+        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.35 * dA[1]).toFixed(3) + ")";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for (let px = 0; px <= span; px += 3) {
+          const pt = Math.pow(Math.max(Math.sin((t - (span - px) * 6) * 0.00754), 0), 2);
+          const yy = wy - pt * amp;
+          px ? ctx.lineTo(x0 + px, yy) : ctx.moveTo(x0 + px, yy);
+        }
+        ctx.stroke();
+      }
+
+      /* axis triad, bottom-left — one instrument shared by every bench,
+         rotating with the live model */
+      if (lastPj) {
+        const tx = W * 0.055, ty = H * 0.88, L = Math.min(W, H) * 0.045;
+        const cy2 = Math.cos(lastRot.y), sy2 = Math.sin(lastRot.y);
+        const cx2 = Math.cos(lastRot.x), sx2 = Math.sin(lastRot.x);
+        const ax = (p3) => {
+          const x1 = p3[0] * cy2 + p3[2] * sy2, z1 = -p3[0] * sy2 + p3[2] * cy2;
+          const y1 = p3[1] * cx2 - z1 * sx2;
+          return [tx + x1 * L, ty + y1 * L];
+        };
+        ctx.lineWidth = 1;
+        ctx.font = "10px 'Geist Mono', monospace";
+        const axes = [[[1, 0, 0], "x"], [[0, -1, 0], "y"], [[0, 0, 1], "z"]];
+        for (const [dir, name] of axes) {
+          const e = ax(dir);
+          ctx.strokeStyle = "rgba(" + INK + ",0.34)";
+          ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(e[0], e[1]); ctx.stroke();
+          ctx.fillStyle = "rgba(" + INK + ",0.5)";
+          ctx.fillText(name, e[0] + 3, e[1] + 3);
+        }
       }
     };
 
-    /* ---- phase swap: cards + rail ---- */
+    /* ---- phase swap: environments + rail + stage tint ---- */
     let cIdx = -1;
     const setIdx = (idx) => {
       if (idx === cIdx) return;
       cIdx = idx;
-      cards.forEach((c, i) => c.classList.toggle("is-active", i === idx));
+      envs.forEach((c, i) => c.classList.toggle("is-active", i === idx));
       railStops.forEach((b, i) => b.classList.toggle("active", i === idx));
+      if (stage) stage.dataset.phase = String(idx);
     };
 
+    /* real wire-edge counts off the actual models, written into the
+       environments that show stats (no invented numbers) */
+    spec.querySelectorAll("[data-spec-edges]").forEach((el) => {
+      const mi = +el.dataset.specEdges;
+      let segs = 0;
+      for (const g of MODELS[mi].groups) {
+        if (!g.pl) continue;
+        for (const pl of g.pl) segs += Math.max(pl.length - 1, 0);
+      }
+      el.textContent = segs.toLocaleString();
+    });
+
     if (reduce || !ctx) {
-      /* static fallback: unpin the stage, show all four cards, draw specimen 01 once */
+      /* static fallback: unpin the stage, show all four environments, draw specimen 01 once */
       spec.classList.add("spec--static");
-      if (ctx) { build(); drawFrame(0, 0.125); }
+      if (ctx) { build(); drawFrame(0, 0, 0, 0.125); }
     } else {
       build();
 
+      /* debug override for headless verification: ?specp=0.375 pins the scrub */
+      const dbgP = parseFloat(new URLSearchParams(location.search).get("specp"));
       let p = 0;
       const onScroll = () => {
+        if (!isNaN(dbgP)) { p = clamp(dbgP, 0, 1); return; }
         const r = spec.getBoundingClientRect();
         const scrollable = spec.offsetHeight - window.innerHeight;
         p = clamp(-r.top / Math.max(scrollable, 1), 0, 1);
@@ -880,22 +1043,20 @@
       window.addEventListener("scroll", onScroll, { passive: true });
       onScroll();
 
-      let running = false, rafId = 0, lastP = -1;
-      const loop = () => {
+      let running = false, rafId = 0, lastT = 0;
+      const loop = (t) => {
         if (!running) return;
-        if (Math.abs(p - lastP) > 1e-5) {
-          lastP = p;
-          let s = 0;
-          for (let b = 1; b < 4; b++) s += sstep((p - (b * 0.25 - MW / 2)) / MW);
-          setIdx(Math.round(s));
-          drawFrame(s, p);
-        }
+        const dt = Math.min((t - lastT) / 1000, 0.05); lastT = t;
+        let s = 0;
+        for (let b = 1; b < 4; b++) s += sstep((p - (b * 0.25 - MW / 2)) / MW);
+        setIdx(Math.round(s));
+        drawFrame(s, t, dt, p);
         rafId = requestAnimationFrame(loop);
       };
       const io = new IntersectionObserver((entries) => {
         entries.forEach((e) => {
           if (e.isIntersecting && !running) {
-            running = true; lastP = -1;
+            running = true; lastT = performance.now();
             rafId = requestAnimationFrame(loop);
           } else if (!e.isIntersecting && running) {
             running = false; cancelAnimationFrame(rafId);
@@ -917,7 +1078,7 @@
       let rsT = 0;
       window.addEventListener("resize", () => {
         clearTimeout(rsT);
-        rsT = setTimeout(() => { build(); onScroll(); lastP = -1; }, 120);
+        rsT = setTimeout(() => { build(); onScroll(); }, 120);
       });
     }
   }
