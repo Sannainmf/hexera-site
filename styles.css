@@ -718,25 +718,14 @@ html.lenis, html.lenis body { height: auto; }
    ORBITAL PROCESS RING — pinned section; a marker travels the
    ring as you scroll, the left copy + bottom tabs track phase.
    ============================================================ */
-/* transition bridge between the mesh scroll and the loop: an in-flow band
-   whose smoke bloom is baked into the artwork — its top and bottom edges
-   are true #000, so both hand-offs are black meeting black. No masks, no
-   opacity ramps; you simply scroll through it. */
-.flow-bridge { height: 74vh; margin-top: -1px;
-  background: url("assets/bridge.png") center / cover no-repeat;
-  mix-blend-mode: screen; }
-
 .ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
 .ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); }
-/* streamline backdrop, strictly inside the section — no overhang, no mask,
-   nothing that can draw an edge. The asset's body is true #000 and the
-   layer screen-blends, so it can only ever ADD ribbon light: the seam from
-   the mesh scroll stays plain black, and the smoke condenses in from zero
-   as the section rises to its pin (mirrored on exit). Scroll handler
-   drives --ringveil (0 → 0.55 max). */
+/* streamline backdrop: static artwork, same technique as everywhere else —
+   true-black body, black baked into the top/bottom edges, screen blend.
+   It simply IS the section's background; every seam is black meeting
+   black, no ramps, no masks, nothing scroll-driven. */
 .ring-sticky::before { content: ""; position: absolute; inset: 0; z-index: 0;
-  background: url("assets/ring-bg2.png") center / cover no-repeat;
-  opacity: var(--ringveil, 0);
+  background: url("assets/ring-bg3.png") center / cover no-repeat;
   mix-blend-mode: screen; }
 .ring-grid { position: relative; z-index: 1; width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
 
@@ -1142,6 +1131,13 @@ html.lenis, html.lenis body { height: auto; }
 .indx__title { margin: 1rem 0 0; font-family: var(--font-display); font-weight: 500; font-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); line-height: 1.02; color: var(--ink); text-wrap: balance; }
 .indx__title em { font-style: normal; color: var(--gold); }
 .indx__lede { margin: 1.1rem 0 0; color: var(--muted); font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1rem); line-height: 1.6; text-wrap: pretty; }
+
+/* smoke plate behind the section header — same technique as the loop
+   backdrop: baked black edges, screen blend, static. Text sits above. */
+.indx::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 92vh;
+  background: url("assets/bridge.png") center / cover no-repeat;
+  mix-blend-mode: screen; pointer-events: none; }
+.indx__head { position: relative; z-index: 1; }
 
 .spec { position: relative; height: 440vh; margin-inline: calc(var(--pad-x) * -1); }
 .spec__sticky { position: sticky; top: 0; height: 100vh; overflow: hidden;

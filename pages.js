@@ -133,16 +133,6 @@
       const rect = ring.getBoundingClientRect();
       const scrollable = ring.offsetHeight - window.innerHeight;
       const p = clamp(-rect.top / Math.max(scrollable, 1), 0, 1);
-      /* condense ramp: keyed to section entry only — zero at the seam,
-         near-invisible through the first half of the entry, dim cap at the
-         pin, mirrored on exit via the section bottom. Squared smoothstep
-         keeps the early presence a whisper. */
-      const vh = window.innerHeight;
-      const fin = clamp((vh - rect.top) / (vh * 1.25), 0, 1);
-      const fout = clamp(rect.bottom / (vh * 0.9), 0, 1);
-      const vt = Math.min(fin, fout);
-      const ss = vt * vt * (3 - 2 * vt);
-      ring.style.setProperty("--ringveil", (0.55 * ss * ss).toFixed(3));
       // marker travels the full circle starting at the top (-90°)
       const ang = (-90 + p * 360) * (Math.PI / 180);
       if (svgMarker) {
