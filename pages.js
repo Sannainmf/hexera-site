@@ -863,7 +863,7 @@
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
-      3: { url: "assets/car.json.gz",    ry: 0.80, rx: -0.50, sc: 0.50, cx: 0.60, cy: 0.45, f3: 3.4, gy: 0.307 },
+      3: { url: "assets/car.json.gz",    ry: 0.72, rx: -0.30, sc: 0.46, cx: 0.58, cy: 0.50, f3: 3.4, gy: 0.307 },
     };
     for (const k in REAL) {
       const e = REAL[k];
@@ -963,26 +963,42 @@
         }
       }
 
-      /* wind-tunnel floor under the car (automotive phase) — a ground plane
-         at the wheels' contact line so the car sits planted, not floating.
-         Projected with the car's own baked pose. Drawn first, car on top. */
+      /* wind-tunnel corner around the car (automotive phase) — floor grid,
+         back wall, and a test-platform outline under the wheelbase, all
+         projected with the car's own baked pose so it sits planted in a
+         room instead of floating. Drawn first, car on top. */
       const carR = REAL[3];
       if (dA[3] > 0.01 && carR && carR.pj) {
-        const gy = carR.gy, GX = 1.75, GZ = 1.08, NX = 20, NZ = 12;
+        const gy = carR.gy, GX = 2.2, GZ = 1.3, WH = 1.35;
+        const seg = (a, b, al) => {
+          ctx.strokeStyle = "rgba(" + TEAL + "," + (al * dA[3]).toFixed(3) + ")";
+          const A = carR.pj.pj(a), B = carR.pj.pj(b);
+          ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.stroke();
+        };
         ctx.lineWidth = 1;
-        for (let gi = 0; gi <= NX; gi++) {
-          const u = -GX + (2 * GX * gi) / NX;
-          const fade = 1 - Math.abs(gi / NX - 0.5) * 1.05;
-          ctx.strokeStyle = "rgba(" + TEAL + "," + (0.085 * dA[3] * Math.max(fade, 0.12)).toFixed(3) + ")";
-          const a1 = carR.pj.pj([u, gy, -GZ]), a2 = carR.pj.pj([u, gy, GZ]);
-          ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.stroke();
+        for (let gi = 0; gi <= 22; gi++) {          /* floor */
+          const u = -GX + (2 * GX * gi) / 22, f = 1 - Math.abs(gi / 22 - 0.5);
+          seg([u, gy, -GZ], [u, gy, GZ], 0.34 * Math.max(f, 0.12));
         }
-        for (let gj = 0; gj <= NZ; gj++) {
-          const w = -GZ + (2 * GZ * gj) / NZ;
-          const fade = 1 - Math.abs(gj / NZ - 0.5) * 1.05;
-          ctx.strokeStyle = "rgba(" + TEAL + "," + (0.085 * dA[3] * Math.max(fade, 0.12)).toFixed(3) + ")";
-          const a1 = carR.pj.pj([-GX, gy, w]), a2 = carR.pj.pj([GX, gy, w]);
-          ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.stroke();
+        for (let gj = 0; gj <= 12; gj++) {
+          const w = -GZ + (2 * GZ * gj) / 12, f = 1 - Math.abs(gj / 12 - 0.5);
+          seg([-GX, gy, w], [GX, gy, w], 0.34 * Math.max(f, 0.12));
+        }
+        for (let gi = 0; gi <= 22; gi++) {          /* back wall */
+          const u = -GX + (2 * GX * gi) / 22, f = 1 - Math.abs(gi / 22 - 0.5);
+          seg([u, gy, -GZ], [u, gy - WH, -GZ], 0.20 * Math.max(f, 0.10));
+        }
+        for (let gk = 0; gk <= 6; gk++) {
+          const h = gy - (WH * gk) / 6;
+          seg([-GX, h, -GZ], [GX, h, -GZ], 0.20);
+        }
+        seg([-GX, gy, -GZ], [GX, gy, -GZ], 0.5);    /* corner edge */
+        const px = 1.25, pz = 0.55;                 /* test platform */
+        seg([-px, gy, -pz], [px, gy, -pz], 0.65); seg([px, gy, -pz], [px, gy, pz], 0.65);
+        seg([px, gy, pz], [-px, gy, pz], 0.65);   seg([-px, gy, pz], [-px, gy, -pz], 0.65);
+        for (let gj = 1; gj < 4; gj++) {
+          const w = -pz + (2 * pz * gj) / 4;
+          seg([-px, gy, w], [px, gy, w], 0.30);
         }
       }
 
