@@ -133,13 +133,13 @@
       const rect = ring.getBoundingClientRect();
       const scrollable = ring.offsetHeight - window.innerHeight;
       const p = clamp(-rect.top / Math.max(scrollable, 1), 0, 1);
-      /* veil ramp spans the neighbours: ribbons start appearing while the
-         ring section is still ~0.7 viewport below (you're in the airfoil
-         scroll), peak while pinned, and linger ~0.7 viewport into the next
-         section on the way out. Smoothstepped, capped dim at 0.55. */
+      /* peek ramp, keyed to how much of the section is on screen: as the
+         top band slides up after the mesh scroll, the ribbon tops show
+         near-invisibly and grow until just past the pin; mirrored on the
+         way out via the section bottom. Smoothstepped, capped dim 0.55. */
       const vh = window.innerHeight;
-      const fin = clamp((vh * 1.7 - rect.top) / (vh * 2.0), 0, 1);
-      const fout = clamp((rect.bottom + vh * 0.7) / (vh * 1.7), 0, 1);
+      const fin = clamp((vh - rect.top) / (vh * 1.35), 0, 1);
+      const fout = clamp(rect.bottom / (vh * 0.9), 0, 1);
       const vt = Math.min(fin, fout);
       ring.style.setProperty("--ringveil",
         (0.55 * vt * vt * (3 - 2 * vt)).toFixed(3));

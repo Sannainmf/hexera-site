@@ -720,16 +720,14 @@ html.lenis, html.lenis body { height: auto; }
    ============================================================ */
 .ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
 .ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); overflow: hidden; }
-/* streamline veil: a fixed full-viewport layer that lives OUTSIDE the
-   section clip, so the ribbons ghost in while you're still in the section
-   above, peak inside the pinned loop, and linger fading on the way out.
-   Screen blend means only the bright ribbons show over the black page.
-   The ring's scroll handler drives --ringveil (0 far away, 0.55 max). */
-.ring-veil { position: fixed; inset: 0; z-index: 15; pointer-events: none;
+/* streamline backdrop, clipped to the section: as the section's top band
+   slides up after the mesh scroll, the ribbon tops peek out in that band —
+   near-invisible at first, growing as the stage rises to its pin, then the
+   mirror of that on the way out. Never drawn over the neighbouring
+   sections. The ring's scroll handler drives --ringveil (0 → 0.55 max). */
+.ring-sticky::before { content: ""; position: absolute; inset: 0; z-index: 0;
   background: url("assets/ring-bg.jpg?v=2") center / cover no-repeat;
-  mix-blend-mode: screen; opacity: var(--ringveil, 0);
-  transform: translate3d(0, calc((0.55 - var(--ringveil, 0)) * 8vh), 0); }
-@media (prefers-reduced-motion: reduce) { .ring-veil { transform: none; } }
+  opacity: var(--ringveil, 0); }
 .ring-grid { position: relative; z-index: 1; width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
 
 .ring-copy { max-width: 30ch; }
