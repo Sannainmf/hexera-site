@@ -727,7 +727,7 @@ html.lenis, html.lenis body { height: auto; }
    through a mask so it never ends in an edge. Scroll handler drives
    --ringveil (0 → 0.55 max). */
 .ring-sticky::before { content: ""; position: absolute; left: 0; right: 0; top: -45vh; bottom: 0; z-index: 0;
-  background: url("assets/ring-bg.jpg?v=2") center / cover no-repeat;
+  background: url("assets/ring-bg2.png") center / cover no-repeat;
   opacity: var(--ringveil, 0);
   /* screen blend: the image's black body adds nothing, so only the ribbon
      light shows — no gray plate, no mask banding, seamless over any black */
