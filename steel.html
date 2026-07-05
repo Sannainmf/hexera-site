@@ -240,75 +240,78 @@
       <p class="indx__lede">One meshing core, pointed at the geometry and physics each field actually ships.</p>
     </header>
 
-    <!-- The chamber: one sticky stage. A real wireframe model re-forms from one
-         industry's geometry to the next as you scroll — wing, stent, terrain
-         tile, brake rotor. Driven by [data-spec] in pages.js. -->
+    <!-- Four workbenches: one full-viewport sticky stage. Each industry is
+         staged as its own software viewport (CFD tunnel, hemodynamics, DCC
+         grid, FEA thermal); scroll crossfades between them. [data-spec] -->
     <div class="spec" data-spec>
-      <div class="spec__sticky">
-        <div class="spec__grid">
-          <figure class="spec-chamber" aria-hidden="true">
-            <canvas class="spec-canvas" data-spec-canvas></canvas>
-          </figure>
+      <div class="spec__sticky" data-phase="0">
+        <canvas class="spec-canvas" data-spec-canvas></canvas>
 
-          <div class="spec-copy">
-            <nav class="spec-rail" aria-label="Industries">
-              <button data-spec-go="0" class="active">Aero</button>
-              <button data-spec-go="1">Bio</button>
-              <button data-spec-go="2">Game</button>
-              <button data-spec-go="3">Auto</button>
-            </nav>
+        <nav class="spec-rail" aria-label="Industries">
+          <button data-spec-go="0" class="active">Aero</button>
+          <button data-spec-go="1">Bio</button>
+          <button data-spec-go="2">Game</button>
+          <button data-spec-go="3">Auto</button>
+        </nav>
 
-            <article class="spec-card is-active" data-spec-card>
-              <h3 class="spec-card__name">Aerospace</h3>
-              <ul class="spec-card__list">
-                <li>Prism layers to y+ &asymp; 1</li>
-                <li>Refinement at the trailing edge</li>
-                <li>A far field that frees the wake</li>
-              </ul>
-              <div class="spec-card__foot">
-                <h4 class="spec-card__h">Wings, wakes, whole aircraft.</h4>
-                <p class="spec-card__p">Boundary layers and separation over lifting surfaces and full airframes — the regime Hexera meshes today.</p>
-              </div>
-            </article>
+        <div class="spec-env is-active" data-spec-env>
+          <div class="spec-env__text">
+            <span class="spec-env__mode">cfd &middot; external aero &middot; wind tunnel</span>
+            <h3 class="spec-env__name">Aerospace</h3>
+            <ul class="spec-env__list">
+              <li>Prism layers to y+ &asymp; 1</li>
+              <li>Refinement at the trailing edge</li>
+              <li>A far field that frees the wake</li>
+            </ul>
+            <p class="spec-env__p">Boundary layers and separation over lifting surfaces and full airframes &mdash; the regime Hexera meshes today.</p>
+          </div>
+        </div>
 
-            <article class="spec-card" data-spec-card>
-              <h3 class="spec-card__name">Biomedical</h3>
-              <ul class="spec-card__list">
-                <li>Patient-specific vasculature</li>
-                <li>Thin, compliant walls</li>
-                <li>Pulsatile, conjugate heat</li>
-              </ul>
-              <div class="spec-card__foot">
-                <h4 class="spec-card__h">Vessels, valves, airways.</h4>
-                <p class="spec-card__p">Blood through stents and aneurysms, air through the lung — with tissue heat coupled across walls a cell thick.</p>
-              </div>
-            </article>
+        <div class="spec-env" data-spec-env>
+          <div class="spec-env__text">
+            <span class="spec-env__mode">hemodynamics &middot; pulsatile flow</span>
+            <h3 class="spec-env__name">Biomedical</h3>
+            <ul class="spec-env__list">
+              <li>Patient-specific vasculature</li>
+              <li>Thin, compliant walls</li>
+              <li>Pulsatile, conjugate heat</li>
+            </ul>
+            <p class="spec-env__p">Blood through stents and aneurysms, air through the lung &mdash; with tissue heat coupled across walls a cell thick.</p>
+          </div>
+        </div>
 
-            <article class="spec-card" data-spec-card>
-              <h3 class="spec-card__name">Gaming</h3>
-              <ul class="spec-card__list">
-                <li>Watertight collision shells</li>
-                <li>Fluid and smoke volumes</li>
-                <li>LODs that hold their silhouette</li>
-              </ul>
-              <div class="spec-card__foot">
-                <h4 class="spec-card__h">Real-time, baked, or both.</h4>
-                <p class="spec-card__p">Raw geometry becomes watertight meshes and fluid volumes for live engines and pre-baked VFX, with no hand cleanup.</p>
-              </div>
-            </article>
+        <div class="spec-env" data-spec-env>
+          <div class="spec-env__text">
+            <span class="spec-env__mode">viewport &middot; lod preview</span>
+            <h3 class="spec-env__name">Gaming</h3>
+            <ul class="spec-env__list">
+              <li>Watertight collision shells</li>
+              <li>Fluid and smoke volumes</li>
+              <li>LODs that hold their silhouette</li>
+            </ul>
+            <p class="spec-env__p">Raw geometry becomes watertight meshes and fluid volumes for live engines and pre-baked VFX, with no hand cleanup.</p>
+          </div>
+          <div class="spec-env__side">
+            <span class="spec-stat"><b data-spec-edges="2">&ndash;</b> wire edges</span>
+          </div>
+        </div>
 
-            <article class="spec-card" data-spec-card>
-              <h3 class="spec-card__name">Automotive</h3>
-              <ul class="spec-card__list">
-                <li>Full-vehicle external aero</li>
-                <li>Underhood and brake cooling</li>
-                <li>Conjugate thermal in the pack</li>
-              </ul>
-              <div class="spec-card__foot">
-                <h4 class="spec-card__h">Every panel, every duct.</h4>
-                <p class="spec-card__p">Complete vehicle assemblies in one pass — external drag and downforce, underhood airflow, and battery-pack thermal.</p>
-              </div>
-            </article>
+        <div class="spec-env" data-spec-env>
+          <div class="spec-env__text">
+            <span class="spec-env__mode">fea &middot; conjugate thermal</span>
+            <h3 class="spec-env__name">Automotive</h3>
+            <ul class="spec-env__list">
+              <li>Full-vehicle external aero</li>
+              <li>Underhood and brake cooling</li>
+              <li>Conjugate thermal in the pack</li>
+            </ul>
+            <p class="spec-env__p">Complete vehicle assemblies in one pass &mdash; external drag and downforce, underhood airflow, and battery-pack thermal.</p>
+          </div>
+          <div class="spec-cbar" aria-hidden="true">
+            <i class="spec-cbar__ramp"></i>
+            <span class="spec-cbar__max">1</span>
+            <span class="spec-cbar__min">0</span>
+            <span class="spec-cbar__label">surface field &middot; normalized</span>
           </div>
         </div>
       </div>
