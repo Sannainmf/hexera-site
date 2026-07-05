@@ -719,15 +719,18 @@ html.lenis, html.lenis body { height: auto; }
    ring as you scroll, the left copy + bottom tabs track phase.
    ============================================================ */
 .ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
-.ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); overflow: hidden; }
-/* streamline backdrop, clipped to the section: as the section's top band
-   slides up after the mesh scroll, the ribbon tops peek out in that band —
-   near-invisible at first, growing as the stage rises to its pin, then the
-   mirror of that on the way out. Never drawn over the neighbouring
-   sections. The ring's scroll handler drives --ringveil (0 → 0.55 max). */
-.ring-sticky::before { content: ""; position: absolute; inset: 0; z-index: 0;
+.ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); }
+/* streamline backdrop with creep: the layer extends 45vh ABOVE the stage,
+   so as you scroll past the mesh scroll the upper wisps poke out of the
+   section before you reach it — near-invisible at first, growing to the
+   dim cap at the pin, mirrored on exit. The extension's own top dissolves
+   through a mask so it never ends in an edge. Scroll handler drives
+   --ringveil (0 → 0.55 max). */
+.ring-sticky::before { content: ""; position: absolute; left: 0; right: 0; top: -45vh; bottom: 0; z-index: 0;
   background: url("assets/ring-bg.jpg?v=2") center / cover no-repeat;
-  opacity: var(--ringveil, 0); }
+  opacity: var(--ringveil, 0);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 34%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 34%); }
 .ring-grid { position: relative; z-index: 1; width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
 
 .ring-copy { max-width: 30ch; }

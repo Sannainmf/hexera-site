@@ -133,12 +133,13 @@
       const rect = ring.getBoundingClientRect();
       const scrollable = ring.offsetHeight - window.innerHeight;
       const p = clamp(-rect.top / Math.max(scrollable, 1), 0, 1);
-      /* peek ramp, keyed to how much of the section is on screen: as the
-         top band slides up after the mesh scroll, the ribbon tops show
-         near-invisibly and grow until just past the pin; mirrored on the
-         way out via the section bottom. Smoothstepped, capped dim 0.55. */
+      /* creep ramp: the backdrop layer sticks out 45vh above the stage, so
+         the ramp starts as that overhang clears the fold (rect.top ~1.45vh)
+         — wisps creep out of the section while you're finishing the mesh
+         scroll, grow to the dim cap at the pin, mirrored on exit via the
+         section bottom. Smoothstepped, capped 0.55. */
       const vh = window.innerHeight;
-      const fin = clamp((vh - rect.top) / (vh * 1.35), 0, 1);
+      const fin = clamp((vh * 1.45 - rect.top) / (vh * 1.6), 0, 1);
       const fout = clamp(rect.bottom / (vh * 0.9), 0, 1);
       const vt = Math.min(fin, fout);
       ring.style.setProperty("--ringveil",
