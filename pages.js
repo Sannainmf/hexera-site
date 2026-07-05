@@ -142,8 +142,9 @@
       const fin = clamp((vh * 1.45 - rect.top) / (vh * 1.6), 0, 1);
       const fout = clamp(rect.bottom / (vh * 0.9), 0, 1);
       const vt = Math.min(fin, fout);
-      ring.style.setProperty("--ringveil",
-        (0.55 * vt * vt * (3 - 2 * vt)).toFixed(3));
+      const ss = vt * vt * (3 - 2 * vt);
+      /* squared smoothstep: whisper-quiet through the creep, full only at the pin */
+      ring.style.setProperty("--ringveil", (0.55 * ss * ss).toFixed(3));
       // marker travels the full circle starting at the top (-90°)
       const ang = (-90 + p * 360) * (Math.PI / 180);
       if (svgMarker) {
