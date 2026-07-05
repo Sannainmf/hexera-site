@@ -914,11 +914,11 @@
     };
 
     if (typeof pako !== "undefined") {
-      fetch("assets/saturn.json.gz").then((r) => r.arrayBuffer()).then((buf) => {
+      fetch("assets/rocket.json.gz").then((r) => r.arrayBuffer()).then((buf) => {
         const d = JSON.parse(pako.inflate(new Uint8Array(buf), { to: "string" }));
         rocketV = new Float32Array(d.v.length);
         for (let i = 0; i < d.v.length; i++) rocketV[i] = d.v[i] / 32767;
-        rocketE = Uint16Array.from(d.e);
+        rocketE = Int32Array.from(d.e);
         renderRocket();
       }).catch(() => {});
     }

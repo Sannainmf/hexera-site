@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hexera — HF banner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#060402; --ink:#f1f1ee; --muted:#b9b4a6; --faint:#8c8576;
+      --gold:#ffba00; --gold-soft:#ffce4d; --teal:#0fb6ac;
+      --line-2:rgba(238,235,225,0.20);
+      --font-display:"Saira Semi Condensed","Helvetica Neue",Arial,sans-serif;
+      --font-body:"Geist",system-ui,-apple-system,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{background:#000;}
+    /* 1600 x 500 — the old card's ~3.2:1 proportions */
+    .banner{
+      position:relative; width:1600px; height:500px; overflow:hidden;
+      background:var(--bg);
+      color:var(--ink); font-family:var(--font-body); -webkit-font-smoothing:antialiased;
+    }
+    /* cube logo on the right, sized/placed like the original banner */
+    .cube-right{
+      position:absolute; right:245px; top:50%; transform:translateY(-50%);
+      height:372px; width:auto; z-index:2;
+    }
+    /* huge ghosted wordmark behind the headline, faint warm gold */
+    .ghost{
+      position:absolute; left:74px; top:84px; z-index:3;
+      font-family:var(--font-body); font-weight:800; font-size:172px; line-height:1;
+      letter-spacing:-0.01em; white-space:nowrap; user-select:none;
+      color:transparent;
+      background:linear-gradient(180deg,
+        rgba(255,186,0,0.20) 0%,
+        rgba(255,186,0,0.07) 50%,
+        rgba(255,186,0,0) 86%);
+      -webkit-background-clip:text; background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+    .copy{ position:absolute; left:98px; top:206px; z-index:4; }
+    .headline{ font-family:var(--font-display); letter-spacing:0; line-height:1.0; }
+    .headline .l1{ display:block; font-weight:500; font-size:74px; color:var(--ink); }
+    .headline .l2{ display:block; font-weight:300; font-size:74px; color:var(--muted); }
+    .pill{
+      display:inline-flex; align-items:center; gap:0.7rem; margin-top:36px;
+      padding:0.7em 1.15em; border:1px solid var(--line-2); border-radius:12px;
+      background:rgba(13,10,4,0.55); backdrop-filter:blur(2px);
+      font-family:var(--font-body); font-weight:400; font-size:19px; color:var(--muted);
+    }
+    .pill svg{ display:block; flex:none; }
+    .pill-cube{ display:block; flex:none; height:30px; width:auto; }
+    .pill b{ color:var(--gold); font-weight:500; margin-left:-0.07em; }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <img class="cube-right" src="assets/logo-cut.png" alt="Hexera cube logo" />
+    <div class="ghost" aria-hidden="true">HEXERA</div>
+
+    <div class="copy">
+      <h1 class="headline">
+        <span class="l1">Autonomous meshing</span>
+        <span class="l2">without the wait.</span>
+      </h1>
+      <div class="pill">
+        <img class="pill-cube" src="assets/logo-cut.png" alt="Hexera" />
+        Mesh creation takes days. Yours takes <b>one&nbsp;prompt.</b>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

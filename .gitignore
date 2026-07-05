@@ -43,5 +43,5 @@ assets/*
 !assets/hero-bg.jpg
 !assets/hero-bg-orange.jpg
 !assets/airfoil.msh.gz
-!assets/saturn.json.gz
+!assets/rocket.json.gz
 !assets/logos/
