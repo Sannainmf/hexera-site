@@ -720,6 +720,7 @@
       sref = Math.min(W, H);
       lastBB = { x0: W * 0.25, y0: H * 0.25, x1: W * 0.75, y1: H * 0.75 };
       initFlow();
+      if (rocketV) renderRocket();
     };
 
     /* ---- one 3D model pass: rotate → project → depth-shaded wireframe ---- */
@@ -854,6 +855,74 @@
     };
 
 
+    /* ---- real Saturn V (NASA 3D Resources, public domain): a dense 57k-edge
+       mesh baked once to an offscreen buffer at a fixed 3/4 pose, then blitted
+       each frame so it never costs a per-frame redraw ---- */
+    let rocketReady = false, rocketV = null, rocketE = null, rocketPj = null, rocketBB = null;
+    const rocketCanvas = document.createElement("canvas");
+    const roctx = rocketCanvas.getContext("2d");
+    const ROCK_RY = 0.62, ROCK_RX = -0.18;
+
+    const renderRocket = () => {
+      if (!rocketV || !W || !H) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      rocketCanvas.width = Math.round(W * dpr); rocketCanvas.height = Math.round(H * dpr);
+      roctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      roctx.clearRect(0, 0, W, H);
+      const cy = Math.cos(ROCK_RY), sy = Math.sin(ROCK_RY), cx = Math.cos(ROCK_RX), sx = Math.sin(ROCK_RX);
+      const Sc = sref * 0.72, cx0 = W * 0.53, cy0 = H * 0.47, F3 = 3.4;
+      const nv = rocketV.length / 3;
+      const PX = new Float32Array(nv), PY = new Float32Array(nv), PZ = new Float32Array(nv);
+      let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9, zmin = 1e9, zmax = -1e9;
+      for (let i = 0; i < nv; i++) {
+        const x = rocketV[i * 3], y = rocketV[i * 3 + 1], z = rocketV[i * 3 + 2];
+        const x1 = x * cy + z * sy, z1 = -x * sy + z * cy;
+        const y1 = y * cx - z1 * sx, z2 = y * sx + z1 * cx;
+        const k = F3 / (F3 - z2);
+        const sxp = cx0 + x1 * Sc * k, syp = cy0 + y1 * Sc * k;
+        PX[i] = sxp; PY[i] = syp; PZ[i] = z2;
+        if (sxp < bx0) bx0 = sxp; if (sxp > bx1) bx1 = sxp;
+        if (syp < by0) by0 = syp; if (syp > by1) by1 = syp;
+        if (z2 < zmin) zmin = z2; if (z2 > zmax) zmax = z2;
+      }
+      rocketBB = { x0: bx0, y0: by0, x1: bx1, y1: by1 };
+      rocketPj = { pj: (p) => {
+        const x1 = p[0] * cy + p[2] * sy, z1 = -p[0] * sy + p[2] * cy;
+        const y1 = p[1] * cx - z1 * sx, z2 = p[1] * sx + z1 * cx, k = F3 / (F3 - z2);
+        return [cx0 + x1 * Sc * k, cy0 + y1 * Sc * k, k];
+      } };
+      const NB = 9, buckets = Array.from({ length: NB }, () => []), zr = (zmax - zmin) || 1, ne = rocketE.length / 2;
+      for (let i = 0; i < ne; i++) {
+        const a = rocketE[i * 2], b = rocketE[i * 2 + 1];
+        const d = ((PZ[a] + PZ[b]) * 0.5 - zmin) / zr;
+        buckets[Math.min(NB - 1, (d * NB) | 0)].push(PX[a], PY[a], PX[b], PY[b]);
+      }
+      roctx.lineWidth = 1;
+      for (let bkt = 0; bkt < NB; bkt++) {
+        const seg = buckets[bkt]; if (!seg.length) continue;
+        roctx.strokeStyle = "rgba(" + TEAL + "," + (0.13 + 0.34 * (bkt / (NB - 1))).toFixed(3) + ")";
+        roctx.beginPath();
+        for (let q = 0; q < seg.length; q += 4) { roctx.moveTo(seg[q], seg[q + 1]); roctx.lineTo(seg[q + 2], seg[q + 3]); }
+        roctx.stroke();
+      }
+      rocketReady = true;
+    };
+
+    const blitRocket = (alphaMul, track) => {
+      if (track) { lastPj = rocketPj; lastRot.y = ROCK_RY; lastRot.x = ROCK_RX; lastBB = rocketBB; }
+      ctx.globalAlpha = alphaMul; ctx.drawImage(rocketCanvas, 0, 0, W, H); ctx.globalAlpha = 1;
+    };
+
+    if (typeof pako !== "undefined") {
+      fetch("assets/saturn.json.gz").then((r) => r.arrayBuffer()).then((buf) => {
+        const d = JSON.parse(pako.inflate(new Uint8Array(buf), { to: "string" }));
+        rocketV = new Float32Array(d.v.length);
+        for (let i = 0; i < d.v.length; i++) rocketV[i] = d.v[i] / 32767;
+        rocketE = Uint16Array.from(d.e);
+        renderRocket();
+      }).catch(() => {});
+    }
+
     /* ---- one frame: the current model, eased crossfade at the boundaries,
        plus each discipline's viewport furniture at its own plateau ---- */
     const drawFrame = (s, t, dt, pNow) => {
@@ -881,11 +950,14 @@
         }
       }
 
+      // aerospace slot 0 is the real Saturn V (offscreen bitmap) once loaded
+      const drawOne = (mi, sweep, alpha, track) =>
+        (mi === 0 && rocketReady) ? blitRocket(alpha, track) : drawModel(mi, t, sweep, alpha, track);
       if (!morph) {
-        drawModel(Math.round(s), t, local - 0.5, 1, true);
+        drawOne(Math.round(s), local - 0.5, 1, true);
       } else {
-        drawModel(iA, t, 0, 1 - ef, f < 0.5);
-        drawModel(iA + 1, t, 0, ef, f >= 0.5);
+        drawOne(iA, 0, 1 - ef, f < 0.5);
+        drawOne(iA + 1, 0, ef, f >= 0.5);
       }
 
       /* wind-tunnel free-stream around the wing (aerospace phase) — a few
@@ -1025,6 +1097,10 @@
       };
       window.addEventListener("scroll", onScroll, { passive: true });
       onScroll();
+      if (!isNaN(dbgP)) {   // headless verify: scroll so the stage is pinned at the plateau
+        const sc = spec.offsetHeight - window.innerHeight;
+        window.scrollTo(0, spec.getBoundingClientRect().top + window.scrollY + sc * dbgP);
+      }
 
       let running = false, rafId = 0, lastT = 0;
       const loop = (t) => {
