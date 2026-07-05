@@ -168,7 +168,7 @@
   if (amb) {
     const stage = amb.querySelector(".amb__stage");
     const list = amb.querySelector(".amb__list");
-    let ambPad = 0, loopH = 0;
+    let ambPad = 0, loopH = 0, listD = 0, lastScr = null;
     const measure = () => {
       ambPad = parseFloat(getComputedStyle(list).paddingLeft) || 0;
       loopH = list.scrollHeight / 2;   // list is two identical sets of 30 — one set is the seamless loop period
@@ -196,12 +196,17 @@
       // lurches mid-way once the scale gets small.
       const zoom = zStart * Math.pow(zEnd / zStart, pFull);
       const centerShift = pFull * Math.max(window.innerWidth * 0.5 - ambPad, 0) * 0.5;
-      // INFINITE LOOP: a slow, continuous translate that wraps at one set height, so
-      // the list never reaches an end — it keeps scrolling even as the section exits.
-      // Runs downward (with the scroll direction): start one period up and ease
-      // toward 0 so the wrap point stays seamless.
-      const loopRate = 0.30;
-      const ty = loopH > 0 ? ((scrolled * loopRate) % loopH) - loopH : 0;
+      // INFINITE LOOP, zoom-compensated: the translate is scaled by the zoom,
+      // so a fixed model-space rate dies visually as the list shrinks (5x
+      // slower by the end — read as "stopped"). Integrate travel with a rate
+      // divided by the current zoom instead: on-screen speed starts fast
+      // (~2.2px per scroll px) and tapers gently to ~1.1, never stalling.
+      // Wraps at one set height either direction, so the loop stays seamless.
+      if (lastScr === null) lastScr = scrolled;
+      const screenRate = 2.2 * (1 - 0.5 * pFull);
+      listD += (scrolled - lastScr) * (screenRate / Math.max(zoom, 0.2));
+      lastScr = scrolled;
+      const ty = loopH > 0 ? (((listD % loopH) + loopH) % loopH) - loopH : 0;
       // fade in early (invisible -> visible) so the text is readable while it keeps zooming.
       const fadeP = clamp(scrolled / (vh * 2), 0, 1);
       list.style.transform = "translateX(" + centerShift.toFixed(1) + "px) scale(" + zoom.toFixed(3) + ") translateY(" + ty.toFixed(1) + "px)";
