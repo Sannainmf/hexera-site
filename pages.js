@@ -133,10 +133,10 @@
       const rect = ring.getBoundingClientRect();
       const scrollable = ring.offsetHeight - window.innerHeight;
       const p = clamp(-rect.top / Math.max(scrollable, 1), 0, 1);
-      /* backdrop breathes in over the first ~18% of the pin and back out
-         at the end, so both seams stay pure black */
+      /* backdrop drifts up + breathes in over the first ~30% of the pin and
+         back out at the end, so both seams stay pure black */
       ring.style.setProperty("--ringbg",
-        Math.min(clamp(p * 5.5, 0, 1), clamp((1 - p) * 8, 0, 1)).toFixed(3));
+        Math.min(clamp(p * 3.2, 0, 1), clamp((1 - p) * 8, 0, 1)).toFixed(3));
       // marker travels the full circle starting at the top (-90°)
       const ang = (-90 + p * 360) * (Math.PI / 180);
       if (svgMarker) {
