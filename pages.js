@@ -863,7 +863,7 @@
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
-      3: { url: "assets/car.json.gz",    ry: 0.96, rx: -0.42, sc: 0.50, cx: 0.60, cy: 0.47, f3: 3.4 },
+      3: { url: "assets/car.json.gz",    ry: 0.78, rx: -0.42, sc: 0.50, cx: 0.60, cy: 0.47, f3: 3.4 },
     };
     for (const k in REAL) {
       const e = REAL[k];
