@@ -870,7 +870,7 @@
       roctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       roctx.clearRect(0, 0, W, H);
       const cy = Math.cos(ROCK_RY), sy = Math.sin(ROCK_RY), cx = Math.cos(ROCK_RX), sx = Math.sin(ROCK_RX);
-      const Sc = sref * 0.72, cx0 = W * 0.53, cy0 = H * 0.47, F3 = 3.4;
+      const Sc = sref * 1.18, cx0 = W * 0.56, cy0 = H * 0.46, F3 = 3.4;
       const nv = rocketV.length / 3;
       const PX = new Float32Array(nv), PY = new Float32Array(nv), PZ = new Float32Array(nv);
       let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9, zmin = 1e9, zmax = -1e9;
