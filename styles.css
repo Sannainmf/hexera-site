@@ -719,7 +719,9 @@ html.lenis, html.lenis body { height: auto; }
    ring as you scroll, the left copy + bottom tabs track phase.
    ============================================================ */
 .ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
-.ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); overflow: hidden; }
+.ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); overflow: hidden;
+  /* generated streamline backdrop: pre-dimmed to sit behind the dial */
+  background: url("assets/ring-bg.jpg") center / cover no-repeat; }
 .ring-grid { position: relative; z-index: 1; width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
 
 .ring-copy { max-width: 30ch; }
