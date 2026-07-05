@@ -236,17 +236,19 @@
     window.addEventListener("resize", updInd);
   }
 
-  /* ---------- Industries: the chamber ----------
-     Four real 3D wireframe models pinned in a sticky stage, each
-     CAD'd procedurally: a lofted swept wing, a deployed coronary
-     stent, a low-poly terrain tile, and a vented brake rotor.
-     Scroll crossfades one finished mesh into the next; the copy
-     deck and rail swap in step. No HUD, no particles. */
+  /* ---------- Industries: four workbenches ----------
+     Four real 3D wireframe models pinned in one full-viewport stage,
+     each CAD'd procedurally: a lofted swept wing, a deployed coronary
+     stent, a low-poly terrain tile, and a vented brake rotor. Each
+     phase dresses the stage as that discipline's software viewport
+     (CFD tunnel, hemodynamics, DCC grid, FEA thermal); scroll
+     crossfades one environment into the next. */
   const spec = document.querySelector("[data-spec]");
   if (spec) {
     const canvas = spec.querySelector("[data-spec-canvas]");
     const ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
-    const cards = Array.from(spec.querySelectorAll("[data-spec-card]"));
+    const envs = Array.from(spec.querySelectorAll("[data-spec-env]"));
+    const stage = spec.querySelector(".spec__sticky");
     const railStops = Array.from(spec.querySelectorAll("[data-spec-go]"));
     const cssRGB = (name, fallback) => {
       const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -687,6 +689,15 @@
 
     /* ---- state ---- */
     let W = 0, H = 0, sref = 0, lastBB = null, lastPj = null;
+    const lastRot = { y: 0, x: 0 };
+    // tunnel free-stream particles (aerospace phase only): few, thin, steel
+    const FP = [];
+    const newFP = (anywhere) => ({
+      x: anywhere ? Math.random() * W : -10 - Math.random() * 60,
+      y: H * (0.06 + 0.88 * Math.random()),
+      trail: [],
+    });
+    const initFlow = () => { FP.length = 0; for (let i = 0; i < 16; i++) FP.push(newFP(true)); };
     // blood cells riding the stent lumen (biomedical phase only)
     const BLOOD = Array.from({ length: 12 }, (_, i) => ({
       u: i / 12, oy: (Math.random() - 0.5) * 0.30, oz: (Math.random() - 0.5) * 0.30,
@@ -708,6 +719,7 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       sref = Math.min(W, H);
       lastBB = { x0: W * 0.25, y0: H * 0.25, x1: W * 0.75, y1: H * 0.75 };
+      initFlow();
     };
 
     /* ---- one 3D model pass: rotate → project → depth-shaded wireframe ---- */
@@ -731,6 +743,7 @@
       };
       if (trackBB) {
         lastPj = { pj };
+        lastRot.y = rotY; lastRot.x = rotX;
         lastBB.x0 = 1e9; lastBB.y0 = 1e9; lastBB.x1 = -1e9; lastBB.y1 = -1e9;
       }
       const tb = (p2) => {
@@ -842,7 +855,7 @@
 
 
     /* ---- one frame: the current model, eased crossfade at the boundaries,
-       gentle idle drift, rotor spin, and blood cells in the bio phase ---- */
+       plus each discipline's viewport furniture at its own plateau ---- */
     const drawFrame = (s, t, dt, pNow) => {
       ctx.clearRect(0, 0, W, H);
       const iA = Math.min(Math.floor(s), 2);
@@ -850,6 +863,24 @@
       const morph = f > 0.001 && f < 0.999;
       const ef = sstep(f);                       /* eased blend — no pop */
       const local = pNow >= 0.999 ? 1 : (pNow % 0.25) / 0.25;
+      const dA = [0, 1, 2, 3].map((i) => clamp(1 - Math.abs(s - i) * 2.4, 0, 1));
+
+      /* DCC floor grid under the terrain tile (gaming phase) — drawn first
+         so the model sits on it */
+      if (dA[2] > 0.01 && lastPj) {
+        const yF = 0.58, EX = 1.9, NL = 14;
+        ctx.lineWidth = 1;
+        for (let gi = 0; gi <= NL; gi++) {
+          const u = -EX + (2 * EX * gi) / NL;
+          const fade = 1 - Math.abs(gi / NL - 0.5) * 1.1;
+          ctx.strokeStyle = "rgba(" + TEAL + "," + (0.10 * dA[2] * Math.max(fade, 0.15)).toFixed(3) + ")";
+          let a1 = lastPj.pj([u, yF, -EX], false), a2 = lastPj.pj([u, yF, EX], false);
+          ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.stroke();
+          a1 = lastPj.pj([-EX, yF, u], false); a2 = lastPj.pj([EX, yF, u], false);
+          ctx.beginPath(); ctx.moveTo(a1[0], a1[1]); ctx.lineTo(a2[0], a2[1]); ctx.stroke();
+        }
+      }
+
       if (!morph) {
         drawModel(Math.round(s), t, local - 0.5, 1, true);
       } else {
@@ -857,43 +888,138 @@
         drawModel(iA + 1, t, 0, ef, f >= 0.5);
       }
 
-      /* blood cells streaming through the stent lumen — small ink dots on
-         the systole rhythm, no glow, only near the biomedical plateau */
-      const dBio = clamp(1 - Math.abs(s - 1) * 2.4, 0, 1);
-      if (dBio > 0.01 && lastPj && dt > 0 && MODELS[1].path) {
-        const pulse = Math.pow(Math.max(Math.sin(t * 0.00754), 0), 2);   /* 72 bpm */
+      /* wind-tunnel free-stream around the wing (aerospace phase) — a few
+         thin steel filaments that part around the projected silhouette */
+      if (dA[0] > 0.01 && dt > 0) {
+        const ecx = (lastBB.x0 + lastBB.x1) / 2, ecy = (lastBB.y0 + lastBB.y1) / 2;
+        const ea = Math.max((lastBB.x1 - lastBB.x0) * 0.60, 24);
+        const eb = Math.max((lastBB.y1 - lastBB.y0) * 0.66, 20);
+        const U = sref * 0.22 * dt;
+        ctx.lineWidth = 1;
+        for (const q of FP) {
+          const xp = (q.x - ecx) / ea, yp = (q.y - ecy) / eb;
+          const r2 = xp * xp + yp * yp;
+          let u = 1, v = 0;
+          if (r2 > 1e-4) {
+            const r4 = r2 * r2;
+            u = 1 - (xp * xp - yp * yp) / r4;
+            v = (-2 * xp * yp) / r4;
+          }
+          if (r2 < 1.10) {
+            const rr = Math.sqrt(r2) || 1;
+            q.x += (xp / rr) * 80 * dt; q.y += (yp / rr) * 80 * dt;
+          }
+          const mag = Math.hypot(u, v) || 1;
+          if (mag > 2.2) { u = (u / mag) * 2.2; v = (v / mag) * 2.2; }
+          if (u < 0.10) u = 0.10;
+          q.x += u * U;
+          q.y += v * U * (eb / ea);
+          q.acc = (q.acc || 0) + dt;
+          if (q.acc >= 0.02) {
+            q.acc = 0;
+            q.trail.unshift([q.x, q.y]);
+            if (q.trail.length > 10) q.trail.pop();
+          }
+          if (q.x > W + 20 || q.y < -20 || q.y > H + 20) {
+            const np = newFP(false);
+            q.x = np.x; q.y = np.y; q.trail.length = 0;
+          }
+          for (let k = 0; k + 1 < q.trail.length; k++) {
+            ctx.strokeStyle = "rgba(" + TEAL + "," + ((1 - k / 10) * 0.16 * dA[0]).toFixed(3) + ")";
+            ctx.beginPath();
+            ctx.moveTo(q.trail[k][0], q.trail[k][1]);
+            ctx.lineTo(q.trail[k + 1][0], q.trail[k + 1][1]);
+            ctx.stroke();
+          }
+        }
+      }
+
+      /* blood cells + pulse trace (biomedical phase) — ink dots riding the
+         lumen on the systole rhythm; the waveform is the same function */
+      const pulse = Math.pow(Math.max(Math.sin(t * 0.00754), 0), 2);       /* 72 bpm */
+      if (dA[1] > 0.01 && lastPj && dt > 0 && MODELS[1].path) {
         for (const bp of BLOOD) {
           bp.u += dt * (0.05 + 0.20 * pulse);
           for (let k = 0; k < 3; k++) {
             const pos = pathAt(MODELS[1].path, bp.u - k * 0.02);
             if (Math.abs(pos[0]) > 0.95) continue;
             const scr = lastPj.pj([pos[0], pos[1] + bp.oy * 0.5, pos[2] + bp.oz * 0.5], false);
-            const al = (1 - k / 3) * (0.14 + 0.26 * pulse) * dBio;
+            const al = (1 - k / 3) * (0.14 + 0.26 * pulse) * dA[1];
             ctx.fillStyle = "rgba(" + INK + "," + al.toFixed(3) + ")";
             ctx.beginPath(); ctx.arc(scr[0], scr[1], (1.8 - k * 0.4) * scr[2], 0, 7); ctx.fill();
           }
         }
+        /* pulse strip along the bottom: sin²-systole traced across time */
+        const wy = H * 0.90, amp = H * 0.035, span = W * 0.30, x0 = W * 0.06;
+        ctx.strokeStyle = "rgba(" + TEAL + "," + (0.35 * dA[1]).toFixed(3) + ")";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for (let px = 0; px <= span; px += 3) {
+          const pt = Math.pow(Math.max(Math.sin((t - (span - px) * 6) * 0.00754), 0), 2);
+          const yy = wy - pt * amp;
+          px ? ctx.lineTo(x0 + px, yy) : ctx.moveTo(x0 + px, yy);
+        }
+        ctx.stroke();
+      }
+
+      /* axis triad, bottom-left — one instrument shared by every bench,
+         rotating with the live model */
+      if (lastPj) {
+        const tx = W * 0.055, ty = H * 0.88, L = Math.min(W, H) * 0.045;
+        const cy2 = Math.cos(lastRot.y), sy2 = Math.sin(lastRot.y);
+        const cx2 = Math.cos(lastRot.x), sx2 = Math.sin(lastRot.x);
+        const ax = (p3) => {
+          const x1 = p3[0] * cy2 + p3[2] * sy2, z1 = -p3[0] * sy2 + p3[2] * cy2;
+          const y1 = p3[1] * cx2 - z1 * sx2;
+          return [tx + x1 * L, ty + y1 * L];
+        };
+        ctx.lineWidth = 1;
+        ctx.font = "10px 'Geist Mono', monospace";
+        const axes = [[[1, 0, 0], "x"], [[0, -1, 0], "y"], [[0, 0, 1], "z"]];
+        for (const [dir, name] of axes) {
+          const e = ax(dir);
+          ctx.strokeStyle = "rgba(" + INK + ",0.34)";
+          ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(e[0], e[1]); ctx.stroke();
+          ctx.fillStyle = "rgba(" + INK + ",0.5)";
+          ctx.fillText(name, e[0] + 3, e[1] + 3);
+        }
       }
     };
 
-    /* ---- phase swap: cards + rail ---- */
+    /* ---- phase swap: environments + rail + stage tint ---- */
     let cIdx = -1;
     const setIdx = (idx) => {
       if (idx === cIdx) return;
       cIdx = idx;
-      cards.forEach((c, i) => c.classList.toggle("is-active", i === idx));
+      envs.forEach((c, i) => c.classList.toggle("is-active", i === idx));
       railStops.forEach((b, i) => b.classList.toggle("active", i === idx));
+      if (stage) stage.dataset.phase = String(idx);
     };
 
+    /* real wire-edge counts off the actual models, written into the
+       environments that show stats (no invented numbers) */
+    spec.querySelectorAll("[data-spec-edges]").forEach((el) => {
+      const mi = +el.dataset.specEdges;
+      let segs = 0;
+      for (const g of MODELS[mi].groups) {
+        if (!g.pl) continue;
+        for (const pl of g.pl) segs += Math.max(pl.length - 1, 0);
+      }
+      el.textContent = segs.toLocaleString();
+    });
+
     if (reduce || !ctx) {
-      /* static fallback: unpin the stage, show all four cards, draw specimen 01 once */
+      /* static fallback: unpin the stage, show all four environments, draw specimen 01 once */
       spec.classList.add("spec--static");
       if (ctx) { build(); drawFrame(0, 0, 0, 0.125); }
     } else {
       build();
 
+      /* debug override for headless verification: ?specp=0.375 pins the scrub */
+      const dbgP = parseFloat(new URLSearchParams(location.search).get("specp"));
       let p = 0;
       const onScroll = () => {
+        if (!isNaN(dbgP)) { p = clamp(dbgP, 0, 1); return; }
         const r = spec.getBoundingClientRect();
         const scrollable = spec.offsetHeight - window.innerHeight;
         p = clamp(-r.top / Math.max(scrollable, 1), 0, 1);

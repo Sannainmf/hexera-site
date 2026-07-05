@@ -1097,139 +1097,77 @@ html.lenis, html.lenis body { height: auto; }
 .ring-center-count { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.28em; fill: var(--gold); }
 
 /* ============================================================
-   INDUSTRIES — alternating bordered panels (the "box" reference):
-   each row is a framed two-cell box with a centre divider. Odd rows
-   show the industry on the left, even rows flip it to the right.
-   Both cells rise from below on scroll at slightly different rates
-   (parallax) via [data-ind-rows] [data-rise] in pages.js.
+   INDUSTRIES — four workbenches. One full-viewport sticky stage;
+   each phase dresses it as that discipline's software viewport.
+   Text lives inside the environment; scroll crossfades phases.
    ============================================================ */
-.indx { position: relative; z-index: var(--z-content); background: var(--bg); padding: clamp(5rem, 13vh, 9rem) var(--pad-x); }
-.indx__head { width: min(100%, 1280px); margin-inline: auto; max-width: 42ch; margin-bottom: clamp(5rem, 10vh, 8rem); }
-.indx__eyebrow { font-family: var(--font-mono); font-weight: 500; font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
-.indx__title { margin: 1rem 0 0; font-family: var(--font-display); font-weight: 500; font-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); line-height: 1.02; color: var(--ink); text-wrap: balance; }
-.indx__title em { font-style: normal; color: var(--gold); }
-.indx__lede { margin: 1.1rem 0 0; color: var(--muted); font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1rem); line-height: 1.6; text-wrap: pretty; }
-
-.indx__rows { width: min(100%, 1280px); margin-inline: auto; display: flex; flex-direction: column; gap: clamp(1.75rem, 4.5vh, 3.25rem); }
-
-/* one row = a bordered box split into two equal cells with a centre divider */
-/* the row is one connected frame: top + bottom run straight across, a single edge
-   down the middle joins the two halves, and the outer left/right ends stay open.
-   The frame stays put while the content rises inside it (parallax). */
-.indrow { position: relative; display: grid; grid-template-columns: 1fr 1fr; border-top: 4px solid #2a2319; border-bottom: 4px solid #2a2319; overflow: hidden; will-change: transform, opacity; }
-.indrow::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 4px; transform: translateX(-50%); background: #2a2319; pointer-events: none; }
-/* flip: industry box jumps to the right on even rows (the centre edge stays put) */
-.indrow:nth-child(even) .indrow__cell--industry { order: 2; }
-
-.indrow__cell { display: flex; flex-direction: column; min-height: clamp(29rem, 52vh, 38rem); padding: clamp(2.5rem, 4.2vw, 4.25rem); }
-.indrow__eyebrow { align-self: flex-start; font-family: var(--font-mono); font-weight: 600; font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); padding-bottom: 0.5em; border-bottom: 1.5px solid var(--gold); }
-
-/* industry cell: a big ghosted index number fills the middle, name pinned at the foot */
-/* industry box: a centred nameplate — sector name set large, descriptor carried by the eyebrow above */
-.indrow__cell--industry { justify-content: center; }
-.indrow__name { margin: clamp(1.1rem, 3vh, 1.9rem) 0 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(2.4rem, 1.7rem + 2.8vw, 3.9rem); line-height: 0.98; letter-spacing: -0.01em; color: var(--ink); }
-
-/* explanation cell: numbered outline (gold numbers) up top, heading + paragraph at the foot */
-.indrow__list { list-style: none; margin: 0; padding: 0; }
-.indrow__list li { display: grid; grid-template-columns: 2.2rem 1fr; align-items: baseline; gap: 0.6rem; padding: clamp(0.75rem, 1.8vh, 1.05rem) 0; border-bottom: 3px solid #2a2319; color: var(--ink); font-size: clamp(0.9rem, 0.85rem + 0.2vw, 1.02rem); line-height: 1.4; }
-.indrow__list li:last-child { border-bottom: 0; }
-.indrow__n { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; color: var(--teal); }
-.indrow__foot { margin-top: auto; margin-bottom: auto; }
-.indrow__h { margin: 0; font-family: var(--font-body); font-weight: 700; letter-spacing: -0.01em; font-size: clamp(1.25rem, 1.05rem + 0.7vw, 1.6rem); line-height: 1.18; color: var(--ink); }
-.indrow__p { margin: 0.7rem 0 0; color: var(--muted); font-size: clamp(0.85rem, 0.82rem + 0.18vw, 0.95rem); line-height: 1.6; max-width: 42ch; text-wrap: pretty; }
-
-@media (max-width: 820px) {
-  .indrow { grid-template-columns: 1fr; }
-  .indrow::after { display: none; }                               /* no vertical edge when stacked */
-  .indrow__cell:first-child { border-bottom: 4px solid #2a2319; } /* the joining edge becomes horizontal */
-  .indrow:nth-child(even) .indrow__cell--industry { order: 0; }
-  .indrow__cell { min-height: auto; }
-  .indrow__cell--industry { min-height: 15rem; }
-}
-
-/* nav: secondary links collapse on small screens so the bar never overflows */
-@media (max-width: 640px) {
-  .nav__link--sec { display: none; }
-}
-
-
-/* ============================================================
-   Waitlist modal — intake panel (name + email → Supabase).
-   Styled as a Hexera instrument: mono header readout, corner
-   registration marks, ruled field lines. Injected by waitlist.js.
-   ============================================================ */
-/* ============================================================
-   RING DEMO SUMMARY — the four phases + the real NACA 0012 demo
-   tallies as one static mono block. No animation, no telemetry.
-   ============================================================ */
-.ring-console { margin-top: 2.2rem; max-width: 21rem; border-top: 3px solid #2a2319; border-bottom: 3px solid #2a2319;
-  padding: 1rem 0 0.95rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
-.ring-console__head { margin: 0 0 0.8rem; color: var(--faint); }
-.ring-log { display: flex; flex-direction: column; gap: 0.5rem; }
-.ring-log__ln { margin: 0; display: flex; gap: 1em; color: var(--muted); }
-.ring-log__ln .idx { color: var(--faint); }
-.ring-log__ln.on .nm { color: var(--ink); }
-.ring-log__ln.on .idx { color: var(--gold); }
-.ring-console__strip { margin: 0.9rem 0 0; display: flex; gap: 1.8rem; }
-.ring-console__strip .k { color: var(--faint); }
-.ring-console__strip .v { color: var(--ink); }
-@media (max-width: 900px) { .ring-console { display: none; } }
-
-/* ============================================================
-   INDUSTRIES — the chamber: a real wireframe model re-forms from
-   one industry's geometry to the next as you scroll. Framed in
-   the same heavy rules as the rest of the page; no HUD chrome.
-   ============================================================ */
-.spec { position: relative; height: 420vh; }
-.spec__sticky { position: sticky; top: 0; height: 100vh; display: grid; align-items: center; }
-.spec__grid { position: relative; width: min(100%, 1280px); margin-inline: auto; display: grid;
-  grid-template-columns: 1.15fr 1fr; border-top: 4px solid #2a2319; border-bottom: 4px solid #2a2319;
-  height: min(74vh, 46rem); }
-.spec__grid::after { content: ""; position: absolute; top: 0; bottom: 0; left: 53.5%; width: 4px;
-  transform: translateX(-50%); background: #2a2319; pointer-events: none; }
-.spec-chamber { position: relative; margin: 0; overflow: hidden; }
+.spec { position: relative; height: 440vh; }
+.spec__sticky { position: sticky; top: 0; height: 100vh; overflow: hidden;
+  background: var(--black); transition: background 0.8s ease; }
+.spec__sticky[data-phase="0"] { background: linear-gradient(180deg, #0b0f15 0%, var(--black) 62%); }
+.spec__sticky[data-phase="2"] { background: linear-gradient(180deg, #131312 0%, var(--black) 70%); }
+.spec__sticky[data-phase="3"] { background: linear-gradient(180deg, #120e09 0%, var(--black) 62%); }
 .spec-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.spec-copy { display: grid; grid-template-columns: 100%; align-content: center; position: relative;
-  padding: clamp(1.6rem, 4vh, 2.8rem) 0 clamp(1.6rem, 4vh, 2.8rem) clamp(1.6rem, 3.5vw, 3rem); }
 
-.spec-rail { display: flex; gap: 1.6rem; border-bottom: 3px solid #2a2319; padding-bottom: 0.9rem; margin-bottom: 1.7rem; }
-.spec-rail button { all: unset; cursor: pointer; font-family: var(--font-mono); font-size: 0.7rem;
+.spec-rail { position: absolute; top: calc(var(--nav-h) + 0.75rem); right: var(--pad-x); z-index: 3;
+  display: flex; gap: 1.5rem; }
+.spec-rail button { all: unset; cursor: pointer; font-family: var(--font-mono); font-size: 0.68rem;
   letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); }
 .spec-rail button:hover { color: var(--muted); }
 .spec-rail button.active { color: var(--ink); }
 .spec-rail button:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
 
-/* all cards stack in the same grid cell; the active one fades and rises in */
-.spec-card { grid-row: 2; grid-column: 1; opacity: 0; transform: translateY(12px);
-  transition: opacity 0.45s var(--ease-expo), transform 0.45s var(--ease-expo); pointer-events: none; }
-.spec-card.is-active { opacity: 1; transform: none; pointer-events: auto; }
-@media (prefers-reduced-motion: reduce) { .spec-card { transition: none; } }
-.spec-card__name { margin: 0; font-family: var(--font-body); font-weight: 700; letter-spacing: -0.01em;
-  font-size: clamp(1.6rem, 1.25rem + 1.3vw, 2.2rem); color: var(--ink); }
-.spec-card__list { list-style: none; margin: 1.3rem 0 0; padding: 0; }
-.spec-card__list li { padding: 0.72rem 0; border-bottom: 3px solid #2a2319; color: var(--muted);
-  font-size: clamp(0.9rem, 0.86rem + 0.2vw, 1rem); }
-.spec-card__foot { margin-top: 1.7rem; }
-.spec-card__h { margin: 0; font-family: var(--font-body); font-weight: 700; font-size: 1.05rem; color: var(--ink); }
-.spec-card__p { margin: 0.55rem 0 0; color: var(--muted); font-size: 0.92rem; line-height: 1.6; max-width: 46ch; text-wrap: pretty; }
+/* one environment per industry; the active one owns the stage */
+.spec-env { position: absolute; inset: 0; z-index: 2; opacity: 0; pointer-events: none;
+  transition: opacity 0.55s var(--ease-expo); }
+.spec-env.is-active { opacity: 1; pointer-events: auto; }
 
-@media (max-width: 900px) {
-  .spec { height: auto; }
-  .spec__sticky { position: static; height: auto; }
-  .spec__grid { grid-template-columns: 1fr; height: auto; }
-  .spec__grid::after { display: none; }
-  .spec-chamber { min-height: 19rem; border-bottom: 4px solid #2a2319; }
-  .spec-copy { padding: 1.5rem 0 1.75rem; }
+.spec-env__text { position: absolute; left: var(--pad-x); top: 50%; transform: translateY(-50%);
+  max-width: 23rem; }
+.spec-env__mode { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--faint); }
+.spec-env__name { margin: 0.55rem 0 0; font-family: var(--font-body); font-weight: 700;
+  letter-spacing: -0.01em; font-size: clamp(1.8rem, 1.3rem + 1.8vw, 2.6rem); color: var(--ink); }
+.spec-env__list { list-style: none; margin: 1.5rem 0 0; padding: 0; }
+.spec-env__list li { padding: 0.55rem 0; border-bottom: 1px solid var(--line); color: var(--muted);
+  font-size: clamp(0.88rem, 0.85rem + 0.15vw, 0.95rem); }
+.spec-env__p { margin: 1.15rem 0 0; color: var(--muted); font-size: 0.9rem; line-height: 1.6;
+  max-width: 40ch; text-wrap: pretty; }
+
+/* right-edge furniture: real counts and the render's own color ramp */
+.spec-env__side { position: absolute; right: var(--pad-x); bottom: 9vh; text-align: right; }
+.spec-stat { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--faint); }
+.spec-stat b { color: var(--ink); font-weight: 500; }
+
+.spec-cbar { position: absolute; right: var(--pad-x); top: 50%; transform: translateY(-50%);
+  height: 9.5rem; display: grid; grid-template-columns: 10px auto; grid-template-rows: 1fr 1fr;
+  column-gap: 0.55rem; }
+.spec-cbar__ramp { grid-row: 1 / 3; width: 10px; border: 1px solid var(--line-2);
+  background: linear-gradient(to top, rgb(var(--mesh-line-rgb)), rgb(var(--mesh-accent-rgb))); }
+.spec-cbar__max, .spec-cbar__min { font-family: var(--font-mono); font-size: 0.64rem; color: var(--faint); }
+.spec-cbar__max { align-self: start; }
+.spec-cbar__min { align-self: end; }
+.spec-cbar__label { position: absolute; top: calc(100% + 0.6rem); right: 0; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--faint); }
+
+@media (max-width: 760px) {
+  .spec-env__text { top: auto; bottom: 7vh; transform: none; max-width: min(85vw, 21rem); }
+  .spec-env__p { display: none; }
+  .spec-cbar, .spec-env__side { display: none; }
+  .spec-rail { gap: 1rem; }
 }
+@media (prefers-reduced-motion: reduce) { .spec-env, .spec__sticky { transition: none; } }
 
-/* static fallback (reduced motion / no canvas): unpin, show all four cards */
+/* static fallback (reduced motion / no canvas): unpin, stack all four */
 .spec--static { height: auto; }
 .spec--static .spec__sticky { position: static; height: auto; }
-.spec--static .spec__grid { height: auto; }
-.spec--static .spec-copy { display: block; }
-.spec--static .spec-card { opacity: 1; transform: none; pointer-events: auto; }
-.spec--static .spec-card + .spec-card { margin-top: 2rem; }
+.spec--static .spec-canvas { position: static; width: 100%; height: 46vh; }
 .spec--static .spec-rail { display: none; }
+.spec--static .spec-env { position: static; opacity: 1; pointer-events: auto; padding: 2.2rem var(--pad-x); }
+.spec--static .spec-env__text { position: static; transform: none; }
+.spec--static .spec-cbar, .spec--static .spec-env__side { display: none; }
 
 html.wl-lock, html.wl-lock body { overflow: hidden; }
 
