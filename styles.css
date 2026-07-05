@@ -720,13 +720,12 @@ html.lenis, html.lenis body { height: auto; }
    ============================================================ */
 .ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
 .ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); }
-/* streamline backdrop: static artwork, same technique as everywhere else —
-   true-black body, black baked into the top/bottom edges, screen blend.
-   It simply IS the section's background; every seam is black meeting
-   black, no ramps, no masks, nothing scroll-driven. */
+/* streamline backdrop: static artwork with the site background color baked
+   into everything except the smoke, painted plainly — no blend modes, no
+   ramps. Stretched to the box so the baked edges land exactly on the
+   section edges; every seam is the same #0d0d0c meeting itself. */
 .ring-sticky::before { content: ""; position: absolute; inset: 0; z-index: 0;
-  background: url("assets/ring-bg3.png") center / cover no-repeat;
-  mix-blend-mode: screen; }
+  background: url("assets/ring-bg4.png") center / 100% 100% no-repeat; }
 .ring-grid { position: relative; z-index: 1; width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
 
 .ring-copy { max-width: 30ch; }
@@ -1133,10 +1132,11 @@ html.lenis, html.lenis body { height: auto; }
 .indx__lede { margin: 1.1rem 0 0; color: var(--muted); font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1rem); line-height: 1.6; text-wrap: pretty; }
 
 /* smoke plate behind the section header — same technique as the loop
-   backdrop: baked black edges, screen blend, static. Text sits above. */
+   backdrop: site bg baked into the artwork, painted plainly, stretched so
+   its baked edges land on the box edges. Text sits above. */
 .indx::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 92vh;
-  background: url("assets/bridge.png") center / cover no-repeat;
-  mix-blend-mode: screen; pointer-events: none; }
+  background: url("assets/bridge2.png") center / 100% 100% no-repeat;
+  pointer-events: none; }
 .indx__head { position: relative; z-index: 1; }
 
 .spec { position: relative; height: 440vh; margin-inline: calc(var(--pad-x) * -1); }
