@@ -133,15 +133,16 @@
       const rect = ring.getBoundingClientRect();
       const scrollable = ring.offsetHeight - window.innerHeight;
       const p = clamp(-rect.top / Math.max(scrollable, 1), 0, 1);
-      /* backdrop crossfades across the seam itself: the ramp starts while the
-         section is still sliding up over the mesh scroll (top falling from
-         100vh to -50vh), so the smoke is already ghosting in inside the black
-         band as it covers the airfoil — no switch-on at the pin. Fades back
-         out at the exit. */
+      /* veil ramp spans the neighbours: ribbons start appearing while the
+         ring section is still ~0.7 viewport below (you're in the airfoil
+         scroll), peak while pinned, and linger ~0.7 viewport into the next
+         section on the way out. Smoothstepped, capped dim at 0.55. */
       const vh = window.innerHeight;
-      const g = clamp((vh - rect.top) / (vh * 1.5), 0, 1);
-      ring.style.setProperty("--ringbg",
-        Math.min(g, clamp((1 - p) * 8, 0, 1)).toFixed(3));
+      const fin = clamp((vh * 1.7 - rect.top) / (vh * 2.0), 0, 1);
+      const fout = clamp((rect.bottom + vh * 0.7) / (vh * 1.7), 0, 1);
+      const vt = Math.min(fin, fout);
+      ring.style.setProperty("--ringveil",
+        (0.55 * vt * vt * (3 - 2 * vt)).toFixed(3));
       // marker travels the full circle starting at the top (-90°)
       const ang = (-90 + p * 360) * (Math.PI / 180);
       if (svgMarker) {
