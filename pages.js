@@ -722,7 +722,7 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       sref = Math.min(W, H);
       lastBB = { x0: W * 0.25, y0: H * 0.25, x1: W * 0.75, y1: H * 0.75 };
-      if (rocketV) renderRocket();
+      for (const k in REAL) if (REAL[k].V) renderReal(REAL[k]);
     };
 
     /* ---- one 3D model pass: rotate → project → depth-shaded wireframe ---- */
@@ -857,27 +857,35 @@
     };
 
 
-    /* ---- real sounding-rocket CAD (Gmsh surface remesh): a dense mesh baked
-       once to an offscreen buffer at a fixed 3/4 pose, then blitted each
-       frame so it never costs a per-frame redraw ---- */
-    let rocketReady = false, rocketV = null, rocketE = null, rocketPj = null, rocketBB = null;
-    const rocketCanvas = document.createElement("canvas");
-    const roctx = rocketCanvas.getContext("2d");
-    const ROCK_RY = 0.62, ROCK_RX = -0.18;
+    /* ---- real CAD meshes, per industry (Gmsh / isotropic remesh): each is
+       baked once to its own offscreen buffer at a fixed 3/4 pose, then blitted
+       each frame so it never costs a per-frame redraw. Keyed by phase index;
+       any phase without an entry falls back to the procedural drawModel. ---- */
+    const REAL = {
+      0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
+      3: { url: "assets/car.json.gz",    ry: -0.66, rx: 0.20, sc: 0.55, cx: 0.58, cy: 0.50, f3: 3.4 },
+    };
+    for (const k in REAL) {
+      const e = REAL[k];
+      e.canvas = document.createElement("canvas");
+      e.rctx = e.canvas.getContext("2d");
+      e.ready = false; e.V = null; e.E = null; e.pj = null; e.bb = null;
+    }
 
-    const renderRocket = () => {
-      if (!rocketV || !W || !H) return;
+    const renderReal = (e) => {
+      if (!e.V || !W || !H) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      rocketCanvas.width = Math.round(W * dpr); rocketCanvas.height = Math.round(H * dpr);
-      roctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      roctx.clearRect(0, 0, W, H);
-      const cy = Math.cos(ROCK_RY), sy = Math.sin(ROCK_RY), cx = Math.cos(ROCK_RX), sx = Math.sin(ROCK_RX);
-      const Sc = sref * 1.18, cx0 = W * 0.56, cy0 = H * 0.46, F3 = 3.4;
-      const nv = rocketV.length / 3;
+      e.canvas.width = Math.round(W * dpr); e.canvas.height = Math.round(H * dpr);
+      const g = e.rctx;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.clearRect(0, 0, W, H);
+      const cy = Math.cos(e.ry), sy = Math.sin(e.ry), cx = Math.cos(e.rx), sx = Math.sin(e.rx);
+      const Sc = sref * e.sc, cx0 = W * e.cx, cy0 = H * e.cy, F3 = e.f3;
+      const nv = e.V.length / 3;
       const PX = new Float32Array(nv), PY = new Float32Array(nv), PZ = new Float32Array(nv);
       let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9, zmin = 1e9, zmax = -1e9;
       for (let i = 0; i < nv; i++) {
-        const x = rocketV[i * 3], y = rocketV[i * 3 + 1], z = rocketV[i * 3 + 2];
+        const x = e.V[i * 3], y = e.V[i * 3 + 1], z = e.V[i * 3 + 2];
         const x1 = x * cy + z * sy, z1 = -x * sy + z * cy;
         const y1 = y * cx - z1 * sx, z2 = y * sx + z1 * cx;
         const k = F3 / (F3 - z2);
@@ -887,42 +895,45 @@
         if (syp < by0) by0 = syp; if (syp > by1) by1 = syp;
         if (z2 < zmin) zmin = z2; if (z2 > zmax) zmax = z2;
       }
-      rocketBB = { x0: bx0, y0: by0, x1: bx1, y1: by1 };
-      rocketPj = { pj: (p) => {
+      e.bb = { x0: bx0, y0: by0, x1: bx1, y1: by1 };
+      e.pj = { pj: (p) => {
         const x1 = p[0] * cy + p[2] * sy, z1 = -p[0] * sy + p[2] * cy;
         const y1 = p[1] * cx - z1 * sx, z2 = p[1] * sx + z1 * cx, k = F3 / (F3 - z2);
         return [cx0 + x1 * Sc * k, cy0 + y1 * Sc * k, k];
       } };
-      const NB = 9, buckets = Array.from({ length: NB }, () => []), zr = (zmax - zmin) || 1, ne = rocketE.length / 2;
+      const NB = 9, buckets = Array.from({ length: NB }, () => []), zr = (zmax - zmin) || 1, ne = e.E.length / 2;
       for (let i = 0; i < ne; i++) {
-        const a = rocketE[i * 2], b = rocketE[i * 2 + 1];
+        const a = e.E[i * 2], b = e.E[i * 2 + 1];
         const d = ((PZ[a] + PZ[b]) * 0.5 - zmin) / zr;
         buckets[Math.min(NB - 1, (d * NB) | 0)].push(PX[a], PY[a], PX[b], PY[b]);
       }
-      roctx.lineWidth = 1;
+      g.lineWidth = 1;
       for (let bkt = 0; bkt < NB; bkt++) {
         const seg = buckets[bkt]; if (!seg.length) continue;
-        roctx.strokeStyle = "rgba(" + TEAL + "," + (0.13 + 0.34 * (bkt / (NB - 1))).toFixed(3) + ")";
-        roctx.beginPath();
-        for (let q = 0; q < seg.length; q += 4) { roctx.moveTo(seg[q], seg[q + 1]); roctx.lineTo(seg[q + 2], seg[q + 3]); }
-        roctx.stroke();
+        g.strokeStyle = "rgba(" + TEAL + "," + (0.13 + 0.34 * (bkt / (NB - 1))).toFixed(3) + ")";
+        g.beginPath();
+        for (let q = 0; q < seg.length; q += 4) { g.moveTo(seg[q], seg[q + 1]); g.lineTo(seg[q + 2], seg[q + 3]); }
+        g.stroke();
       }
-      rocketReady = true;
+      e.ready = true;
     };
 
-    const blitRocket = (alphaMul, track) => {
-      if (track) { lastPj = rocketPj; lastRot.y = ROCK_RY; lastRot.x = ROCK_RX; lastBB = rocketBB; }
-      ctx.globalAlpha = alphaMul; ctx.drawImage(rocketCanvas, 0, 0, W, H); ctx.globalAlpha = 1;
+    const blitReal = (e, alphaMul, track) => {
+      if (track) { lastPj = e.pj; lastRot.y = e.ry; lastRot.x = e.rx; lastBB = e.bb; }
+      ctx.globalAlpha = alphaMul; ctx.drawImage(e.canvas, 0, 0, W, H); ctx.globalAlpha = 1;
     };
 
     if (typeof pako !== "undefined") {
-      fetch("assets/rocket.json.gz").then((r) => r.arrayBuffer()).then((buf) => {
-        const d = JSON.parse(pako.inflate(new Uint8Array(buf), { to: "string" }));
-        rocketV = new Float32Array(d.v.length);
-        for (let i = 0; i < d.v.length; i++) rocketV[i] = d.v[i] / 32767;
-        rocketE = Int32Array.from(d.e);
-        renderRocket();
-      }).catch(() => {});
+      for (const k in REAL) {
+        const e = REAL[k];
+        fetch(e.url).then((r) => r.arrayBuffer()).then((buf) => {
+          const d = JSON.parse(pako.inflate(new Uint8Array(buf), { to: "string" }));
+          e.V = new Float32Array(d.v.length);
+          for (let i = 0; i < d.v.length; i++) e.V[i] = d.v[i] / 32767;
+          e.E = Int32Array.from(d.e);
+          renderReal(e);
+        }).catch(() => {});
+      }
     }
 
     /* ---- one frame: the current model, eased crossfade at the boundaries,
@@ -952,8 +963,10 @@
         }
       }
 
-      const drawOne = (mi, sweep, alpha, track) =>
-        (mi === 0 && rocketReady) ? blitRocket(alpha, track) : drawModel(mi, t, sweep, alpha, track);
+      const drawOne = (mi, sweep, alpha, track) => {
+        const rm = REAL[mi];
+        return (rm && rm.ready) ? blitReal(rm, alpha, track) : drawModel(mi, t, sweep, alpha, track);
+      };
       if (!morph) {
         drawOne(Math.round(s), local - 0.5, 1, true);
       } else {
