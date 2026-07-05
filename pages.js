@@ -905,10 +905,10 @@
          falls off gaussian from the model's footprint, so the floor
          dissolves into black with no edges — baked with the mesh */
       if (e.gy !== undefined) {
-        const gyv = e.gy, GX = 3.4, GZ = 2.3, STEP = 0.24, NSEG = 20;
+        const gyv = e.gy, GX = 3.0, GZ = 2.0, STEP = 0.24, NSEG = 20;
         const aAt = (px2, pz2) => {
-          const dx = px2 / 2.7, dz = pz2 / 1.9;
-          return 0.46 * Math.exp(-(dx * dx + dz * dz) * 1.15);
+          const dx = px2 / 2.0, dz = pz2 / 1.35;
+          return 0.26 * Math.exp(-(dx * dx + dz * dz) * 1.6);
         };
         const seg = (p0, p1, al) => {
           if (al <= 0.004) return;
