@@ -250,7 +250,6 @@
     const envs = Array.from(spec.querySelectorAll("[data-spec-env]"));
     const stage = spec.querySelector(".spec__sticky");
     const railStops = Array.from(spec.querySelectorAll("[data-spec-go]"));
-    const bgLayers = Array.from(spec.querySelectorAll("[data-spec-bg]"));
     const cssRGB = (name, fallback) => {
       const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
       return /^\d+\s*,\s*\d+\s*,\s*\d+$/.test(v) ? v.replace(/\s+/g, "") : fallback;
@@ -925,10 +924,6 @@
       const ef = sstep(f);                       /* eased blend — no pop */
       const local = pNow >= 0.999 ? 1 : (pNow % 0.25) / 0.25;
       const dA = [0, 1, 2, 3].map((i) => clamp(1 - Math.abs(s - i) * 2.4, 0, 1));
-
-      /* environment plates ride the same weights, capped dim so the
-         wireframes stay the subject */
-      for (const b of bgLayers) b.style.opacity = (dA[+b.dataset.specBg] * 0.55).toFixed(3);
 
       /* DCC floor grid under the terrain tile (gaming phase) — drawn first
          so the model sits on it */

@@ -45,5 +45,3 @@ assets/*
 !assets/airfoil.msh.gz
 !assets/logos/
 !assets/rocket.json.gz
-!assets/env-aero.jpg
-!assets/env-bio.jpg
