@@ -10,18 +10,19 @@
   --gold-soft: #ff7033;
   --gold-ink:  #1a0a02;
 
-  /* teal retires: interactive accents go steel (unpainted airframe metal) */
-  --teal:      #7e8893;
-  --teal-deep: #626c78;
+  /* teal retires: interactive accents go deep steel (bluer than airframe
+     gray so it separates from the white ink) */
+  --teal:      #57708f;
+  --teal-deep: #465b74;
 
-  /* canvas scenes: steel wireframes, orange accents.
+  /* canvas scenes: deep-steel wireframes, orange accents.
      brighter than the UI steel so thin lines hold against the black */
-  --mesh-line-rgb:   158,168,179;
+  --mesh-line-rgb:   109,139,175;
   --mesh-accent-rgb: 255,79,0;
   --mesh-ink-rgb:    236,234,229;
 
-  /* hero fluid: steel streamlines, orange flow-accent */
-  --fluid-line-rgb:   126,136,147;
+  /* hero fluid: deep-steel streamlines, orange flow-accent */
+  --fluid-line-rgb:   87,112,143;
   --fluid-accent-rgb: 255,79,0;
 
   /* cool the canvas slightly: near-neutral blacks instead of amber-blacks */
