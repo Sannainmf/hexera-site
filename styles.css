@@ -1109,7 +1109,7 @@ html.lenis, html.lenis body { height: auto; }
 .spec__sticky[data-phase="3"] { background: linear-gradient(180deg, #120e09 0%, var(--black) 62%); }
 .spec-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
-.spec-rail { position: absolute; top: calc(var(--nav-h) + 0.75rem); right: var(--pad-x); z-index: 3;
+.spec-rail { position: absolute; left: 50%; transform: translateX(-50%); bottom: 3vh; z-index: 6;
   display: flex; gap: 1.5rem; }
 .spec-rail button { all: unset; cursor: pointer; font-family: var(--font-mono); font-size: 0.68rem;
   letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); }
@@ -1168,6 +1168,79 @@ html.lenis, html.lenis body { height: auto; }
 .spec--static .spec-env { position: static; opacity: 1; pointer-events: auto; padding: 2.2rem var(--pad-x); }
 .spec--static .spec-env__text { position: static; transform: none; }
 .spec--static .spec-cbar, .spec--static .spec-env__side { display: none; }
+
+/* ---- CFD post-processor chrome (aerospace env) ---- */
+.spec-env--cfd .cfd-bar, .spec-env--cfd .cfd-panel, .spec-env--cfd .cfd-cube,
+.spec-env--cfd .cfd-legend, .spec-env--cfd .cfd-statusbar { pointer-events: none; }
+
+.cfd-bar { position: absolute; top: calc(var(--nav-h) + 0.5rem); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 2px; padding: 4px; z-index: 4;
+  background: rgba(16,16,15,0.9); border: 1px solid var(--line-2); border-radius: 8px;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.cfd-bar button { all: unset; display: grid; place-items: center; width: 26px; height: 24px;
+  border-radius: 5px; color: var(--faint); }
+.cfd-bar button.is-on { color: var(--gold); background: rgba(255,255,255,0.05); }
+.cfd-bar__sp { width: 1px; height: 16px; margin: 0 3px; background: var(--line-2); }
+
+.cfd-panel { position: absolute; left: 0; top: var(--nav-h); bottom: 0; width: 250px; z-index: 4;
+  padding: 0.9rem 0; overflow: hidden; background: rgba(14,14,13,0.86); border-right: 1px solid var(--line-2);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  font-family: var(--font-mono); }
+.cfd-sec { padding: 0.55rem 1rem 0.7rem; border-bottom: 1px solid var(--line); }
+.cfd-sec__h { display: block; font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--faint); margin-bottom: 0.55rem; }
+.cfd-file { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: var(--muted); }
+.cfd-file svg { color: var(--faint); flex: none; }
+
+.cfd-tree { list-style: none; margin: 0; padding: 0; }
+.cfd-tree li { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  padding: 0.28rem 0.5rem; margin: 0 -0.5rem; font-size: 0.72rem; color: var(--muted); border-radius: 4px; }
+.cfd-tree li.is-sel { background: rgba(255,255,255,0.06); color: var(--ink); }
+.cfd-tree .cfd-eye { color: var(--faint); opacity: 0.35; flex: none; }
+.cfd-tree .cfd-eye.is-on { opacity: 1; color: var(--muted); }
+.cfd-swatch { width: 9px; height: 9px; background: var(--gold); border-radius: 2px; flex: none; }
+
+.cfd-generate { display: block; text-align: center; margin-bottom: 0.9rem;
+  background: var(--gold); color: var(--gold-ink); font-weight: 600; font-size: 0.72rem;
+  padding: 0.55em; border-radius: 6px; }
+.cfd-prop { margin-bottom: 0.7rem; }
+.cfd-prop label { display: block; font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--faint); margin-bottom: 0.28rem; }
+.cfd-val { display: flex; align-items: center; gap: 0.45rem; font-size: 0.72rem; color: var(--ink);
+  background: rgba(255,255,255,0.03); border: 1px solid var(--line-2); border-radius: 5px;
+  padding: 0.4em 0.55em; }
+.cfd-ramp { display: inline-block; height: 10px; border-radius: 2px; flex: none;
+  background: linear-gradient(90deg,#440154,#414487,#2a788e,#22a884,#7ad151,#fde725); }
+.cfd-val .cfd-ramp { width: 22px; }
+
+.cfd-cube { position: absolute; top: calc(var(--nav-h) + 0.6rem); right: var(--pad-x); z-index: 4;
+  width: 58px; height: 58px; border: 1px solid var(--line-2); border-radius: 6px;
+  background: rgba(16,16,15,0.7); display: grid; place-items: center;
+  transform: perspective(120px) rotateX(18deg) rotateY(-22deg); }
+.cfd-cube b { font-family: var(--font-mono); font-size: 0.52rem; letter-spacing: 0.1em; color: var(--faint); }
+
+.cfd-legend { position: absolute; right: var(--pad-x); bottom: 8vh; z-index: 4;
+  display: flex; flex-direction: column; gap: 0.9rem; }
+.cfd-leg { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto;
+  column-gap: 0.5rem; align-items: center; }
+.cfd-leg__k { grid-row: 1 / 3; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+.cfd-leg .cfd-ramp { grid-column: 2; width: 132px; height: 9px; }
+.cfd-leg__lo, .cfd-leg__hi { grid-column: 2; font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); margin-top: 3px; }
+.cfd-leg__lo { justify-self: start; } .cfd-leg__hi { justify-self: end; grid-row: 2; margin-top: -0.72rem; }
+
+.cfd-statusbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4;
+  display: flex; justify-content: space-between; padding: 0.4rem var(--pad-x);
+  border-top: 1px solid var(--line); background: rgba(14,14,13,0.8);
+  font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; color: var(--faint); }
+
+/* copy overlay that clears the config panel */
+.spec-env__text--over { left: 290px; top: auto; bottom: 12vh; transform: none; max-width: 30rem; z-index: 5; }
+@media (max-width: 900px) {
+  .cfd-panel { width: 190px; }
+  .cfd-legend, .cfd-cube { display: none; }
+  .spec-env__text--over { left: var(--pad-x); bottom: 9vh; max-width: 70vw; }
+  .spec-env__text--over .spec-env__p { display: none; }
+}
 
 html.wl-lock, html.wl-lock body { overflow: hidden; }
 

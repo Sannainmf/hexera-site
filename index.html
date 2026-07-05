@@ -238,16 +238,74 @@
           <button data-spec-go="3">Auto</button>
         </nav>
 
-        <div class="spec-env is-active" data-spec-env>
-          <div class="spec-env__text">
-            <span class="spec-env__mode">cfd &middot; external aero &middot; wind tunnel</span>
+        <!-- icon sprite, shared by the environments -->
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+          <symbol id="i-eye" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 8s2.6-4.5 7-4.5S15 8 15 8s-2.6 4.5-7 4.5S1 8 1 8z"/><circle cx="8" cy="8" r="1.8"/></symbol>
+          <symbol id="i-cube" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M8 1.5l6 3.4v6.2L8 14.5l-6-3.4V4.9z"/><path d="M8 8v6.5M2 5l6 3 6-3"/></symbol>
+          <symbol id="i-link" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M6.5 9.5a2.6 2.6 0 003.7 0l2-2a2.6 2.6 0 00-3.7-3.7l-1 1M9.5 6.5a2.6 2.6 0 00-3.7 0l-2 2a2.6 2.6 0 003.7 3.7l1-1"/></symbol>
+          <symbol id="i-cut" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="4" cy="4.2" r="2"/><circle cx="4" cy="11.8" r="2"/><path d="M5.7 5.4L14 12M5.7 10.6L14 4"/></symbol>
+          <symbol id="i-stream" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 5.5c4 0 4 2.5 7 2.5s3-2.5 7-2.5M1 10.5c4 0 4-2.5 7-2.5s3 2.5 7 2.5"/></symbol>
+          <symbol id="i-cont" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2 5h12M2 8h12M2 11h12"/></symbol>
+          <symbol id="i-warn" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M8 2.5l5.5 10H2.5z"/><path d="M8 6.5v3M8 11.2v.3"/></symbol>
+          <symbol id="i-play" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M5 3.5l7.5 4.5L5 12.5z"/></symbol>
+          <symbol id="i-code" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M6 5L2.5 8 6 11M10 5l3.5 3L10 11"/></symbol>
+          <symbol id="i-box" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2.5" y="2.5" width="11" height="11" rx="1"/></symbol>
+        </defs></svg>
+
+        <!-- ENV 0 · Aerospace as a CFD post-processor session -->
+        <div class="spec-env spec-env--cfd is-active" data-spec-env>
+          <div class="cfd-bar" aria-hidden="true">
+            <button><svg width="15" height="15"><use href="#i-link"/></svg></button>
+            <button><svg width="15" height="15"><use href="#i-box"/></svg></button>
+            <button><svg width="15" height="15"><use href="#i-cut"/></svg></button>
+            <button class="is-on"><svg width="15" height="15"><use href="#i-stream"/></svg></button>
+            <button><svg width="15" height="15"><use href="#i-cont"/></svg></button>
+            <button><svg width="15" height="15"><use href="#i-warn"/></svg></button>
+            <span class="cfd-bar__sp"></span>
+            <button><svg width="15" height="15"><use href="#i-play"/></svg></button>
+            <button><svg width="15" height="15"><use href="#i-code"/></svg></button>
+          </div>
+
+          <aside class="cfd-panel" aria-hidden="true">
+            <div class="cfd-sec">
+              <span class="cfd-sec__h">Config</span>
+              <div class="cfd-file"><svg width="12" height="12"><use href="#i-link"/></svg> runs/wing/aero.cfd</div>
+            </div>
+            <div class="cfd-sec">
+              <span class="cfd-sec__h">Visuals&nbsp;(8)</span>
+              <ul class="cfd-tree">
+                <li><span>x&#8209;min</span><svg class="cfd-eye" width="13" height="13"><use href="#i-eye"/></svg></li>
+                <li><span>x&#8209;max</span><svg class="cfd-eye" width="13" height="13"><use href="#i-eye"/></svg></li>
+                <li><span>y&#8209;min</span><svg class="cfd-eye" width="13" height="13"><use href="#i-eye"/></svg></li>
+                <li><span>y&#8209;max</span><svg class="cfd-eye" width="13" height="13"><use href="#i-eye"/></svg></li>
+                <li class="is-sel"><span>wing&nbsp;surface</span><svg class="cfd-eye is-on" width="13" height="13"><use href="#i-eye"/></svg></li>
+                <li><span>x&#8209;slice</span><i class="cfd-swatch"></i></li>
+                <li><span>streamlines</span><svg class="cfd-eye is-on" width="13" height="13"><use href="#i-eye"/></svg></li>
+                <li><span>wake&nbsp;refine</span><svg class="cfd-eye" width="13" height="13"><use href="#i-eye"/></svg></li>
+              </ul>
+            </div>
+            <div class="cfd-sec">
+              <span class="cfd-sec__h">Properties</span>
+              <span class="cfd-generate">Generate</span>
+              <div class="cfd-prop"><label>Representation</label><span class="cfd-val">Surface</span></div>
+              <div class="cfd-prop"><label>Color&nbsp;map</label><span class="cfd-val"><i class="cfd-ramp cfd-ramp--viridis"></i>Viridis</span></div>
+              <div class="cfd-prop"><label>Field</label><span class="cfd-val">Cp</span></div>
+            </div>
+          </aside>
+
+          <div class="cfd-cube" aria-hidden="true"><b>FRONT</b></div>
+
+          <div class="cfd-legend" aria-hidden="true">
+            <div class="cfd-leg"><span class="cfd-leg__k">Cp</span><i class="cfd-ramp cfd-ramp--viridis"></i><em class="cfd-leg__lo">&minus;1.70</em><em class="cfd-leg__hi">0.96</em></div>
+            <div class="cfd-leg"><span class="cfd-leg__k">y+</span><i class="cfd-ramp cfd-ramp--viridis"></i><em class="cfd-leg__lo">0.3</em><em class="cfd-leg__hi">1.4</em></div>
+          </div>
+
+          <div class="cfd-statusbar" aria-hidden="true"><span>1 / 1000 iterations</span><span>solver &middot; steady rans</span></div>
+
+          <div class="spec-env__text spec-env__text--over">
+            <span class="spec-env__mode">cfd &middot; external aerodynamics</span>
             <h3 class="spec-env__name">Aerospace</h3>
-            <ul class="spec-env__list">
-              <li>Prism layers to y+ &asymp; 1</li>
-              <li>Refinement at the trailing edge</li>
-              <li>A far field that frees the wake</li>
-            </ul>
-            <p class="spec-env__p">Boundary layers and separation over lifting surfaces and full airframes &mdash; the regime Hexera meshes today.</p>
+            <p class="spec-env__p">Prism layers to y+ &asymp; 1, refinement at the trailing edge, a far field that frees the wake &mdash; the regime Hexera meshes today.</p>
           </div>
         </div>
 
