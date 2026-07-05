@@ -1104,7 +1104,7 @@ html.lenis, html.lenis body { height: auto; }
 .spec { position: relative; height: 440vh; }
 .spec__sticky { position: sticky; top: 0; height: 100vh; overflow: hidden;
   background: var(--black); transition: background 0.8s ease; }
-.spec__sticky[data-phase="0"] { background: linear-gradient(180deg, #0b0f15 0%, var(--black) 62%); }
+.spec__sticky[data-phase="0"] { background: linear-gradient(180deg, #0d1420 0%, var(--black) 68%); }
 .spec__sticky[data-phase="2"] { background: linear-gradient(180deg, #131312 0%, var(--black) 70%); }
 .spec__sticky[data-phase="3"] { background: linear-gradient(180deg, #120e09 0%, var(--black) 62%); }
 .spec-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -1169,9 +1169,14 @@ html.lenis, html.lenis body { height: auto; }
 .spec--static .spec-env__text { position: static; transform: none; }
 .spec--static .spec-cbar, .spec--static .spec-env__side { display: none; }
 
+/* nothing shows until the stage owns the viewport — fixes the half-visible chrome on entry */
+.spec:not(.spec--static) .spec__sticky:not(.is-pinned) .spec-env { opacity: 0; }
+.spec:not(.spec--static) .spec__sticky:not(.is-pinned) .spec-rail { opacity: 0; }
+.spec-rail { transition: opacity 0.4s var(--ease-expo); }
+
 /* ---- CFD post-processor chrome (aerospace env) ---- */
-.spec-env--cfd .cfd-bar, .spec-env--cfd .cfd-panel, .spec-env--cfd .cfd-cube,
-.spec-env--cfd .cfd-legend, .spec-env--cfd .cfd-statusbar { pointer-events: none; }
+.spec-env--cfd .cfd-bar, .spec-env--cfd .cfd-panel, .spec-env--cfd .cfd-scale,
+.spec-env--cfd .cfd-legend, .spec-env--cfd .cfd-tabs, .spec-env--cfd .cfd-statusbar { pointer-events: none; }
 
 .cfd-bar { position: absolute; top: calc(var(--nav-h) + 0.5rem); left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; gap: 2px; padding: 4px; z-index: 4;
@@ -1213,13 +1218,15 @@ html.lenis, html.lenis body { height: auto; }
   background: linear-gradient(90deg,#440154,#414487,#2a788e,#22a884,#7ad151,#fde725); }
 .cfd-val .cfd-ramp { width: 22px; }
 
-.cfd-cube { position: absolute; top: calc(var(--nav-h) + 0.6rem); right: var(--pad-x); z-index: 4;
-  width: 58px; height: 58px; border: 1px solid var(--line-2); border-radius: 6px;
-  background: rgba(16,16,15,0.7); display: grid; place-items: center;
-  transform: perspective(120px) rotateX(18deg) rotateY(-22deg); }
-.cfd-cube b { font-family: var(--font-mono); font-size: 0.52rem; letter-spacing: 0.1em; color: var(--faint); }
+/* ANSYS-style scale bar, bottom-centre */
+.cfd-scale { position: absolute; left: 50%; transform: translateX(-50%); bottom: 3.4rem; z-index: 4; width: 168px; }
+.cfd-scale__bar { display: flex; height: 7px; border: 1px solid var(--line-2); }
+.cfd-scale__bar i { flex: 1; }
+.cfd-scale__bar i:nth-child(odd) { background: rgba(238,235,225,0.72); }
+.cfd-scale__ticks { display: flex; justify-content: space-between; margin-top: 3px;
+  font-family: var(--font-mono); font-size: 0.55rem; color: var(--faint); }
 
-.cfd-legend { position: absolute; right: var(--pad-x); bottom: 8vh; z-index: 4;
+.cfd-legend { position: absolute; right: var(--pad-x); bottom: 16vh; z-index: 4;
   display: flex; flex-direction: column; gap: 0.9rem; }
 .cfd-leg { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto;
   column-gap: 0.5rem; align-items: center; }
@@ -1227,6 +1234,15 @@ html.lenis, html.lenis body { height: auto; }
 .cfd-leg .cfd-ramp { grid-column: 2; width: 132px; height: 9px; }
 .cfd-leg__lo, .cfd-leg__hi { grid-column: 2; font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); margin-top: 3px; }
 .cfd-leg__lo { justify-self: start; } .cfd-leg__hi { justify-self: end; grid-row: 2; margin-top: -0.72rem; }
+
+.cfd-details { width: 100%; border-collapse: collapse; font-size: 0.68rem; }
+.cfd-details td { padding: 0.3rem 0.4rem; border: 1px solid var(--line); color: var(--muted); }
+.cfd-details td:first-child { color: var(--faint); width: 52%; background: rgba(255,255,255,0.02); }
+
+.cfd-tabs { position: absolute; left: 250px; bottom: 1.85rem; z-index: 4; display: flex; }
+.cfd-tabs span { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.08em;
+  color: var(--faint); padding: 0.35rem 0.8rem; border: 1px solid var(--line); border-bottom: none; }
+.cfd-tabs span.is-on { color: var(--muted); background: rgba(255,255,255,0.04); }
 
 .cfd-statusbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 4;
   display: flex; justify-content: space-between; padding: 0.4rem var(--pad-x);
@@ -1237,7 +1253,7 @@ html.lenis, html.lenis body { height: auto; }
 .spec-env__text--over { left: 290px; top: auto; bottom: 12vh; transform: none; max-width: 30rem; z-index: 5; }
 @media (max-width: 900px) {
   .cfd-panel { width: 190px; }
-  .cfd-legend, .cfd-cube { display: none; }
+  .cfd-legend, .cfd-scale { display: none; }
   .spec-env__text--over { left: var(--pad-x); bottom: 9vh; max-width: 70vw; }
   .spec-env__text--over .spec-env__p { display: none; }
 }

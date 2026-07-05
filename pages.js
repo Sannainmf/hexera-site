@@ -270,22 +270,21 @@
 
     const yt12 = (t) => 5 * 0.12 * (0.2969 * Math.sqrt(t) - 0.1260 * t - 0.3516 * t * t + 0.2843 * t * t * t - 0.1036 * t * t * t * t);
 
-    // 01 · wind-tunnel launch vehicle — a scale sounding rocket, nose into
-    //      the flow: revolved surface mesh with nose-clustered stations,
-    //      four swept fin lattices, and Mach-cone shock lines flaring off
-    //      the tip. The supersonic tunnel classic.
+    // 01 · sounding rocket in the tunnel — ogive nose, long body, boat tail,
+    //      four swept fins. Dense CFD-grade surface mesh: cosine-clustered
+    //      stations through the nose and tail, fine circumferential rings.
     const buildWing = () => {
-      const L0 = -1.05, LEN = 2.0, RB = 0.155, NS = 40, NA = 20;
+      const L0 = -1.2, LEN = 2.35, RB = 0.125, NS = 72, NA = 30;
       const prof = (t) => {
-        if (t < 0.30) return RB * Math.pow(Math.sin((Math.PI / 2) * (t / 0.30)), 0.85);
-        if (t > 0.94) return RB * (1 - 0.35 * ((t - 0.94) / 0.06));
+        if (t < 0.18) { const s = t / 0.18; return RB * Math.sqrt(Math.max(0, 1 - (1 - s) * (1 - s))); }
+        if (t > 0.90) { const s = (t - 0.90) / 0.10; return RB * (1 - 0.24 * s); }
         return RB;
       };
       const secs = [];
       for (let i = 0; i < NS; i++) {
-        const t = Math.pow(i / (NS - 1), 1.30);        // cluster stations at the nose
+        const t = 0.5 * (1 - Math.cos(Math.PI * (i / (NS - 1))));   // cluster nose + tail
         const x = L0 + LEN * t;
-        const r = Math.max(prof(t), 0.004);
+        const r = Math.max(prof(t), 0.003);
         const ring = [];
         for (let k = 0; k <= NA; k++) {
           const a2 = (k / NA) * Math.PI * 2;
@@ -293,18 +292,19 @@
         }
         secs.push(ring);
       }
-      const lattice = secs.slice();
-      for (let k = 0; k < NA; k++) lattice.push(secs.map((rg) => rg[k]));
-      // four fins, each its own swept quad lattice
+      const lattice = secs.slice();                          // circumferential rings
+      for (let k = 0; k < NA; k++) lattice.push(secs.map((rg) => rg[k]));   // longitudinal lines
+      // four swept trapezoidal fins at the base
       const fins = [], finAcc = [];
-      for (const ang of [Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4]) {
+      const baseX = L0 + LEN * 0.80, rootC = LEN * 0.185, tipC = LEN * 0.085, span = 0.22, sweep = LEN * 0.09;
+      for (const ang of [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]) {
         const ca = Math.cos(ang), sa = Math.sin(ang);
-        const FS2 = 6, FC2 = 7, rows2 = [];
+        const FS2 = 8, FC2 = 9, rows2 = [];
         for (let si = 0; si < FS2; si++) {
           const sp = si / (FS2 - 1);
-          const rr = RB + 0.30 * sp;
-          const le = 0.52 + 0.28 * sp;
-          const cc = 0.40 - 0.22 * sp;
+          const rr = RB * 0.92 + span * sp;
+          const le = baseX + sweep * sp;
+          const cc = rootC - (rootC - tipC) * sp;
           const row = [];
           for (let ci = 0; ci <= FC2; ci++) {
             const x = le + (cc * ci) / FC2;
@@ -314,20 +314,20 @@
           lattice.push(row);
         }
         for (let ci = 0; ci <= FC2; ci++) fins.push(rows2.map((rw) => rw[ci]));
-        finAcc.push(rows2.map((rw) => rw[0]));
-        finAcc.push(rows2[FS2 - 1]);
+        finAcc.push(rows2.map((rw) => rw[0]));      // leading edge
+        finAcc.push(rows2[FS2 - 1]);                 // tip chord
       }
       const accents = finAcc.concat([
-        secs[3], secs[NS - 1],
-        secs.map((rg) => rg[10]),
-        secs.map((rg) => rg[0]),
+        secs[Math.round(NS * 0.18)],                 // nose–body junction ring
+        secs[NS - 1],                                // tail ring
+        secs.map((rg) => rg[0]),                     // top seam
       ]);
       return {
-        scale: 0.42, tilt: 0.52, sweep: 0.85, wob: 0.05,
+        scale: 0.44, tilt: 0.5, sweep: 0.85, wob: 0.05,
         groups: [
-          { pl: fins, col: TEAL, a: 0.22, w: 0.8, flat: true },
-          { pl: lattice, col: TEAL, a: 0.26, w: 0.8, flat: true },
-          { pl: accents, col: GOLD, a: 0.85, w: 1.4, glow: true, track: true },
+          { pl: fins, col: TEAL, a: 0.30, w: 0.7, flat: true },
+          { pl: lattice, col: TEAL, a: 0.32, w: 0.7, flat: true },
+          { pl: accents, col: GOLD, a: 0.9, w: 1.4, glow: true, track: true },
         ],
       };
     };
@@ -962,10 +962,9 @@
         ctx.stroke();
       }
 
-      /* axis triad, bottom-left — one instrument shared by every bench,
-         rotating with the live model */
+      /* axis triad, bottom-right (ANSYS placement) — rotates with the model */
       if (lastPj) {
-        const tx = W * 0.055, ty = H * 0.88, L = Math.min(W, H) * 0.045;
+        const tx = W - Math.max(W * 0.07, 62), ty = H - Math.max(H * 0.10, 70), L = Math.min(W, H) * 0.05;
         const cy2 = Math.cos(lastRot.y), sy2 = Math.sin(lastRot.y);
         const cx2 = Math.cos(lastRot.x), sx2 = Math.sin(lastRot.x);
         const ax = (p3) => {
@@ -1034,6 +1033,8 @@
         let s = 0;
         for (let b = 1; b < 4; b++) s += sstep((p - (b * 0.25 - MW / 2)) / MW);
         setIdx(Math.round(s));
+        // chrome only once the stage is pinned full-screen (fixes entry flash)
+        if (stage) stage.classList.toggle("is-pinned", !isNaN(dbgP) || spec.getBoundingClientRect().top <= 2);
         drawFrame(s, t, dt, p);
         rafId = requestAnimationFrame(loop);
       };

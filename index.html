@@ -269,7 +269,7 @@
           <aside class="cfd-panel" aria-hidden="true">
             <div class="cfd-sec">
               <span class="cfd-sec__h">Config</span>
-              <div class="cfd-file"><svg width="12" height="12"><use href="#i-link"/></svg> runs/wing/aero.cfd</div>
+              <div class="cfd-file"><svg width="12" height="12"><use href="#i-link"/></svg> runs/rocket/aero.cfd</div>
             </div>
             <div class="cfd-sec">
               <span class="cfd-sec__h">Visuals&nbsp;(8)</span>
@@ -278,7 +278,7 @@
                 <li><span>x&#8209;max</span><svg class="cfd-eye" width="13" height="13"><use href="#i-eye"/></svg></li>
                 <li><span>y&#8209;min</span><svg class="cfd-eye" width="13" height="13"><use href="#i-eye"/></svg></li>
                 <li><span>y&#8209;max</span><svg class="cfd-eye" width="13" height="13"><use href="#i-eye"/></svg></li>
-                <li class="is-sel"><span>wing&nbsp;surface</span><svg class="cfd-eye is-on" width="13" height="13"><use href="#i-eye"/></svg></li>
+                <li class="is-sel"><span>rocket<span>wing&nbsp;surface</span>nbsp;surface</span><svg class="cfd-eye is-on" width="13" height="13"><use href="#i-eye"/></svg></li>
                 <li><span>x&#8209;slice</span><i class="cfd-swatch"></i></li>
                 <li><span>streamlines</span><svg class="cfd-eye is-on" width="13" height="13"><use href="#i-eye"/></svg></li>
                 <li><span>wake&nbsp;refine</span><svg class="cfd-eye" width="13" height="13"><use href="#i-eye"/></svg></li>
@@ -289,11 +289,24 @@
               <span class="cfd-generate">Generate</span>
               <div class="cfd-prop"><label>Representation</label><span class="cfd-val">Surface</span></div>
               <div class="cfd-prop"><label>Color&nbsp;map</label><span class="cfd-val"><i class="cfd-ramp cfd-ramp--viridis"></i>Viridis</span></div>
-              <div class="cfd-prop"><label>Field</label><span class="cfd-val">Cp</span></div>
+            </div>
+            <div class="cfd-sec">
+              <span class="cfd-sec__h">Details of &ldquo;rocket surface&rdquo;</span>
+              <table class="cfd-details">
+                <tr><td>Field</td><td>Cp</td></tr>
+                <tr><td>Range</td><td>&minus;1.70 &hellip; 0.96</td></tr>
+                <tr><td>y+ target</td><td>1.0</td></tr>
+                <tr><td>Growth rate</td><td>1.2</td></tr>
+              </table>
             </div>
           </aside>
 
-          <div class="cfd-cube" aria-hidden="true"><b>FRONT</b></div>
+          <div class="cfd-tabs" aria-hidden="true"><span class="is-on">Model View</span><span>Mesh View</span></div>
+
+          <div class="cfd-scale" aria-hidden="true">
+            <div class="cfd-scale__bar"><i></i><i></i><i></i><i></i></div>
+            <div class="cfd-scale__ticks"><span>0</span><span>5</span><span>10</span><span>15</span><span>20 mm</span></div>
+          </div>
 
           <div class="cfd-legend" aria-hidden="true">
             <div class="cfd-leg"><span class="cfd-leg__k">Cp</span><i class="cfd-ramp cfd-ramp--viridis"></i><em class="cfd-leg__lo">&minus;1.70</em><em class="cfd-leg__hi">0.96</em></div>
