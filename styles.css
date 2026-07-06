@@ -725,7 +725,7 @@ html.lenis, html.lenis body { height: auto; }
    ramps. Stretched to the box so the baked edges land exactly on the
    section edges; every seam is the same #0d0d0c meeting itself. */
 .ring-sticky::before { content: ""; position: absolute; inset: 0; z-index: 0;
-  background: url("assets/ring-bg4.png") center / 100% 100% no-repeat; }
+  background: url("assets/ring-bg5.png") center / 100% 100% no-repeat; }
 .ring-grid { position: relative; z-index: 1; width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
 
 .ring-copy { max-width: 30ch; }
