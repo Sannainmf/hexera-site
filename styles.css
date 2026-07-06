@@ -1174,6 +1174,7 @@ html.lenis, html.lenis body { height: auto; }
 
 .xsec { position: absolute; left: var(--pad-x); right: var(--pad-x); bottom: 4vh; z-index: 3;
   display: flex; gap: 1rem; align-items: flex-end; }
+.xsec--nocap { bottom: 7vh; }
 .xsec__panel { margin: 0; flex: 1; min-width: 0; }
 .xsec__panel img { display: block; width: 100%; height: auto;
   border: 1px solid var(--line-2); background: var(--black); }
