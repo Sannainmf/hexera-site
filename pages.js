@@ -862,7 +862,7 @@
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
       1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
-      2: { url: "assets/scene.json.gz?v=2", ry: 0.70, rx: -0.32, sc: 0.246, cx: 0.38, cy: 0.50, f3: 3.5, scene: 1 },
+      2: { url: "assets/scene.json.gz?v=3", ry: 0.70, rx: -0.24, sc: 0.47, cx: 0.35, cy: 0.52, f3: 3.6, scene: 1 },
       3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1 },
     };
     for (const k in REAL) {
@@ -972,20 +972,28 @@
           box(-1.45, 2.6, -0.66, 0.78, 0.08);
         }
       }
-      const NB = 9, buckets = Array.from({ length: NB }, () => []), zr = (zmax - zmin) || 1, ne = e.E.length / 2;
-      for (let i = 0; i < ne; i++) {
-        const a = e.E[i * 2], b = e.E[i * 2 + 1];
-        const d = ((PZ[a] + PZ[b]) * 0.5 - zmin) / zr;
-        buckets[Math.min(NB - 1, (d * NB) | 0)].push(PX[a], PY[a], PX[b], PY[b]);
-      }
+      const NB = 9, zr = (zmax - zmin) || 1;
       g.lineWidth = 1;
-      for (let bkt = 0; bkt < NB; bkt++) {
-        const seg = buckets[bkt]; if (!seg.length) continue;
-        g.strokeStyle = "rgba(" + TEAL + "," + (0.13 + 0.34 * (bkt / (NB - 1))).toFixed(3) + ")";
-        g.beginPath();
-        for (let q = 0; q < seg.length; q += 4) { g.moveTo(seg[q], seg[q + 1]); g.lineTo(seg[q + 2], seg[q + 3]); }
-        g.stroke();
-      }
+      /* scene entries: per-object material colour, depth-shaded via alpha.
+         everything else: one theme colour with depth. */
+      const strokeRange = (e0, e1, col) => {
+        const buckets = Array.from({ length: NB }, () => []);
+        for (let i = e0; i < e1; i++) {
+          const a = e.E[i * 2], b = e.E[i * 2 + 1];
+          const d = ((PZ[a] + PZ[b]) * 0.5 - zmin) / zr;
+          buckets[Math.min(NB - 1, (d * NB) | 0)].push(PX[a], PY[a], PX[b], PY[b]);
+        }
+        for (let bkt = 0; bkt < NB; bkt++) {
+          const seg = buckets[bkt]; if (!seg.length) continue;
+          const al = col === TEAL ? 0.13 + 0.34 * (bkt / (NB - 1)) : 0.34 + 0.58 * (bkt / (NB - 1));
+          g.strokeStyle = "rgba(" + col + "," + al.toFixed(3) + ")";
+          g.beginPath();
+          for (let q = 0; q < seg.length; q += 4) { g.moveTo(seg[q], seg[q + 1]); g.lineTo(seg[q + 2], seg[q + 3]); }
+          g.stroke();
+        }
+      };
+      if (e.groups) { for (const gr of e.groups) strokeRange(gr.e0, gr.e1, gr.col); }
+      else strokeRange(0, e.E.length / 2, TEAL);
       /* editor selection furniture (scene entries): a wireframe bounding
          box per object (gold on the hero, steel otherwise) and a transform
          gizmo at the hero's base — the game-engine viewport signature */
