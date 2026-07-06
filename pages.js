@@ -963,10 +963,14 @@
          the trace: a sub-1% scale throb about the model's own centre plus
          a slow ambient drift — pure bitmap transforms, no rebakes */
       if (e.pulse && tNow !== undefined && e.bb) {
-        const pw = Math.pow(Math.max(Math.sin(tNow * 0.00754), 0), 2);
-        const s = 1 + 0.008 * pw;
+        /* lub-dub waveform on the same 72bpm clock: sharp systolic bump,
+           smaller dicrotic echo, long quiet diastole — very faint */
+        const ph = ((tNow * 0.00754) / (2 * Math.PI)) % 1;
+        const lub = Math.exp(-Math.pow((ph - 0.12) / 0.045, 2));
+        const dub = 0.5 * Math.exp(-Math.pow((ph - 0.30) / 0.055, 2));
+        const s = 1 + 0.0035 * (lub + dub);
         const cxm = (e.bb.x0 + e.bb.x1) / 2, cym = (e.bb.y0 + e.bb.y1) / 2;
-        const dx = Math.sin(tNow * 0.00013) * 6, dy = Math.cos(tNow * 0.00011) * 5;
+        const dx = Math.sin(tNow * 0.00009) * 3, dy = Math.cos(tNow * 0.00008) * 2.5;
         ctx.save();
         ctx.globalAlpha = alphaMul;
         ctx.translate(cxm + dx, cym + dy); ctx.scale(s, s); ctx.translate(-cxm, -cym);
