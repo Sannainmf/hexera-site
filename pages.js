@@ -862,7 +862,7 @@
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
       1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
-      2: { url: "assets/scene.json.gz", ry: 0.62, rx: -0.30, sc: 0.60, cx: 0.40, cy: 0.55, f3: 3.6, scene: 1 },
+      2: { url: "assets/scene.json.gz?v=2", ry: 0.70, rx: -0.32, sc: 0.246, cx: 0.38, cy: 0.50, f3: 3.5, scene: 1 },
       3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1 },
     };
     for (const k in REAL) {
@@ -986,6 +986,35 @@
         for (let q = 0; q < seg.length; q += 4) { g.moveTo(seg[q], seg[q + 1]); g.lineTo(seg[q + 2], seg[q + 3]); }
         g.stroke();
       }
+      /* editor selection furniture (scene entries): a wireframe bounding
+         box per object (gold on the hero, steel otherwise) and a transform
+         gizmo at the hero's base — the game-engine viewport signature */
+      if (e.boxes) {
+        g.lineWidth = 1;
+        for (const bx of e.boxes) {
+          const mn = bx.mn, mx = bx.mx;
+          const c = [
+            [mn[0],mn[1],mn[2]],[mx[0],mn[1],mn[2]],[mx[0],mn[1],mx[2]],[mn[0],mn[1],mx[2]],
+            [mn[0],mx[1],mn[2]],[mx[0],mx[1],mn[2]],[mx[0],mx[1],mx[2]],[mn[0],mx[1],mx[2]],
+          ];
+          const ed = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+          g.strokeStyle = bx.h ? "rgba(" + GOLD + ",0.62)" : "rgba(" + TEAL + ",0.30)";
+          for (const pr of ed) {
+            const A = e.pj.pj(c[pr[0]]), B = e.pj.pj(c[pr[1]]);
+            g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke();
+          }
+        }
+      }
+      if (e.gizmo) {
+        const o = e.gizmo.o, gl = e.gizmo.len;
+        const axes = [[[1,0,0],"206,96,74"],[[0,-1,0],"120,182,120"],[[0,0,1],"92,132,206"]];
+        g.lineWidth = 2;
+        for (const [d, col] of axes) {
+          const A = e.pj.pj(o), B = e.pj.pj([o[0]+d[0]*gl, o[1]+d[1]*gl, o[2]+d[2]*gl]);
+          g.strokeStyle = "rgb(" + col + ")";
+          g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke();
+        }
+      }
       /* inspector tags (scene entries): name + tri-count at each object's
          top, like a game-engine outliner */
       if (e.labels) {
@@ -1060,7 +1089,7 @@
           e.V = new Float32Array(d.v.length);
           for (let i = 0; i < d.v.length; i++) e.V[i] = d.v[i] / 32767;
           e.E = Int32Array.from(d.e);
-          if (d.grid) { e.grid = d.grid; e.gy = d.gy; e.labels = d.labels; }
+          if (d.grid) { e.grid = d.grid; e.gy = d.gy; e.labels = d.labels; e.boxes = d.boxes; e.gizmo = d.gizmo; }
           renderReal(e);
         }).catch(() => {});
       }
