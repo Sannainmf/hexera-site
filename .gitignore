@@ -54,3 +54,4 @@ assets/*
 !assets/bio-xsec-2.jpg
 !assets/auto-zoom.jpg
 !assets/auto-cp.jpg
+!assets/scene.json.gz

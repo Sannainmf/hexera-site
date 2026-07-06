@@ -1172,6 +1172,11 @@ html.lenis, html.lenis body { height: auto; }
 .spec-env--bio .spec-env__text,
 .spec-env--auto .spec-env__text { top: 31%; }
 
+/* gaming env: copy on the RIGHT (the scene assembly sits left) */
+.spec-env--game .spec-env__text { left: auto; right: var(--pad-x); text-align: right; }
+.spec-env--game .spec-env__list li { border-bottom-color: var(--line); }
+@media (max-width: 760px) { .spec-env--game .spec-env__text { right: auto; left: var(--pad-x); text-align: left; } }
+
 .xsec { position: absolute; left: var(--pad-x); right: var(--pad-x); bottom: 4vh; z-index: 3;
   display: flex; gap: 1rem; align-items: flex-end; }
 .xsec--nocap { bottom: 7vh; }

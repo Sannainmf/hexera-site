@@ -862,6 +862,7 @@
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
       1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
+      2: { url: "assets/scene.json.gz", ry: 0.62, rx: -0.30, sc: 0.60, cx: 0.40, cy: 0.55, f3: 3.6, scene: 1 },
       3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1 },
     };
     for (const k in REAL) {
@@ -907,10 +908,32 @@
         const y1 = p[1] * cx - z1 * sx, z2 = p[1] * sx + z1 * cx, k = F3 / (F3 - z2);
         return [cx0 + x1 * Sc * k, cy0 + y1 * Sc * k, k];
       } };
+      /* scene ground grid (entries with grid params from the asset): a DCC
+         viewport floor under a multi-object scene, pooled falloff */
+      if (e.grid) {
+        const gr = e.grid, gyv = e.gy, STEP = gr.step;
+        const aAt = (px2, pz2) => {
+          const dx = px2 / gr.fx, dz = (pz2 - gr.fzc) / gr.fz;
+          return gr.peak * Math.exp(-(dx * dx + dz * dz) * 1.5);
+        };
+        const seg = (p0, p1, al) => {
+          if (al <= 0.004) return;
+          g.strokeStyle = "rgba(" + TEAL + "," + al.toFixed(3) + ")";
+          const A = e.pj.pj(p0), B = e.pj.pj(p1);
+          g.beginPath(); g.moveTo(A[0], A[1]); g.lineTo(B[0], B[1]); g.stroke();
+        };
+        g.lineWidth = 1;
+        for (let u = -gr.gx; u <= gr.gx + 1e-9; u += STEP)
+          for (let w = -gr.gz; w < gr.gz - 1e-9; w += STEP)
+            seg([u, gyv, w], [u, gyv, w + STEP], aAt(u, w + STEP / 2));
+        for (let w = -gr.gz; w <= gr.gz + 1e-9; w += STEP)
+          for (let u = -gr.gx; u < gr.gx - 1e-9; u += STEP)
+            seg([u, gyv, w], [u + STEP, gyv, w], aAt(u + STEP / 2, w));
+      }
       /* pooled ground grid (entries with gy): short segments whose alpha
          falls off gaussian from the model's footprint, so the floor
          dissolves into black with no edges — baked with the mesh */
-      if (e.gy !== undefined) {
+      if (e.gy !== undefined && !e.grid) {
         const gyv = e.gy, GX = 3.0, GZ = 2.0, STEP = 0.24, NSEG = 20;
         const aAt = (px2, pz2) => {
           const dx = px2 / 2.0, dz = pz2 / 1.35;
@@ -962,6 +985,22 @@
         g.beginPath();
         for (let q = 0; q < seg.length; q += 4) { g.moveTo(seg[q], seg[q + 1]); g.lineTo(seg[q + 2], seg[q + 3]); }
         g.stroke();
+      }
+      /* inspector tags (scene entries): name + tri-count at each object's
+         top, like a game-engine outliner */
+      if (e.labels) {
+        g.textBaseline = "top";
+        for (const L of e.labels) {
+          const s = e.pj.pj(L.a), tx = s[0] + 14, ty = s[1] - 14;
+          g.strokeStyle = "rgba(120,130,145,0.7)"; g.lineWidth = 1;
+          g.beginPath(); g.moveTo(s[0], s[1]); g.lineTo(tx - 5, ty + 11); g.stroke();
+          g.fillStyle = "rgba(214,218,224,0.94)";
+          g.font = "500 15px 'Geist Mono', ui-monospace, monospace";
+          g.fillText(L.n, tx, ty);
+          g.fillStyle = "rgba(150,158,168,0.85)";
+          g.font = "13px 'Geist Mono', ui-monospace, monospace";
+          g.fillText(L.t.toLocaleString() + " tris", tx, ty + 17);
+        }
       }
       e.ready = true;
     };
@@ -1021,6 +1060,7 @@
           e.V = new Float32Array(d.v.length);
           for (let i = 0; i < d.v.length; i++) e.V[i] = d.v[i] / 32767;
           e.E = Int32Array.from(d.e);
+          if (d.grid) { e.grid = d.grid; e.gy = d.gy; e.labels = d.labels; }
           renderReal(e);
         }).catch(() => {});
       }
@@ -1038,8 +1078,9 @@
       const dA = [0, 1, 2, 3].map((i) => clamp(1 - Math.abs(s - i) * 2.4, 0, 1));
 
       /* DCC floor grid under the terrain tile (gaming phase) — drawn first
-         so the model sits on it */
-      if (dA[2] > 0.01 && lastPj) {
+         so the model sits on it. Skipped when the scene asset is loaded,
+         since it bakes its own grid. */
+      if (dA[2] > 0.01 && lastPj && !(REAL[2] && REAL[2].ready)) {
         const yF = 0.58, EX = 1.9, NL = 14;
         ctx.lineWidth = 1;
         for (let gi = 0; gi <= NL; gi++) {
