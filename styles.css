@@ -1136,11 +1136,13 @@ html.lenis, html.lenis body { height: auto; }
    on every side, so there is no box edge anywhere near visible pixels.
    Never cropped, never distorted. Text sits above. */
 .indx::before { content: ""; position: absolute; left: 0; right: 0;
-  /* the bloom sits at ~53% of the frame; offset the plate up so the bloom
-     centre lands behind the heading text (~16rem into the section) */
-  top: calc(16rem - 29.58vw);
-  height: calc(100vw / 1.7917);
-  background: url("assets/header-smoke2.png") center / 100% 100% no-repeat;
+  /* top dead space is cropped out of the artwork itself, so the plate
+     starts exactly at the section boundary — zero overhang above it,
+     nothing can ever cover the loop section's exit. Bloom (~38% of the
+     cropped frame) lands behind the heading. */
+  top: 0;
+  height: calc(100vw / 2.3683);
+  background: url("assets/header-smoke3.png") center / 100% 100% no-repeat;
   pointer-events: none; }
 .indx__head { position: relative; z-index: 1; }
 
