@@ -861,7 +861,7 @@
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
-      1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, swp: 0.12 },
+      1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, move: 1 },
       3: { url: "assets/car.json.gz?v=4", ry: 0.72, rx: -0.30, sc: 0.46, cx: 0.58, cy: 0.50, f3: 3.4, gy: 0.307 },
     };
     for (const k in REAL) {
@@ -871,17 +871,22 @@
       e.ready = false; e.V = null; e.E = null; e.pj = null; e.bb = null;
     }
 
-    const renderReal = (e, ryOver) => {
+    const renderReal = (e, pose) => {
       if (!e.V || !W || !H) return;
-      const ry = (ryOver !== undefined) ? ryOver : (e.bakedRy !== undefined ? e.bakedRy : e.ry);
-      e.bakedRy = ry;
+      const base = e.baked || {};
+      const p = pose || {};
+      const ry = p.ry !== undefined ? p.ry : (base.ry !== undefined ? base.ry : e.ry);
+      const rx = p.rx !== undefined ? p.rx : (base.rx !== undefined ? base.rx : e.rx);
+      const scv = p.sc !== undefined ? p.sc : (base.sc !== undefined ? base.sc : e.sc);
+      const cyf = p.cy !== undefined ? p.cy : (base.cy !== undefined ? base.cy : e.cy);
+      e.baked = { ry: ry, rx: rx, sc: scv, cy: cyf };
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       e.canvas.width = Math.round(W * dpr); e.canvas.height = Math.round(H * dpr);
       const g = e.rctx;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, W, H);
-      const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(e.rx), sx = Math.sin(e.rx);
-      const Sc = sref * e.sc, cx0 = W * e.cx, cy0 = H * e.cy, F3 = e.f3;
+      const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
+      const Sc = sref * scv, cx0 = W * e.cx, cy0 = H * cyf, F3 = e.f3;
       const nv = e.V.length / 3;
       const PX = new Float32Array(nv), PY = new Float32Array(nv), PZ = new Float32Array(nv);
       let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9, zmin = 1e9, zmax = -1e9;
@@ -947,13 +952,32 @@
     };
 
     const blitReal = (e, alphaMul, track, sweep) => {
-      /* entries with swp turn gently with the scrub: rebake the offscreen
-         only when the target angle has moved enough to notice (~0.7°) */
-      if (e.swp && sweep !== undefined) {
-        const target = e.ry + sweep * e.swp;
-        if (Math.abs(target - e.bakedRy) > 0.012) renderReal(e, target);
+      /* entries with move drift with the scrub: a wider yaw, a slight
+         pitch nod, a slow vertical float, and a breathe that brings the
+         model nearer mid-plateau. Offscreen rebakes only when the pose
+         has moved enough to notice. */
+      if (e.move && sweep !== undefined) {
+        const u = sweep;
+        const t = {
+          ry: e.ry + u * 0.34,
+          rx: e.rx + u * 0.10,
+          cy: e.cy + u * 0.022,
+          sc: e.sc * (1 + 0.05 * Math.cos(u * Math.PI)),
+        };
+        const b = e.baked || {};
+        if (b.ry === undefined ||
+            Math.abs(t.ry - b.ry) > 0.012 || Math.abs(t.rx - b.rx) > 0.008 ||
+            Math.abs(t.cy - b.cy) > 0.004 || Math.abs(t.sc - b.sc) / e.sc > 0.012) {
+          renderReal(e, t);
+        }
       }
-      if (track) { lastPj = e.pj; lastRot.y = (e.bakedRy !== undefined ? e.bakedRy : e.ry); lastRot.x = e.rx; lastBB = e.bb; }
+      const b2 = e.baked || {};
+      if (track) {
+        lastPj = e.pj;
+        lastRot.y = b2.ry !== undefined ? b2.ry : e.ry;
+        lastRot.x = b2.rx !== undefined ? b2.rx : e.rx;
+        lastBB = e.bb;
+      }
       ctx.globalAlpha = alphaMul; ctx.drawImage(e.canvas, 0, 0, W, H); ctx.globalAlpha = 1;
     };
 
