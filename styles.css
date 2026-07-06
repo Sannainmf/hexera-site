@@ -1167,9 +1167,10 @@ html.lenis, html.lenis body { height: auto; }
 /* biomedical cross-section frames: real interior slices of the artery
    volume, lumen in red with the wall ring, framed like a hemodynamics
    report next to the surface mesh */
-/* bio env: the full-width cut row owns the lower half, so the copy rides
-   higher than the other benches to stay clear of the panels */
-.spec-env--bio .spec-env__text { top: 31%; }
+/* bio + auto envs: the full-width panel row owns the lower half, so the
+   copy rides higher than the other benches to stay clear of it */
+.spec-env--bio .spec-env__text,
+.spec-env--auto .spec-env__text { top: 31%; }
 
 .xsec { position: absolute; left: var(--pad-x); right: var(--pad-x); bottom: 4vh; z-index: 3;
   display: flex; gap: 1rem; align-items: flex-end; }

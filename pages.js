@@ -862,7 +862,7 @@
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
       1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
-      3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.46, cx: 0.58, cy: 0.50, f3: 3.4, gy: 0.322 },
+      3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.40, cx: 0.60, cy: 0.34, f3: 3.4, gy: 0.322, wake: 1 },
     };
     for (const k in REAL) {
       const e = REAL[k];
@@ -933,6 +933,21 @@
             const x0 = -GX + (2 * GX * si) / NSEG, x1b = -GX + (2 * GX * (si + 1)) / NSEG;
             seg([x0, gyv, w], [x1b, gyv, w], aAt((x0 + x1b) / 2, w));
           }
+        /* wake refinement boxes (entries with wake): two nested wireframe
+           volumes hugging the body and trailing downstream (+x), the CFD
+           domain-setup look — baked with the floor */
+        if (e.wake) {
+          const box = (x0, x1, yTop, zH, al) => {
+            const pts = [
+              [x0, gyv, -zH], [x1, gyv, -zH], [x1, gyv, zH], [x0, gyv, zH],
+              [x0, yTop, -zH], [x1, yTop, -zH], [x1, yTop, zH], [x0, yTop, zH],
+            ];
+            const ed = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
+            for (const pr of ed) seg(pts[pr[0]], pts[pr[1]], al);
+          };
+          box(-1.2, 1.6, -0.42, 0.55, 0.13);
+          box(-1.45, 2.6, -0.66, 0.78, 0.08);
+        }
       }
       const NB = 9, buckets = Array.from({ length: NB }, () => []), zr = (zmax - zmin) || 1, ne = e.E.length / 2;
       for (let i = 0; i < ne; i++) {

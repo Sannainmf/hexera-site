@@ -52,3 +52,5 @@ assets/*
 !assets/artery.json.gz
 !assets/bio-xsec-1.jpg
 !assets/bio-xsec-2.jpg
+!assets/auto-zoom.jpg
+!assets/auto-cp.jpg

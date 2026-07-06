@@ -18,8 +18,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=33" />
-  <link rel="stylesheet" href="steel-theme.css?v=33" />
+  <link rel="stylesheet" href="styles.css?v=34" />
+  <link rel="stylesheet" href="steel-theme.css?v=34" />
 </head>
 <body>
   <div class="hero-art" aria-hidden="true"></div>
@@ -305,7 +305,7 @@
           </div>
         </div>
 
-        <div class="spec-env" data-spec-env>
+        <div class="spec-env spec-env--auto" data-spec-env>
           <div class="spec-env__text">
             <span class="spec-env__mode">cfd &middot; external aero &middot; drag</span>
             <h3 class="spec-env__name">Automotive</h3>
@@ -316,11 +316,15 @@
             </ul>
             <p class="spec-env__p">Complete vehicle assemblies in one pass &mdash; external drag and downforce, underhood airflow, and battery-pack thermal.</p>
           </div>
-          <div class="spec-cbar" aria-hidden="true">
-            <i class="spec-cbar__ramp"></i>
-            <span class="spec-cbar__max">1</span>
-            <span class="spec-cbar__min">0</span>
-            <span class="spec-cbar__label">surface field &middot; normalized</span>
+          <div class="xsec" aria-hidden="true">
+            <figure class="xsec__panel">
+              <img src="assets/auto-zoom.jpg" alt="" />
+              <figcaption>local refinement &middot; mirror &amp; arch</figcaption>
+            </figure>
+            <figure class="xsec__panel">
+              <img src="assets/auto-cp.jpg" alt="" />
+              <figcaption>cp field &middot; drivaerml dataset</figcaption>
+            </figure>
           </div>
         </div>
       </div>
@@ -451,7 +455,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js" defer></script>
   <script src="airfoil.js?v=9" defer></script>
   <script src="site.js?v=9" defer></script>
-  <script src="pages.js?v=42" defer></script>
+  <script src="pages.js?v=44" defer></script>
   <script src="waitlist.js?v=9" defer></script>
 </body>
 </html>
