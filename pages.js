@@ -862,7 +862,7 @@
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
       1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
-      2: { url: "assets/scene.json.gz?v=3", ry: 0.70, rx: -0.24, sc: 0.47, cx: 0.35, cy: 0.52, f3: 3.6, scene: 1 },
+      2: { url: "assets/scene.json.gz?v=4", ry: 0.70, rx: -0.24, sc: 0.58, cx: 0.32, cy: 0.50, f3: 3.6, scene: 1 },
       3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1 },
     };
     for (const k in REAL) {
@@ -1097,7 +1097,7 @@
           e.V = new Float32Array(d.v.length);
           for (let i = 0; i < d.v.length; i++) e.V[i] = d.v[i] / 32767;
           e.E = Int32Array.from(d.e);
-          if (d.grid) { e.grid = d.grid; e.gy = d.gy; e.labels = d.labels; e.boxes = d.boxes; e.gizmo = d.gizmo; }
+          if (d.grid) { e.grid = d.grid; e.gy = d.gy; e.labels = d.labels; e.boxes = d.boxes; e.gizmo = d.gizmo; e.groups = d.groups; }
           renderReal(e);
         }).catch(() => {});
       }
