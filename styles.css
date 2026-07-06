@@ -1146,7 +1146,10 @@ html.lenis, html.lenis body { height: auto; }
   pointer-events: none; }
 .indx__head { position: relative; z-index: 1; }
 
-.spec { position: relative; height: 440vh; margin-inline: calc(var(--pad-x) * -1); }
+/* tall scroll runway: ~215vh of scrolling per industry before the
+   crossfade to the next — the scrub p normalizes, so only this number
+   sets the pacing */
+.spec { position: relative; height: 960vh; margin-inline: calc(var(--pad-x) * -1); }
 /* no opaque background: the section behind is the same flat color, and an
    opaque plate here slices the header smoke mid-wisp at the stage's top
    edge — transparent lets the smoke finish its own fade into the stage */
