@@ -861,7 +861,7 @@
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
-      1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, move: 1 },
+      1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
       3: { url: "assets/car.json.gz?v=4", ry: 0.72, rx: -0.30, sc: 0.46, cx: 0.58, cy: 0.50, f3: 3.4, gy: 0.307 },
     };
     for (const k in REAL) {
@@ -951,32 +951,29 @@
       e.ready = true;
     };
 
-    const blitReal = (e, alphaMul, track, sweep) => {
-      /* entries with move drift with the scrub: a wider yaw, a slight
-         pitch nod, a slow vertical float, and a breathe that brings the
-         model nearer mid-plateau. Offscreen rebakes only when the pose
-         has moved enough to notice. */
-      if (e.move && sweep !== undefined) {
-        const u = sweep;
-        const t = {
-          ry: e.ry + u * 0.9,
-          rx: e.rx + u * 0.16,
-          cy: e.cy + u * 0.03,
-          sc: e.sc * (1 + 0.05 * Math.cos(u * Math.PI)),
-        };
-        const b = e.baked || {};
-        if (b.ry === undefined ||
-            Math.abs(t.ry - b.ry) > 0.012 || Math.abs(t.rx - b.rx) > 0.008 ||
-            Math.abs(t.cy - b.cy) > 0.004 || Math.abs(t.sc - b.sc) / e.sc > 0.012) {
-          renderReal(e, t);
-        }
-      }
+    const blitReal = (e, alphaMul, track, tNow) => {
       const b2 = e.baked || {};
       if (track) {
         lastPj = e.pj;
         lastRot.y = b2.ry !== undefined ? b2.ry : e.ry;
         lastRot.x = b2.rx !== undefined ? b2.rx : e.rx;
         lastBB = e.bb;
+      }
+      /* entries with pulse beat at the same 72bpm as the blood cells and
+         the trace: a sub-1% scale throb about the model's own centre plus
+         a slow ambient drift — pure bitmap transforms, no rebakes */
+      if (e.pulse && tNow !== undefined && e.bb) {
+        const pw = Math.pow(Math.max(Math.sin(tNow * 0.00754), 0), 2);
+        const s = 1 + 0.008 * pw;
+        const cxm = (e.bb.x0 + e.bb.x1) / 2, cym = (e.bb.y0 + e.bb.y1) / 2;
+        const dx = Math.sin(tNow * 0.00013) * 6, dy = Math.cos(tNow * 0.00011) * 5;
+        ctx.save();
+        ctx.globalAlpha = alphaMul;
+        ctx.translate(cxm + dx, cym + dy); ctx.scale(s, s); ctx.translate(-cxm, -cym);
+        ctx.drawImage(e.canvas, 0, 0, W, H);
+        ctx.restore();
+        ctx.globalAlpha = 1;
+        return;
       }
       ctx.globalAlpha = alphaMul; ctx.drawImage(e.canvas, 0, 0, W, H); ctx.globalAlpha = 1;
     };
@@ -1024,15 +1021,7 @@
 
       const drawOne = (mi, sweep, alpha, track) => {
         const rm = REAL[mi];
-        if (rm && rm.ready) {
-          /* pose scrub derived from the GLOBAL scroll position, not the
-             morph-zeroed sweep: continuous through plateau and crossfade,
-             clamping at the phase edges — the model rides to its end pose
-             and holds it through the fade instead of snapping back */
-          const u = clamp((pNow - mi * 0.25) / 0.25, 0, 1) - 0.5;
-          return blitReal(rm, alpha, track, u);
-        }
-        return drawModel(mi, t, sweep, alpha, track);
+        return (rm && rm.ready) ? blitReal(rm, alpha, track, t) : drawModel(mi, t, sweep, alpha, track);
       };
       if (!morph) {
         drawOne(Math.round(s), local - 0.5, 1, true);
