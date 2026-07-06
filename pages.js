@@ -862,7 +862,7 @@
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
       1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
-      2: { url: "assets/scene.json.gz?v=6", ry: 0.70, rx: -0.24, sc: 0.793, cx: 0.478, cy: 0.717, f3: 3.6, scene: 1 },
+      2: { url: "assets/scene.json.gz?v=7", ry: 0.70, rx: -0.24, sc: 0.817, cx: 0.489, cy: 0.713, f3: 3.6, scene: 1, float: 1 },
       3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1 },
     };
     for (const k in REAL) {
@@ -1078,6 +1078,22 @@
         const dx = (Math.sin(tNow * 0.00021) + 0.4 * Math.sin(tNow * 0.00053)) * 4;
         const dy = Math.cos(tNow * 0.00017) * 2.4;
         const s = 1 + 0.0022 * Math.sin(tNow * 0.00013);
+        ctx.save();
+        ctx.globalAlpha = alphaMul;
+        ctx.translate(W / 2 + dx, H / 2 + dy); ctx.scale(s, s); ctx.translate(-W / 2, -H / 2);
+        ctx.drawImage(e.canvas, 0, 0, W, H);
+        ctx.restore();
+        ctx.globalAlpha = 1;
+        return;
+      }
+      /* entries with float: a slow turntable-preview bob of the whole baked
+         scene about the canvas centre — vertical-dominant with a faint dolly,
+         the DCC/asset-viewport counterpart to the car's horizontal buffet.
+         The floor grid rides along, so it reads as a gently bobbing camera. */
+      if (e.float && tNow !== undefined) {
+        const dy = (Math.sin(tNow * 0.00030) + 0.35 * Math.sin(tNow * 0.00062)) * 5;
+        const dx = Math.sin(tNow * 0.00013) * 2.2;
+        const s = 1 + 0.0024 * Math.sin(tNow * 0.00019);
         ctx.save();
         ctx.globalAlpha = alphaMul;
         ctx.translate(W / 2 + dx, H / 2 + dy); ctx.scale(s, s); ctx.translate(-W / 2, -H / 2);
