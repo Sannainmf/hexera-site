@@ -1164,12 +1164,11 @@ html.lenis, html.lenis body { height: auto; }
 /* biomedical cross-section frames: real interior slices of the artery
    volume, lumen in red with the wall ring, framed like a hemodynamics
    report next to the surface mesh */
-.xsec { position: absolute; right: var(--pad-x); bottom: 8vh; z-index: 3;
-  display: flex; gap: 0.9rem; align-items: flex-end; }
-.xsec__panel { margin: 0; width: clamp(160px, 16vw, 250px); }
+.xsec { position: absolute; left: var(--pad-x); right: var(--pad-x); bottom: 4vh; z-index: 3;
+  display: flex; gap: 1rem; align-items: flex-end; }
+.xsec__panel { margin: 0; flex: 1; min-width: 0; }
 .xsec__panel img { display: block; width: 100%; height: auto;
   border: 1px solid var(--line-2); background: var(--black); }
-.xsec__panel:last-child { width: clamp(180px, 18vw, 280px); }
 .xsec__panel figcaption { margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.6rem;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
 @media (max-width: 900px) { .xsec { display: none; } }
