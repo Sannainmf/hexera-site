@@ -861,7 +861,7 @@
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
-      1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4 },
+      1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, swp: 0.12 },
       3: { url: "assets/car.json.gz?v=4", ry: 0.72, rx: -0.30, sc: 0.46, cx: 0.58, cy: 0.50, f3: 3.4, gy: 0.307 },
     };
     for (const k in REAL) {
@@ -871,14 +871,16 @@
       e.ready = false; e.V = null; e.E = null; e.pj = null; e.bb = null;
     }
 
-    const renderReal = (e) => {
+    const renderReal = (e, ryOver) => {
       if (!e.V || !W || !H) return;
+      const ry = (ryOver !== undefined) ? ryOver : (e.bakedRy !== undefined ? e.bakedRy : e.ry);
+      e.bakedRy = ry;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       e.canvas.width = Math.round(W * dpr); e.canvas.height = Math.round(H * dpr);
       const g = e.rctx;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, W, H);
-      const cy = Math.cos(e.ry), sy = Math.sin(e.ry), cx = Math.cos(e.rx), sx = Math.sin(e.rx);
+      const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(e.rx), sx = Math.sin(e.rx);
       const Sc = sref * e.sc, cx0 = W * e.cx, cy0 = H * e.cy, F3 = e.f3;
       const nv = e.V.length / 3;
       const PX = new Float32Array(nv), PY = new Float32Array(nv), PZ = new Float32Array(nv);
@@ -944,8 +946,14 @@
       e.ready = true;
     };
 
-    const blitReal = (e, alphaMul, track) => {
-      if (track) { lastPj = e.pj; lastRot.y = e.ry; lastRot.x = e.rx; lastBB = e.bb; }
+    const blitReal = (e, alphaMul, track, sweep) => {
+      /* entries with swp turn gently with the scrub: rebake the offscreen
+         only when the target angle has moved enough to notice (~0.7°) */
+      if (e.swp && sweep !== undefined) {
+        const target = e.ry + sweep * e.swp;
+        if (Math.abs(target - e.bakedRy) > 0.012) renderReal(e, target);
+      }
+      if (track) { lastPj = e.pj; lastRot.y = (e.bakedRy !== undefined ? e.bakedRy : e.ry); lastRot.x = e.rx; lastBB = e.bb; }
       ctx.globalAlpha = alphaMul; ctx.drawImage(e.canvas, 0, 0, W, H); ctx.globalAlpha = 1;
     };
 
@@ -992,7 +1000,7 @@
 
       const drawOne = (mi, sweep, alpha, track) => {
         const rm = REAL[mi];
-        return (rm && rm.ready) ? blitReal(rm, alpha, track) : drawModel(mi, t, sweep, alpha, track);
+        return (rm && rm.ready) ? blitReal(rm, alpha, track, sweep) : drawModel(mi, t, sweep, alpha, track);
       };
       if (!morph) {
         drawOne(Math.round(s), local - 0.5, 1, true);
