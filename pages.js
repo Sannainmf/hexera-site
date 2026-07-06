@@ -861,6 +861,7 @@
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
+      1: { url: "assets/artery.json.gz", ry: 0.70, rx: -1.45, sc: 0.40, cx: 0.62, cy: 0.50, f3: 3.4 },
       3: { url: "assets/car.json.gz?v=4", ry: 0.72, rx: -0.30, sc: 0.46, cx: 0.58, cy: 0.50, f3: 3.4, gy: 0.307 },
     };
     for (const k in REAL) {
@@ -1003,7 +1004,7 @@
       /* blood cells + pulse trace (biomedical phase) — ink dots riding the
          lumen on the systole rhythm; the waveform is the same function */
       const pulse = Math.pow(Math.max(Math.sin(t * 0.00754), 0), 2);       /* 72 bpm */
-      if (dA[1] > 0.01 && lastPj && dt > 0 && MODELS[1].path) {
+      if (dA[1] > 0.01 && lastPj && dt > 0 && MODELS[1].path && !(REAL[1] && REAL[1].ready)) {
         for (const bp of BLOOD) {
           bp.u += dt * (0.05 + 0.20 * pulse);
           for (let k = 0; k < 3; k++) {
