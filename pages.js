@@ -862,7 +862,7 @@
     const REAL = {
       0: { url: "assets/rocket.json.gz", ry: 0.62, rx: -0.18, sc: 1.18, cx: 0.56, cy: 0.46, f3: 3.4 },
       1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
-      3: { url: "assets/car.json.gz?v=4", ry: 0.72, rx: -0.30, sc: 0.46, cx: 0.58, cy: 0.50, f3: 3.4, gy: 0.307 },
+      3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.46, cx: 0.58, cy: 0.50, f3: 3.4, gy: 0.322 },
     };
     for (const k in REAL) {
       const e = REAL[k];
