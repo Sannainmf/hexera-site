@@ -191,8 +191,9 @@
       // (~2.2px per scroll px) and tapers gently to ~1.1, never stalling.
       // Wraps at one set height either direction, so the loop stays seamless.
       if (lastScr === null) lastScr = scrolled;
-      /* decelerates the whole way down: ends at ~40% of the starting speed */
-      const screenRate = 2.2 * (1 - 0.6 * pFull);
+      /* geometric decay: decelerates continuously with the zoom-out and
+         ends significantly slower — ~16% of the starting speed */
+      const screenRate = 2.2 * Math.pow(0.16, pFull);
       listD += (scrolled - lastScr) * (screenRate / Math.max(zoom, 0.2));
       lastScr = scrolled;
       const ty = loopH > 0 ? (((listD % loopH) + loopH) % loopH) - loopH : 0;

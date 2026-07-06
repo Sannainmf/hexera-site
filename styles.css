@@ -1131,12 +1131,13 @@ html.lenis, html.lenis body { height: auto; }
 .indx__title em { font-style: normal; color: var(--gold); }
 .indx__lede { margin: 1.1rem 0 0; color: var(--muted); font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1rem); line-height: 1.6; text-wrap: pretty; }
 
-/* smoke strip behind the section header: the artwork is cropped to just
-   the fluid band (all four edges pre-faded to the site bg), shown at its
-   natural aspect so nothing is ever cut off. Text sits above. */
-.indx::before { content: ""; position: absolute; top: clamp(15rem, 26vh, 22rem); left: 0; right: 0;
-  height: calc(100vw / 5.526);
-  background: url("assets/header-smoke.png") center / 100% 100% no-repeat;
+/* smoke behind the section header: the FULL generated frame at its natural
+   aspect — the smoke's fade-out lives inside the artwork with ~25% runout
+   on every side, so there is no box edge anywhere near visible pixels.
+   Never cropped, never distorted. Text sits above. */
+.indx::before { content: ""; position: absolute; top: 0; left: 0; right: 0;
+  height: calc(100vw / 1.7917);
+  background: url("assets/header-smoke2.png") center / 100% 100% no-repeat;
   pointer-events: none; }
 .indx__head { position: relative; z-index: 1; }
 
