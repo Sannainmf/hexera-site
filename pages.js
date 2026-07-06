@@ -959,9 +959,9 @@
       if (e.move && sweep !== undefined) {
         const u = sweep;
         const t = {
-          ry: e.ry + u * 0.34,
-          rx: e.rx + u * 0.10,
-          cy: e.cy + u * 0.022,
+          ry: e.ry + u * 0.9,
+          rx: e.rx + u * 0.16,
+          cy: e.cy + u * 0.03,
           sc: e.sc * (1 + 0.05 * Math.cos(u * Math.PI)),
         };
         const b = e.baked || {};
@@ -1024,7 +1024,15 @@
 
       const drawOne = (mi, sweep, alpha, track) => {
         const rm = REAL[mi];
-        return (rm && rm.ready) ? blitReal(rm, alpha, track, sweep) : drawModel(mi, t, sweep, alpha, track);
+        if (rm && rm.ready) {
+          /* pose scrub derived from the GLOBAL scroll position, not the
+             morph-zeroed sweep: continuous through plateau and crossfade,
+             clamping at the phase edges — the model rides to its end pose
+             and holds it through the fade instead of snapping back */
+          const u = clamp((pNow - mi * 0.25) / 0.25, 0, 1) - 0.5;
+          return blitReal(rm, alpha, track, u);
+        }
+        return drawModel(mi, t, sweep, alpha, track);
       };
       if (!morph) {
         drawOne(Math.round(s), local - 0.5, 1, true);
