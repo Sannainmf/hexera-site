@@ -860,7 +860,7 @@
        each frame so it never costs a per-frame redraw. Keyed by phase index;
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
-      0: { url: "assets/scene_aero.json.gz?v=1", ry: 0.60, rx: -0.30, sc: 0.644, cx: 0.652, cy: 0.501, f3: 3.5, scene: 1 },
+      0: { url: "assets/scene_aero.json.gz?v=2", ry: 0.62, rx: -0.42, sc: 0.426, cx: 0.414, cy: 0.495, f3: 3.5, scene: 1 },
       1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
       2: { url: "assets/scene.json.gz?v=7", ry: 0.70, rx: -0.24, sc: 0.817, cx: 0.489, cy: 0.713, f3: 3.6, scene: 1, float: 1 },
       3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1 },
