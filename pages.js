@@ -860,7 +860,7 @@
        each frame so it never costs a per-frame redraw. Keyed by phase index;
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
-      0: { url: "assets/scene_aero.json.gz?v=3", ry: 0.62, rx: -0.42, sc: 0.426, cx: 0.405, cy: 0.495, f3: 3.5, scene: 1 },
+      0: { url: "assets/scene_aero.json.gz?v=4", ry: 0.12, rx: -0.15, sc: 0.813, cx: 0.510, cy: 0.191, f3: 4.6, scene: 1 },
       1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
       2: { url: "assets/scene.json.gz?v=7", ry: 0.70, rx: -0.24, sc: 0.817, cx: 0.489, cy: 0.713, f3: 3.6, scene: 1, float: 1 },
       3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1 },
@@ -1028,15 +1028,18 @@
       if (e.labels) {
         g.textBaseline = "top";
         for (const L of e.labels) {
-          const s = e.pj.pj(L.a), tx = s[0] + 14, ty = s[1] - 14;
-          g.strokeStyle = "rgba(120,130,145,0.7)"; g.lineWidth = 1;
-          g.beginPath(); g.moveTo(s[0], s[1]); g.lineTo(tx - 5, ty + 11); g.stroke();
+          const s = e.pj.pj(L.a);
+          const tx = L.sp ? L.sp[0] * W : s[0] + 14, ty = L.sp ? L.sp[1] * H : s[1] - 14;
+          g.strokeStyle = "rgba(118,130,146,0.7)"; g.lineWidth = 1;
+          g.beginPath(); g.moveTo(s[0], s[1]); g.lineTo(tx - (L.sp ? 6 : 5), ty + (L.sp ? 9 : 11)); g.stroke();
           g.fillStyle = "rgba(214,218,224,0.94)";
           g.font = "500 15px 'Geist Mono', ui-monospace, monospace";
           g.fillText(L.n, tx, ty);
-          g.fillStyle = "rgba(150,158,168,0.85)";
-          g.font = "13px 'Geist Mono', ui-monospace, monospace";
-          g.fillText(L.t.toLocaleString() + " tris", tx, ty + 17);
+          if (L.t) {
+            g.fillStyle = "rgba(150,158,168,0.85)";
+            g.font = "13px 'Geist Mono', ui-monospace, monospace";
+            g.fillText(L.t.toLocaleString() + " tris", tx, ty + 17);
+          }
         }
       }
       /* captions: free text at a 3D anchor (assembly notes, no tri-count) */
@@ -1047,6 +1050,42 @@
           g.fillStyle = "rgba(150,162,180," + (C.al || 0.6) + ")";
           g.font = "500 " + (C.sz || 13) + "px 'Geist Mono', ui-monospace, monospace";
           g.fillText(C.text, s[0], s[1]);
+        }
+      }
+      /* legend: a screen-space colour ramp with a title + end labels */
+      if (e.legend) {
+        const lg = e.legend, lx = lg.x * W, ly = lg.y * H, bw = (lg.w || 0.14) * W, bh = 13;
+        const rampAt = (t) => {
+          const st = lg.stops;
+          for (let k = 0; k < st.length - 1; k++) {
+            if (t <= st[k + 1][0]) {
+              const f = (t - st[k][0]) / (st[k + 1][0] - st[k][0] + 1e-9);
+              const a = st[k][1].split(",").map(Number), b = st[k + 1][1].split(",").map(Number);
+              return a.map((v, i) => Math.round(v + (b[i] - v) * f)).join(",");
+            }
+          }
+          return st[st.length - 1][1];
+        };
+        g.textBaseline = "top";
+        g.fillStyle = "rgba(150,160,175,0.85)"; g.font = "500 14px 'Geist Mono', ui-monospace, monospace";
+        g.fillText(lg.title || "", lx, ly - 24);
+        const N = 72, seg = bw / N;
+        for (let i = 0; i < N; i++) { g.fillStyle = "rgb(" + rampAt(i / (N - 1)) + ")"; g.fillRect(lx + i * seg, ly, seg + 1, bh); }
+        g.fillStyle = "rgba(142,152,166,0.8)"; g.font = "13px 'Geist Mono', ui-monospace, monospace";
+        g.fillText(lg.lo || "", lx, ly + bh + 5);
+        if (lg.hi) g.fillText(lg.hi, lx + bw + 12, ly + bh + 5);
+      }
+      /* screen-space axis triad, oriented by the scene camera */
+      if (e.sgizmo) {
+        const gz = e.sgizmo, sx = gz.x * W, sy = gz.y * H, o = e.pj.pj([0, 0, 0]);
+        g.textBaseline = "top";
+        for (const [d, c, lab] of [[[1, 0, 0], "206,96,74", "x"], [[0, -1, 0], "120,182,120", "y"], [[0, 0, 1], "92,132,206", "z"]]) {
+          const p = e.pj.pj([d[0] * 0.3, d[1] * 0.3, d[2] * 0.3]);
+          const ex = p[0] - o[0], ey = p[1] - o[1];
+          g.strokeStyle = "rgb(" + c + ")"; g.lineWidth = 2;
+          g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + ex, sy + ey); g.stroke();
+          g.fillStyle = "rgb(" + c + ")"; g.font = "13px 'Geist Mono', ui-monospace, monospace";
+          g.fillText(lab, sx + ex + 3, sy + ey - 6);
         }
       }
       e.ready = true;
@@ -1123,7 +1162,7 @@
           e.V = new Float32Array(d.v.length);
           for (let i = 0; i < d.v.length; i++) e.V[i] = d.v[i] / 32767;
           e.E = Int32Array.from(d.e);
-          if (d.grid) { e.grid = d.grid; e.gy = d.gy; e.labels = d.labels; e.boxes = d.boxes; e.gizmo = d.gizmo; e.groups = d.groups; e.captions = d.captions; }
+          if (d.grid) { e.grid = d.grid; e.gy = d.gy; e.labels = d.labels; e.boxes = d.boxes; e.gizmo = d.gizmo; e.groups = d.groups; e.captions = d.captions; e.legend = d.legend; e.sgizmo = d.sgizmo; }
           renderReal(e);
         }).catch(() => {});
       }
