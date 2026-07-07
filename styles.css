@@ -1124,8 +1124,8 @@ html.lenis, html.lenis body { height: auto; }
    ============================================================ */
 /* section header (canonical rules from 2cd5596 — do not let a splice eat
    these again; the header renders unstyled without them) */
-.indx { position: relative; z-index: var(--z-content); background: var(--bg); padding: clamp(5rem, 13vh, 9rem) var(--pad-x) 0; }
-.indx__head { width: min(100%, 1280px); margin-inline: auto; max-width: 42ch; margin-bottom: clamp(5rem, 10vh, 8rem); }
+.indx { position: relative; z-index: var(--z-content); background: var(--bg); padding: clamp(7rem, 16vh, 11rem) var(--pad-x) 0; }
+.indx__head { width: min(100%, 1280px); margin-inline: auto; max-width: 42ch; margin-bottom: clamp(10rem, 22vh, 17rem); }
 .indx__eyebrow { font-family: var(--font-mono); font-weight: 500; font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
 .indx__title { margin: 1rem 0 0; font-family: var(--font-display); font-weight: 500; font-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); line-height: 1.02; color: var(--ink); text-wrap: balance; }
 .indx__title em { font-style: normal; color: var(--gold); }
