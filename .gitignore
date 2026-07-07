@@ -55,3 +55,4 @@ assets/*
 !assets/auto-zoom.jpg
 !assets/auto-cp.jpg
 !assets/scene.json.gz
+!assets/scene_aero.json.gz
