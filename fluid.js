@@ -919,10 +919,16 @@ initFramebuffers();
 
 let lastUpdateTime = Date.now();
 let colorUpdateTimer = 0.0;
+/* the fixed hero canvas is fully covered by opaque sections once the page
+   scrolls past the hero — skip the whole sim there (battery/thermal win) */
+let heroGone = false;
+window.addEventListener("scroll", () => {
+    heroGone = window.scrollY > window.innerHeight * 1.3;
+}, { passive: true });
 update();
 
 function update () {
-    if (document.hidden) { lastUpdateTime = Date.now(); requestAnimationFrame(update); return; }
+    if (document.hidden || heroGone) { lastUpdateTime = Date.now(); requestAnimationFrame(update); return; }
     const dt = calcDeltaTime();
     if (resizeCanvas()) { initFramebuffers(); buildObstacleMask(); }
     updateColors(dt);

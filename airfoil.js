@@ -97,9 +97,8 @@
       this.canvas = document.getElementById("meshCanvas3D");
 
       this.scene = new THREE.Scene();
-      this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 5000);
+      this.camera = new THREE.PerspectiveCamera(50, 1, 0.01, 5000);  /* aspect set in sizeToStage() */
       this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       this.renderer.setClearColor(0x060402, 0); // transparent — the stage's CSS background shows behind the model
 
@@ -111,8 +110,27 @@
       this.meshData = meshData;
 
       this.buildScene();
+      /* portrait: a 50° vertical FOV collapses the horizontal view to ~24°
+         and the model clips both edges — widen vFov so hFov never drops
+         below the 50° the shots were composed for. buildScene() computed
+         overviewDist from the base fov first, so the domain reveal fits the
+         narrow axis with the same 1.3 margin desktop gets. */
+      this.baseFov = this.camera.fov;
+      this.sizeToStage();
       this.bindEvents();
       this.updateScroll();
+      /* reduced motion: hold one representative frame (mesh phase), no loop,
+         no scroll-scrubbed camera — this was the one ungated large motion */
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        this.progress = 0.55;
+        this.applyCamera();
+        this.renderer.render(this.scene, this.camera);
+        return;
+      }
+      /* render only while the section is on screen — otherwise this loop
+         burns GPU on a full-screen wireframe 20,000px off-viewport */
+      this.visible = false;
+      new IntersectionObserver((es) => es.forEach((en) => { this.visible = en.isIntersecting; })).observe(this.section);
       this.animate();
     }
 
@@ -177,6 +195,27 @@
         ac.z + Math.cos(-1.6) * startRadius
       );
       this.camera.lookAt(ac);
+    }
+
+    /* size from the canvas's own CSS box (100% of the sticky stage), never
+       window.innerWidth: innerWidth tracks the pinch-zoom VISUAL viewport on
+       phones, which resized the buffer wider than the page column and
+       clipped the model off the right edge. setSize(..., false) leaves the
+       CSS sizing alone so the box stays locked to the layout. */
+    sizeToStage() {
+      const w = this.canvas.clientWidth || window.innerWidth;
+      const h = this.canvas.clientHeight || window.innerHeight;
+      this.renderer.setSize(w, h, false);
+      this.camera.aspect = w / h;
+      this.fitFov();
+    }
+
+    fitFov() {
+      const a = this.camera.aspect;
+      this.camera.fov = a < 1
+        ? (2 * Math.atan(Math.tan(this.baseFov * Math.PI / 360) / a)) * 180 / Math.PI
+        : this.baseFov;
+      this.camera.updateProjectionMatrix();
     }
 
     updateScroll() {
@@ -291,15 +330,12 @@
 
     bindEvents() {
       window.addEventListener("scroll", () => this.updateScroll(), { passive: true });
-      window.addEventListener("resize", () => {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-      });
+      window.addEventListener("resize", () => this.sizeToStage());
     }
 
     animate() {
       requestAnimationFrame(() => this.animate());
+      if (!this.visible) return;
       this.applyCamera();
       this.renderer.render(this.scene, this.camera);
     }

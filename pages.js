@@ -860,10 +860,10 @@
        each frame so it never costs a per-frame redraw. Keyed by phase index;
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
-      0: { url: "assets/scene_aero.json.gz?v=11", ry: 0.14, rx: -0.17, sc: 0.804, cx: 0.511, cy: 0.231, f3: 4.4, scene: 1 },
-      1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1 },
-      2: { url: "assets/scene.json.gz?v=8", ry: 0.70, rx: -0.24, sc: 0.817, cx: 0.489, cy: 0.713, f3: 3.6, scene: 1, float: 1 },
-      3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1 },
+      0: { url: "assets/scene_aero.json.gz?v=14", ry: 0.14, rx: -0.17, sc: 0.804, cx: 0.511, cy: 0.231, f3: 4.4, scene: 1, mgs: [{ g: 0, dy: -0.085 }] },
+      1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1, mcy: 0.33, mch: 0.44, mrot: -0.50 },
+      2: { url: "assets/scene.json.gz?v=11", ry: 0.70, rx: -0.24, sc: 0.817, cx: 0.489, cy: 0.713, f3: 3.6, scene: 1, float: 1 },
+      3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1, mcy: 0.33, mch: 0.34 },
     };
     for (const k in REAL) {
       const e = REAL[k];
@@ -887,7 +887,8 @@
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, W, H);
       const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
-      const Sc = sref * scv, cx0 = W * e.cx, cy0 = H * cyf, F3 = e.f3;
+      let Sc = sref * scv, cx0 = W * e.cx, cy0 = H * cyf;
+      const F3 = e.f3;
       const nv = e.V.length / 3;
       const PX = new Float32Array(nv), PY = new Float32Array(nv), PZ = new Float32Array(nv);
       let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9, zmin = 1e9, zmax = -1e9;
@@ -901,6 +902,50 @@
         if (sxp < bx0) bx0 = sxp; if (sxp > bx1) bx1 = sxp;
         if (syp < by0) by0 = syp; if (syp > by1) by1 = syp;
         if (z2 < zmin) zmin = z2; if (z2 > zmax) zmax = z2;
+      }
+      /* portrait (phones): every pose is composed for landscape, so the
+         scene overflows a narrow viewport. Refit in screen space: scale to
+         the width, centre horizontally, park the scene in the upper half —
+         the copy block owns the bottom third on mobile. An affine map on
+         screen coords equals scaling Sc about a shifted origin, so e.pj
+         (defined below over the updated bindings) stays exact. */
+      const PORT = W < H;
+      if (PORT) {
+        /* mrot: optional screen-space roll for portrait composition (artery:
+           tips the arch diagonal to fill the band above the panel row). Only
+           safe on scenes without labels/boxes — e.pj doesn't rotate. */
+        if (e.mrot) {
+          const rcx = (bx0 + bx1) / 2, rcy = (by0 + by1) / 2;
+          const cr = Math.cos(e.mrot), sr = Math.sin(e.mrot);
+          bx0 = 1e9; by0 = 1e9; bx1 = -1e9; by1 = -1e9;
+          for (let i = 0; i < nv; i++) {
+            const dx = PX[i] - rcx, dy = PY[i] - rcy;
+            PX[i] = rcx + dx * cr - dy * sr; PY[i] = rcy + dx * sr + dy * cr;
+            if (PX[i] < bx0) bx0 = PX[i]; if (PX[i] > bx1) bx1 = PX[i];
+            if (PY[i] < by0) by0 = PY[i]; if (PY[i] > by1) by1 = PY[i];
+          }
+        }
+        const bw = (bx1 - bx0) || 1, bh = (by1 - by0) || 1;
+        /* mcy/mch: per-entry portrait centre/height-cap — bio and auto park
+           higher because their report-panel row sits above the copy block */
+        const f = Math.min(1, (0.92 * W) / bw, ((e.mch || 0.54) * H) / bh);
+        const ox = W * 0.5 - f * (bx0 + bx1) * 0.5;
+        const oy = (e.mcy || 0.40) * H - f * (by0 + by1) * 0.5;
+        for (let i = 0; i < nv; i++) { PX[i] = f * PX[i] + ox; PY[i] = f * PY[i] + oy; }
+        Sc *= f; cx0 = f * cx0 + ox; cy0 = f * cy0 + oy;
+        bx0 = f * bx0 + ox; bx1 = f * bx1 + ox; by0 = f * by0 + oy; by1 = f * by1 + oy;
+        /* mgs: shift ONE baked group after the fit ("move just the fuselage
+           up") — the rest of the scene keeps its approved spot. Labels bound
+           via L.mg follow their group in the label block below. */
+        if (e.mgs && e.groups) {
+          for (const gs of e.mgs) {
+            const gr = e.groups[gs.g]; if (!gr) continue;
+            const on = new Uint8Array(nv);
+            for (let i = gr.e0; i < gr.e1; i++) { on[e.E[i * 2]] = 1; on[e.E[i * 2 + 1]] = 1; }
+            const dy = gs.dy * H;
+            for (let i = 0; i < nv; i++) if (on[i]) PY[i] += dy;
+          }
+        }
       }
       e.bb = { x0: bx0, y0: by0, x1: bx1, y1: by1 };
       e.pj = { pj: (p) => {
@@ -1029,7 +1074,15 @@
         g.textBaseline = "top";
         for (const L of e.labels) {
           const s = e.pj.pj(L.a);
-          const tx = L.sp ? L.sp[0] * W : s[0] + 14, ty = L.sp ? L.sp[1] * H : s[1] - 14;
+          if (PORT && e.mgs && L.mg !== undefined) {
+            for (const gs of e.mgs) if (gs.g === L.mg) s[1] += gs.dy * H;
+          }
+          /* portrait: msp overrides sp (a good landscape spot is rarely a
+             good portrait one); tags stay above the copy block, below the
+             nav, and far enough inside the right edge for the widest name */
+          const SP = (PORT && L.msp) ? L.msp : L.sp;
+          let tx = SP ? SP[0] * W : s[0] + 14, ty = SP ? (PORT ? Math.min(SP[1], 0.56) : SP[1]) * H : s[1] - 14;
+          if (PORT) { tx = Math.min(tx, W - 134); ty = Math.max(ty, 78); }
           g.strokeStyle = "rgba(118,130,146,0.7)"; g.lineWidth = 1;
           g.beginPath(); g.moveTo(s[0], s[1]); g.lineTo(tx - (L.sp ? 6 : 5), ty + (L.sp ? 9 : 11)); g.stroke();
           g.fillStyle = "rgba(214,218,224,0.94)";
@@ -1090,7 +1143,7 @@
       }
       /* annotations: screen-space engineering callouts (arrows / arcs / text)
          in an accent colour — e.g. the freestream + angle-of-attack marker */
-      if (e.annot) {
+      if (e.annot && !PORT) {   /* landscape garnish; on phones it lands on the geometry */
         const A = e.annot;
         g.strokeStyle = "rgb(" + A.col + ")"; g.fillStyle = "rgb(" + A.col + ")";
         g.textBaseline = "top";
@@ -1264,8 +1317,9 @@
       }
 
       /* axis triad, bottom-left — one instrument shared by every bench,
-         rotating with the live model */
-      if (lastPj) {
+         rotating with the live model. Landscape only: on phones its corner
+         (0.055W, 0.88H) sits inside the copy block. */
+      if (lastPj && W >= H) {
         const tx = W * 0.055, ty = H * 0.88, L = Math.min(W, H) * 0.045;
         const cy2 = Math.cos(lastRot.y), sy2 = Math.sin(lastRot.y);
         const cx2 = Math.cos(lastRot.x), sx2 = Math.sin(lastRot.x);
@@ -1322,7 +1376,9 @@
       const onScroll = () => {
         if (!isNaN(dbgP)) { p = clamp(dbgP, 0, 1); return; }
         const r = spec.getBoundingClientRect();
-        const scrollable = spec.offsetHeight - window.innerHeight;
+        /* stage height, not innerHeight: the iOS URL-bar toggle flips
+           innerHeight ~97px mid-scroll and made the scrub p hop */
+        const scrollable = spec.offsetHeight - (stage ? stage.offsetHeight : window.innerHeight);
         p = clamp(-r.top / Math.max(scrollable, 1), 0, 1);
         /* gentle fade-in as the benches scroll into view (opacity only — a
            transform here would break the sticky stage) */
@@ -1356,7 +1412,7 @@
       // rail stops jump to the middle of that specimen's plateau
       railStops.forEach((btn) => btn.addEventListener("click", () => {
         const i = +btn.dataset.specGo;
-        const scrollable = spec.offsetHeight - window.innerHeight;
+        const scrollable = spec.offsetHeight - (stage ? stage.offsetHeight : window.innerHeight);
         const top = spec.getBoundingClientRect().top + window.scrollY;
         const target = top + scrollable * (i * 0.25 + 0.125);
         if (window.__lenis) window.__lenis.scrollTo(target, { duration: 1.2 });
