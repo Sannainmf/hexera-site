@@ -1117,6 +1117,36 @@ html.lenis, html.lenis body { height: auto; }
 .ring-center-word { font-family: var(--font-mono); font-weight: 500; font-size: 21px; letter-spacing: 0.24em; fill: var(--ink); text-transform: uppercase; }
 .ring-center-count { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.28em; fill: var(--gold); }
 
+/* mid-width screens: the orbit labels hang outside the dial and clip the
+   viewport edge below ~1460px — scale the dial + labels with the viewport */
+@media (max-width: 1460px) and (min-width: 1101px) {
+  .ring-label { width: clamp(7.5rem, 8vw + 2rem, 11rem); }
+  .ring-label__t { font-size: clamp(1.2rem, 1vw + 0.55rem, 1.5rem); }
+  .ring-dial { width: min(100%, clamp(290px, 24vw, 360px)); }
+}
+/* no horizontal room to orbit below ~1100px: the four phases stack below
+   the ring (same treatment the 900px block gives phones). Placed after the
+   .home-flow height override so `height: auto` wins on the home page too —
+   without it the home ring keeps its 600vh scrub runway while unpinned and
+   phones scroll through five screens of black. */
+@media (max-width: 1100px) {
+  .ring-grid { grid-template-columns: 1fr; }
+  .ring-sec, .home-flow .ring-sec { height: auto; }
+  .ring-sticky { position: static; min-height: auto; }
+  .ring-stage { margin-top: 2.5rem; }
+  .ring-dial { width: min(100%, 300px); }
+  .ring-label { position: static; transform: none; width: 100%; opacity: 1; margin: 1.25rem 0 0; text-align: left; align-items: flex-start; }
+  .ring-label__t { font-size: 1.2rem; }
+  .ring-label__d { font-size: 0.88rem; }
+}
+/* short viewports: shrink the dial + label type so the top/bottom phase
+   labels clear the nav and the viewport bottom while the section is pinned */
+@media (max-height: 720px) and (min-width: 1101px) {
+  .ring-dial { width: min(100%, 296px); }
+  .ring-label__t { font-size: 1.25rem; }
+  .ring-label__d { font-size: 0.82rem; }
+}
+
 /* ============================================================
    INDUSTRIES — four workbenches. One full-viewport sticky stage;
    each phase dresses it as that discipline's software viewport.
@@ -1191,6 +1221,29 @@ html.lenis, html.lenis body { height: auto; }
 .xsec__panel figcaption { margin-top: 0.5rem; font-family: var(--font-mono); font-size: 0.6rem;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
 @media (max-width: 900px) { .xsec { display: none; } }
+
+/* the panels are width-driven (height ≈ width/2.15) while the copy rides at
+   a %-of-height, so on wide-but-short viewports they climb into the copy.
+   Tiered height caps, centered row; each cap is a no-op whenever it exceeds
+   the natural half-row width (50% - half the 1rem gap), so tall screens are
+   pixel-identical to the uncapped layout. */
+.xsec { justify-content: center; }
+.xsec__panel { flex: 0 1 auto; width: min(calc(50% - 0.5rem), calc(45vh * 2.1)); }
+@media (max-height: 930px) and (min-width: 761px) {
+  .xsec__panel { width: min(calc(50% - 0.5rem), calc(40vh * 2.1)); }
+}
+/* small laptops (1366x768-class): tightest cap, and pin the copy just below
+   the nav — at 31%-with-translate its mode line rides under the nav here.
+   Guarded ≥761px: mobile hides .xsec and moves the copy to the bottom. */
+@media (max-height: 860px) and (min-width: 761px) {
+  .xsec__panel { width: min(calc(50% - 0.5rem), calc(30vh * 2.1)); }
+  .spec-env--bio .spec-env__text,
+  .spec-env--auto .spec-env__text { top: calc(var(--nav-h) + 1.5rem); transform: none; }
+}
+@media (max-height: 740px) and (min-width: 761px) {
+  .spec-env--bio .spec-env__p,
+  .spec-env--auto .spec-env__p { display: none; }
+}
 
 /* one environment per industry; the active one owns the stage */
 .spec-env { position: absolute; inset: 0; z-index: 2; opacity: 0; pointer-events: none;
