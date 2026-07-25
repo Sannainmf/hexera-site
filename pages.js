@@ -264,15 +264,33 @@
       const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
       return /^\d+\s*,\s*\d+\s*,\s*\d+$/.test(v) ? v.replace(/\s+/g, "") : fallback;
     };
-    const GOLD = cssRGB("--mesh-accent-rgb", "255,186,0");
-    const TEAL = cssRGB("--mesh-line-rgb", "15,182,172");
-    const INK = cssRGB("--mesh-ink-rgb", "236,234,229");
+    /* Palette. These MUST be re-read once the page has settled rather than
+       trusted at script-parse time. --mesh-line-rgb is overridden by
+       orange-theme.css, a second stylesheet request; read it too early and
+       it resolves against styles.css alone, yielding the base TEAL. Every
+       wireframe that has no colour baked into its asset — the car, the
+       artery, the gaming selection boxes, both ground grids — strokes with
+       this value, so one early read turns the whole industries section teal.
+       That is exactly what happened on mobile while desktop looked correct. */
+    let GOLD, TEAL, INK, LINE3, ACC3;
+    let MODELS = null;
+    const readPalette = () => {
+      const g = cssRGB("--mesh-accent-rgb", "255,186,0");
+      const t = cssRGB("--mesh-line-rgb", "15,182,172");
+      const k = cssRGB("--mesh-ink-rgb", "236,234,229");
+      const changed = g !== GOLD || t !== TEAL || k !== INK;
+      GOLD = g; TEAL = t; INK = k;
+      LINE3 = TEAL.split(",").map(Number); ACC3 = GOLD.split(",").map(Number);
+      // the procedural specimens bake the colour into their groups at build
+      // time, so drop them and let the next use rebuild against the new value
+      if (changed) MODELS = null;
+    };
+    readPalette();
     /* this whole stage is cleared and redrawn every frame. At DPR 3 on a
        phone that is ~2.7M pixels of fill per frame, which blows the budget
        and shows up as judder; 1.5 costs ~44% less than 2 and the wireframes
        are thin strokes, so the difference is not visible at arm's length. */
     const DPR_CAP = touch ? 1.5 : 2;
-    const LINE3 = TEAL.split(",").map(Number), ACC3 = GOLD.split(",").map(Number);
     const sstep = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * k * (k * (k * 6 - 15) + 10));
     const MW = 0.16;                                 // blend window, in total-scroll units
 
@@ -697,7 +715,9 @@
       };
     };
 
-    const MODELS = [buildWing(), buildStent(), buildTerrain(), buildRotor()];
+    /* built lazily so the specimens bake the CORRECT palette: readPalette()
+       has run by the time anything draws. */
+    const models = () => MODELS || (MODELS = [buildWing(), buildStent(), buildTerrain(), buildRotor()]);
     const PAD_ANG = -0.62;                           // caliper pad centre angle
 
     /* ---- state ---- */
@@ -729,7 +749,7 @@
 
     /* ---- one 3D model pass: rotate → project → depth-shaded wireframe ---- */
     const drawModel = (mi, t, sweepLocal, alphaMul, trackBB) => {
-      const M = MODELS[mi];
+      const M = models()[mi];
       const rotY = sweepLocal * M.sweep + Math.sin(t * 0.00045 + mi * 2.1) * M.wob;
       const rotX = M.tilt + Math.sin(t * 0.00032) * 0.04;
       const spin = M.spinRate ? t * M.spinRate : 0;
@@ -1253,6 +1273,9 @@
           for (let i = 0; i < d.v.length; i++) e.V[i] = d.v[i] / 32767;
           e.E = Int32Array.from(d.e);
           if (d.grid) { e.grid = d.grid; e.gy = d.gy; e.labels = d.labels; e.boxes = d.boxes; e.gizmo = d.gizmo; e.groups = d.groups; e.captions = d.captions; e.legend = d.legend; e.sgizmo = d.sgizmo; e.annot = d.annot; }
+          /* the bake burns TEAL into an offscreen bitmap (ground grid, boxes,
+             untinted meshes), so the palette has to be right BEFORE it runs */
+          readPalette();
           renderReal(e);
         }).catch(() => {});
       }
@@ -1301,11 +1324,11 @@
       /* blood cells + pulse trace (biomedical phase) — ink dots riding the
          lumen on the systole rhythm; the waveform is the same function */
       const pulse = Math.pow(Math.max(Math.sin(t * 0.00754), 0), 2);       /* 72 bpm */
-      if (dA[1] > 0.01 && lastPj && dt > 0 && MODELS[1].path && !(REAL[1] && REAL[1].ready)) {
+      if (dA[1] > 0.01 && lastPj && dt > 0 && models()[1].path && !(REAL[1] && REAL[1].ready)) {
         for (const bp of BLOOD) {
           bp.u += dt * (0.05 + 0.20 * pulse);
           for (let k = 0; k < 3; k++) {
-            const pos = pathAt(MODELS[1].path, bp.u - k * 0.02);
+            const pos = pathAt(models()[1].path, bp.u - k * 0.02);
             if (Math.abs(pos[0]) > 0.95) continue;
             const scr = lastPj.pj([pos[0], pos[1] + bp.oy * 0.5, pos[2] + bp.oz * 0.5], false);
             const al = (1 - k / 3) * (0.14 + 0.26 * pulse) * dA[1];
@@ -1390,9 +1413,19 @@
       };
       readScroll();
 
-      let running = false, rafId = 0, lastT = 0;
+      let running = false, rafId = 0, lastT = 0, paletteSettled = false;
       const loop = (t) => {
         if (!running) return;
+        /* final safety net: by the time the section is scrolled into view every
+           stylesheet is unquestionably applied, so re-read once here. If the
+           parse-time read had been early, this corrects it before anything
+           reaches the screen — and rebakes any scene baked with the old value. */
+        if (!paletteSettled) {
+          paletteSettled = true;
+          const before = TEAL;
+          readPalette();
+          if (TEAL !== before) for (const k in REAL) if (REAL[k].V) renderReal(REAL[k]);
+        }
         const dt = Math.min((t - lastT) / 1000, 0.05); lastT = t;
         readScroll();
         let s = 0;
