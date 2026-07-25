@@ -1,8 +1,8 @@
 /* ============================================================
-   PROTOTYPE — flight-test mono + international orange.
-   Loaded after styles.css on orange.html only; overrides tokens.
-   Grayscale everywhere, one hot accent. Wireframes go light gray,
-   canvas accents go orange. Delete this file if the direction dies.
+   Flight-test mono + international orange — the shipped theme.
+   Loaded after styles.css on index.html; overrides tokens.
+   Grayscale everywhere, one hot accent. Wireframes go deep steel,
+   canvas accents go orange.
    ============================================================ */
 :root {
   /* the one accent: international orange (X-15, flight test, NASA chase planes) */

@@ -40,7 +40,6 @@
       </form>
     </div>`;
 
-  const panel = overlay.querySelector(".wl-panel");
   const form = overlay.querySelector(".wl-form");
   const nameInput = overlay.querySelector("#wlName");
   const emailInput = overlay.querySelector("#wlEmail");
@@ -62,7 +61,7 @@
     void overlay.offsetHeight; /* reflow so the entrance still transitions */
     overlay.classList.add("is-open");
     if (prefillEmail) emailInput.value = prefillEmail;
-    (prefillEmail ? nameInput : nameInput).focus();
+    nameInput.focus();
     document.documentElement.classList.add("wl-lock");
   }
 

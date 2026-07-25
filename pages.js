@@ -1,63 +1,96 @@
 /* ============================================================
-   Hexera — shared page interactions for the inner pages.
+   Hexera — shared page interactions.
    Everything here is feature-detected: a block only runs if its
    markup exists, so one file safely serves every page.
-     · sticky nav state + mobile drawer
-     · zoo-style sticky feature scroller (pin left, swap right)
-     · orbital process ring (scroll-driven marker + phases + tabs)
-     · scroll count-up for [data-count]
-     · typed terminal for [data-term]
-   Reveal animations + the contact form live in site.js.
+     · Lenis inertia scrolling + smooth in-page anchor jumps
+     · sticky nav state
+     · footer year
+     · parallax fade for [data-parallax-fade]
+     · orbital process ring (scroll-driven marker + phases)
+     · "Our ambition" scrolling list
+     · industries: four scroll-crossfaded workbenches
    ============================================================ */
 (() => {
   "use strict";
+  document.documentElement.classList.add("js");
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
+  /* touch devices scroll natively on the compositor; see the frame
+     scheduler and the Lenis gate below for why that matters */
+  const touch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
+  /* ---------- one rAF-driven scroll frame ----------
+     Every scroll-linked visual below used to write straight from its own
+     `scroll` listener. On a phone the momentum scroll is driven by the
+     compositor while those listeners run on the main thread, so each write
+     landed a frame late: the pinned section visibly lagged the page and
+     the whole stage read as jitter. Scroll events now only mark the frame
+     dirty; all reads/writes happen together in one rAF, in sync with paint.
+     (Desktop is unaffected — Lenis already drove scroll from rAF there.) */
+  const frameJobs = [];
+  let framePending = false;
+  const runFrame = () => {
+    framePending = false;
+    for (let i = 0; i < frameJobs.length; i++) frameJobs[i]();
+  };
+  const invalidate = () => {
+    if (framePending) return;
+    framePending = true;
+    requestAnimationFrame(runFrame);
+  };
+  /* register a scroll-linked update; it runs once now, then once per frame
+     for as long as the page is being scrolled or resized */
+  const onScrollFrame = (fn) => { frameJobs.push(fn); fn(); };
+  window.addEventListener("scroll", invalidate, { passive: true });
+  window.addEventListener("resize", invalidate);
+  /* rAF is paused while the page is hidden, so a scroll restored by the
+     browser (tab switch, bfcache) would otherwise leave the set-pieces
+     drawn at a stale position until the next scroll */
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) invalidate(); });
+  window.addEventListener("pageshow", invalidate);
+
   /* ---------- smooth (inertia) scrolling via Lenis ----------
-     Lenis still drives the real window scroll, so every scroll-linked
-     set-piece (airfoil mesh, ring, sticky feature) keeps working — it
-     just feels eased instead of 1:1 with the wheel. Off for reduced motion. */
-  if (window.Lenis && !reduce) {
-    const lenis = new Lenis({ lerp: 0.085, wheelMultiplier: 1, smoothWheel: true, touchMultiplier: 1.6 });
+     Lenis still drives the real window scroll on desktop, so every
+     scroll-linked set-piece keeps working — it just feels eased instead of
+     1:1 with the wheel. Off for reduced motion, and off on touch: it only
+     smooths the WHEEL, so on a phone it contributes nothing while its rAF
+     loop fights the browser's own momentum scrolling. */
+  if (window.Lenis && !reduce && !touch) {
+    const lenis = new Lenis({ lerp: 0.085, wheelMultiplier: 1, smoothWheel: true });
     const raf = (t) => { lenis.raf(t); requestAnimationFrame(raf); };
     requestAnimationFrame(raf);
     window.__lenis = lenis;
-    // keep in-page anchor jumps smooth through Lenis
-    document.addEventListener("click", (e) => {
-      const a = e.target.closest('a[href^="#"]');
-      if (!a) return;
-      const id = a.getAttribute("href");
-      if (id.length < 2) return;
-      const target = document.querySelector(id);
-      if (target) { e.preventDefault(); lenis.scrollTo(target, { offset: -80 }); }
+  }
+
+  /* ---------- in-page anchor jumps — one handler, Lenis when available ---------- */
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a) return;
+    const id = a.getAttribute("href");
+    if (id.length < 2) return;
+    const target = document.querySelector(id);
+    if (!target) return;
+    e.preventDefault();
+    if (window.__lenis) window.__lenis.scrollTo(target, { offset: -80 });
+    else target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  });
+
+  /* ---------- nav: stuck state ---------- */
+  const nav = document.getElementById("nav");
+  if (nav) {
+    let stuck = null;
+    onScrollFrame(() => {
+      const s = window.scrollY > 10;
+      if (s === stuck) return;          // only touch the DOM when it flips
+      stuck = s;
+      nav.classList.toggle("is-stuck", s);
     });
   }
 
-  /* ---------- nav: stuck state + mobile drawer ---------- */
-  const nav = document.getElementById("nav");
-  if (nav) {
-    const onScroll = () => nav.classList.toggle("is-stuck", window.scrollY > 10);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-
-    const toggle = nav.querySelector(".nav__toggle");
-    if (toggle) {
-      toggle.addEventListener("click", () => nav.classList.toggle("is-open"));
-      nav.querySelectorAll(".nav__links a").forEach((a) =>
-        a.addEventListener("click", () => nav.classList.remove("is-open"))
-      );
-    }
-  }
-
-  /* ---------- back-to-top (smooth via Lenis when present) ---------- */
-  document.querySelectorAll("[data-totop]").forEach((el) =>
-    el.addEventListener("click", (e) => {
-      e.preventDefault();
-      if (window.__lenis) window.__lenis.scrollTo(0, { duration: 1.1 });
-      else window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
-    })
-  );
+  /* ---------- footer year ---------- */
+  const yr = document.querySelector("[data-year]");
+  if (yr) yr.textContent = String(new Date().getFullYear());
 
   /* ---------- parallax fade: opacity + gentle drift tied to scroll ----------
      The element peaks (opacity 1, no offset) at viewport centre and fades +
@@ -76,25 +109,8 @@
           el.style.transform = "translateY(" + (n * 42).toFixed(1) + "px)";
         });
       };
-      window.addEventListener("scroll", upd, { passive: true });
-      window.addEventListener("resize", upd);
-      upd();
+      onScrollFrame(upd);
     }
-  }
-
-  /* ---------- zoo-style sticky feature: pin left, swap right ----------
-     Each .sf-panel has data-sf="N"; the matching .sf-item[data-sf="N"]
-     in the pinned column lights up while that panel owns the viewport. */
-  const sfItems = Array.from(document.querySelectorAll(".sf-item"));
-  const sfPanels = Array.from(document.querySelectorAll(".sf-panel"));
-  if (sfItems.length && sfPanels.length) {
-    const setActive = (idx) => sfItems.forEach((it) =>
-      it.classList.toggle("active", it.dataset.sf === String(idx)));
-    setActive(sfPanels[0].dataset.sf);
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => { if (e.isIntersecting) setActive(e.target.dataset.sf); });
-    }, { rootMargin: "-45% 0px -45% 0px", threshold: 0 });
-    sfPanels.forEach((p) => io.observe(p));
   }
 
   /* ---------- orbital process ring ----------
@@ -106,9 +122,7 @@
     const svgMarker = ring.querySelector(".ring-marker");
     const prog = ring.querySelector(".ring-prog");
     const nodes = Array.from(ring.querySelectorAll(".ring-node"));
-    const nodeLabels = Array.from(ring.querySelectorAll(".ring-node-label"));
     const phaseItems = Array.from(ring.querySelectorAll(".ring-label"));
-    const tabs = Array.from(ring.querySelectorAll(".ring-tab"));
     const N = phaseItems.length || 4;
     const centerWord = ring.querySelector("[data-ring-word]");
     const centerCount = ring.querySelector("[data-ring-count]");
@@ -119,11 +133,12 @@
     const CIRC = 2 * Math.PI * R;
     if (prog) { prog.style.strokeDasharray = CIRC; prog.style.strokeDashoffset = CIRC; }
 
+    let curPhase = -1;
     const setPhase = (idx) => {
+      if (idx === curPhase) return;     // phase only flips 4× across the whole scrub
+      curPhase = idx;
       phaseItems.forEach((el, i) => el.classList.toggle("active", i === idx));
-      tabs.forEach((el, i) => el.classList.toggle("active", i === idx));
       nodes.forEach((el, i) => el.classList.toggle("active", i === idx));
-      nodeLabels.forEach((el, i) => el.classList.toggle("active", i === idx));
       logLines.forEach((el, i) => el.classList.toggle("on", i === idx));
       if (centerWord && phaseNames[idx]) centerWord.textContent = phaseNames[idx];
       if (centerCount) centerCount.textContent = String(idx + 1).padStart(2, "0") + " / " + String(N).padStart(2, "0");
@@ -144,9 +159,7 @@
       setPhase(idx);
     };
     setPhase(0);
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    update();
+    onScrollFrame(update);
   }
 
   /* ---------- "Our ambition": scroll the ghosted list through the centre line ----------
@@ -156,7 +169,7 @@
   if (amb) {
     const stage = amb.querySelector(".amb__stage");
     const list = amb.querySelector(".amb__list");
-    let ambPad = 0, loopH = 0, listD = 0, lastScr = null;
+    let ambPad = 0, loopH = 0, listD = 0, lastScr = null, lastClip = "";
     const measure = () => {
       ambPad = parseFloat(getComputedStyle(list).paddingLeft) || 0;
       loopH = list.scrollHeight / 2;   // list is two identical sets of 30 — one set is the seamless loop period
@@ -171,7 +184,10 @@
       // section leaves the bottom it covers back up.
       const topCut = clamp(rect.top, 0, vh);
       const botCut = vh - clamp(rect.bottom, 0, vh);
-      stage.style.clipPath = "inset(" + topCut.toFixed(1) + "px 0 " + botCut.toFixed(1) + "px 0)";
+      // clip-path on a fixed full-viewport layer is expensive to re-rasterise;
+      // skip the write unless the slice actually moved a whole pixel
+      const clip = "inset(" + topCut.toFixed(1) + "px 0 " + botCut.toFixed(1) + "px 0)";
+      if (clip !== lastClip) { lastClip = clip; stage.style.clipPath = clip; }
       // REVEAL: zoom-out, fade-in and centre-drift complete over the first ~1.3
       // viewports (entry + a touch), then hold while the list keeps scrolling.
       const scrolled = Math.max(vh - rect.top, 0);
@@ -202,47 +218,8 @@
       list.style.transform = "translateX(" + centerShift.toFixed(1) + "px) scale(" + zoom.toFixed(3) + ") translateY(" + ty.toFixed(1) + "px)";
       list.style.opacity = clamp(fadeP / 0.8, 0, 1).toFixed(3);   // invisible → visible, gradual
     };
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", () => { measure(); update(); });
-    update();
-  }
-
-  /* ---------- "Inside the pipeline": subtle parallax drift on the heading ---------- */
-  const bizHead = document.querySelector("[data-biz-head]");
-  if (bizHead && !reduce) {
-    const sec = bizHead.closest(".biz");
-    const upd = () => {
-      const r = sec.getBoundingClientRect();
-      const t = clamp((window.innerHeight - r.top) / (window.innerHeight + r.height), 0, 1);
-      bizHead.style.transform = "translateY(" + ((t - 0.5) * 48).toFixed(1) + "px)";
-    };
-    window.addEventListener("scroll", upd, { passive: true });
-    window.addEventListener("resize", upd);
-    upd();
-  }
-
-  /* ---------- Industries: scroll-linked parallax rise ----------
-     Each row's two cells rise from below and fade in as the row moves up through
-     the viewport, at slightly different rates (parallax). Scroll-driven (not the
-     reveal timeout), so it always plays when you reach it, however far down. */
-  const riseEls = Array.from(document.querySelectorAll("[data-ind-rows] [data-rise]"));
-  if (riseEls.length && !reduce) {
-    const updInd = () => {
-      const vh = window.innerHeight;
-      riseEls.forEach((el, i) => {
-        const r = el.getBoundingClientRect();
-        // 0 when the cell's top sits at the bottom of the viewport, 1 once it has risen ~half up
-        const p = clamp((vh - r.top) / (vh * 0.5), 0, 1);
-        const eased = 1 - Math.pow(1 - p, 3);
-        const slack = 1 - eased;
-        const depth = (i % 2 === 0) ? 64 : 100;   // alternate -> subtle parallax across the pair
-        el.style.transform = "translate3d(0," + (slack * depth).toFixed(1) + "px,0)";
-        el.style.opacity = (0.05 + eased * 0.95).toFixed(3);
-      });
-    };
-    updInd();
-    window.addEventListener("scroll", updInd, { passive: true });
-    window.addEventListener("resize", updInd);
+    window.addEventListener("resize", measure);
+    onScrollFrame(update);
   }
 
   /* ---------- Industries: four workbenches ----------
@@ -276,8 +253,6 @@
        per-vertex polar coords for the rotor's thermal field, optional
        per-vertex altitude for terrain shading. The scan gate no longer
        deforms outlines — it wipes one finished mesh into the next. */
-
-    const yt12 = (t) => 5 * 0.12 * (0.2969 * Math.sqrt(t) - 0.1260 * t - 0.3516 * t * t + 0.2843 * t * t * t - 0.1036 * t * t * t * t);
 
     // 01 · wind-tunnel launch vehicle — a scale sounding rocket, nose into
     //      the flow: revolved surface mesh with nose-clustered stations,
@@ -860,10 +835,13 @@
        each frame so it never costs a per-frame redraw. Keyed by phase index;
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
-      0: { url: "assets/scene_aero.json.gz?v=14", ry: 0.14, rx: -0.17, sc: 0.804, cx: 0.511, cy: 0.231, f3: 4.4, scene: 1, mgs: [{ g: 0, dy: -0.085 }] },
-      1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1, mcy: 0.33, mch: 0.44, mrot: -0.50 },
-      2: { url: "assets/scene.json.gz?v=11", ry: 0.70, rx: -0.24, sc: 0.817, cx: 0.489, cy: 0.713, f3: 3.6, scene: 1, float: 1 },
-      3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1, mcy: 0.33, mch: 0.34 },
+      0: { url: "assets/scene_aero.json.gz?v=14", ry: 0.14, rx: -0.17, sc: 0.804, cx: 0.511, cy: 0.231, f3: 4.4, scene: 1, mcy: 0.43, mgs: [{ g: 0, dy: -0.085 }] },
+      /* mrot: portrait roll, screen-space, y-down — so a LESS negative value
+         rolls the arch clockwise. Eased off -0.50 so the lower limb clears
+         the report panels sitting under it on phones. */
+      1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1, mcy: 0.36, mch: 0.44, mrot: -0.30 },
+      2: { url: "assets/scene.json.gz?v=11", ry: 0.70, rx: -0.24, sc: 0.817, cx: 0.489, cy: 0.713, f3: 3.6, scene: 1, float: 1, mcy: 0.43 },
+      3: { url: "assets/car2.json.gz", ry: 0.72, rx: -0.30, sc: 0.37, cx: 0.60, cy: 0.29, f3: 3.4, gy: 0.322, wake: 1, drift: 1, mcy: 0.36, mch: 0.34 },
     };
     for (const k in REAL) {
       const e = REAL[k];
@@ -1351,18 +1329,6 @@
       if (stage) stage.dataset.phase = String(idx);
     };
 
-    /* real wire-edge counts off the actual models, written into the
-       environments that show stats (no invented numbers) */
-    spec.querySelectorAll("[data-spec-edges]").forEach((el) => {
-      const mi = +el.dataset.specEdges;
-      let segs = 0;
-      for (const g of MODELS[mi].groups) {
-        if (!g.pl) continue;
-        for (const pl of g.pl) segs += Math.max(pl.length - 1, 0);
-      }
-      el.textContent = segs.toLocaleString();
-    });
-
     if (reduce || !ctx) {
       /* static fallback: unpin the stage, show all four environments, draw specimen 01 once */
       spec.classList.add("spec--static");
@@ -1372,8 +1338,12 @@
 
       /* debug override for headless verification: ?specp=0.375 pins the scrub */
       const dbgP = parseFloat(new URLSearchParams(location.search).get("specp"));
-      let p = 0;
-      const onScroll = () => {
+      let p = 0, lastFade = "";
+      /* read the scrub INSIDE the draw loop, not from a scroll listener:
+         the value and the frame it draws then come from the same moment.
+         Reading it a listener earlier meant the canvas was drawn against a
+         stale p on phones, which is what made the bench judder. */
+      const readScroll = () => {
         if (!isNaN(dbgP)) { p = clamp(dbgP, 0, 1); return; }
         const r = spec.getBoundingClientRect();
         /* stage height, not innerHeight: the iOS URL-bar toggle flips
@@ -1382,15 +1352,17 @@
         p = clamp(-r.top / Math.max(scrollable, 1), 0, 1);
         /* gentle fade-in as the benches scroll into view (opacity only — a
            transform here would break the sticky stage) */
-        if (stage) stage.style.opacity = clamp((window.innerHeight - r.top) / (window.innerHeight * 0.55), 0, 1).toFixed(3);
+        if (!stage) return;
+        const fade = clamp((window.innerHeight - r.top) / (window.innerHeight * 0.55), 0, 1).toFixed(3);
+        if (fade !== lastFade) { lastFade = fade; stage.style.opacity = fade; }
       };
-      window.addEventListener("scroll", onScroll, { passive: true });
-      onScroll();
+      readScroll();
 
       let running = false, rafId = 0, lastT = 0;
       const loop = (t) => {
         if (!running) return;
         const dt = Math.min((t - lastT) / 1000, 0.05); lastT = t;
+        readScroll();
         let s = 0;
         for (let b = 1; b < 4; b++) s += sstep((p - (b * 0.25 - MW / 2)) / MW);
         setIdx(Math.round(s));
@@ -1422,72 +1394,8 @@
       let rsT = 0;
       window.addEventListener("resize", () => {
         clearTimeout(rsT);
-        rsT = setTimeout(() => { build(); onScroll(); }, 120);
+        rsT = setTimeout(() => { build(); readScroll(); }, 120);
       });
     }
-  }
-
-  /* ---------- count-up for [data-count] (fires once when seen) ---------- */
-  const counters = Array.from(document.querySelectorAll("[data-count]"));
-  if (counters.length) {
-    const run = (el) => {
-      const end = parseFloat(el.dataset.count);
-      const dur = 1100, dec = (el.dataset.dec ? +el.dataset.dec : 0), t0 = performance.now();
-      const suffix = el.dataset.suffix || "";
-      if (reduce) { el.textContent = end.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) + suffix; return; }
-      const tick = (t) => {
-        const k = Math.min((t - t0) / dur, 1);
-        const v = end * (1 - Math.pow(1 - k, 3));
-        el.textContent = v.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec }) + suffix;
-        if (k < 1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    };
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => { if (e.isIntersecting) { run(e.target); io.unobserve(e.target); } });
-    }, { threshold: 0.6 });
-    counters.forEach((c) => io.observe(c));
-  }
-
-  /* ---------- typed terminal for [data-term] ---------- */
-  const term = document.querySelector("[data-term]");
-  if (term) {
-    const script = [
-      { t: "$ hexera run --geometry wing_v7.step --intent \"external aero, M0.85\"", c: "pr" },
-      { t: "→ reading geometry … 1 solid, 2,114 faces, 18 trailing edges", c: "dim" },
-      { t: "✓ defactored CAD · healed 6 sliver faces", c: "ok" },
-      { t: "→ translating intent → boundary layer y+ ≈ 1, prism stack ×24", c: "dim" },
-      { t: "→ writing mesh script · running · inspecting", c: "dim" },
-      { t: "⚠ skewness 0.81 on TE — refining locally", c: "warn" },
-      { t: "✓ mesh passed: 8.4M cells · max skew 0.62 · orthogonality 0.94", c: "ok" },
-      { t: "✓ exported wing_v7.msh · openfoam-ready · 4h12m saved", c: "ok" },
-    ];
-    let started = false;
-    const type = () => {
-      let li = 0;
-      const cursor = document.createElement("span"); cursor.className = "term__cursor";
-      const next = () => {
-        if (li >= script.length) { term.appendChild(cursor); return; }
-        const line = document.createElement("div");
-        line.className = "term__line";
-        term.appendChild(line); term.appendChild(cursor);
-        const { t, c } = script[li];
-        if (reduce) { line.innerHTML = `<span class="${c}">${t}</span>`; li++; setTimeout(next, 0); return; }
-        let ci = 0;
-        const tick = () => {
-          ci += 2;
-          line.innerHTML = `<span class="${c}">${t.slice(0, ci)}</span>`;
-          term.appendChild(cursor);
-          if (ci < t.length) setTimeout(tick, 12);
-          else { li++; setTimeout(next, 320); }
-        };
-        tick();
-      };
-      next();
-    };
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => { if (e.isIntersecting && !started) { started = true; type(); io.disconnect(); } });
-    }, { threshold: 0.4 });
-    io.observe(term);
   }
 })();

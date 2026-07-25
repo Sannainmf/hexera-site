@@ -28,31 +28,12 @@ Thumbs.db
 # dependencies
 node_modules/
 
-# local scratch capture (canvas screenshot helper output)
-tools/frame.jpg
-
 # vercel
 .vercel
 
 # dev-only — not part of the deployed site
-tools/
 .impeccable/
 
-# assets: keep only what the live site actually loads
-assets/*
-!assets/hero-bg.jpg
-!assets/hero-bg-orange.jpg
-!assets/airfoil.msh.gz
-!assets/logos/
-!assets/rocket.json.gz
-
-!assets/car2.json.gz
-!assets/header-smoke3.png
-!assets/ring-bg5.png
-!assets/artery.json.gz
-!assets/bio-xsec-1.jpg
-!assets/bio-xsec-2.jpg
-!assets/auto-zoom.jpg
-!assets/auto-cp.jpg
-!assets/scene.json.gz
-!assets/scene_aero.json.gz
+# assets/ now contains only files the live site loads, so it is tracked in full.
+# Keep it that way: nothing lands here unless index.html or contact.html
+# (or the CSS/JS they load) actually references it.

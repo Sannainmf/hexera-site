@@ -22,7 +22,6 @@
   // ─── mesh parsing (verbatim from HEXARA) ───
   function parseMshContent(data) {
     const lines = data.split("\n");
-    let nodeCount = 0, elementCount = 0;
     let nodes = [];
     let elements = [];
     let airfoilElements = [];
@@ -41,7 +40,6 @@
         i++;
         const headerParts = lines[i].trim().split(/\s+/);
         const numEntityBlocks = parseInt(headerParts[0]);
-        nodeCount = parseInt(headerParts[1]);
         i++;
         for (let block = 0; block < numEntityBlocks; block++) {
           const blockHeader = lines[i].trim().split(/\s+/);
@@ -62,7 +60,6 @@
         i++;
         const headerParts = lines[i].trim().split(/\s+/);
         const numEntityBlocks = parseInt(headerParts[0]);
-        elementCount = parseInt(headerParts[1]);
         i++;
         for (let block = 0; block < numEntityBlocks; block++) {
           const blockHeader = lines[i].trim().split(/\s+/);
@@ -87,7 +84,7 @@
       }
       i++;
     }
-    return { nodes, elements, airfoilElements, nodeCount, elementCount };
+    return { nodes, elements, airfoilElements };
   }
 
   // ─── the experience (verbatim from HEXARA, themed teal) ───
@@ -278,19 +275,6 @@
 
     updateUI() {
       const p = this.progress;
-      const mp = document.getElementById("meshProgress");
-      if (mp) mp.classList.toggle("visible", p > 0.02);
-
-      const phases = ["surface", "mesh", "reveal"];
-      const ids = ["stepSurface", "stepMesh", "stepReveal"];
-      const ci = phases.indexOf(this.currentPhase);
-      ids.forEach((id, idx) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.querySelector(".progress-dot").classList.toggle("active", idx === ci);
-        el.querySelector(".progress-dot").classList.toggle("complete", idx < ci);
-        el.classList.toggle("active", idx === ci);
-      });
 
       // embedded process narrative (Send → Mesh → Export)
       const stepsEl = document.getElementById("meshSteps");
@@ -318,24 +302,18 @@
       }
     }
 
-    animateValue(id, start, end, dur) {
-      const el = document.getElementById(id), t0 = performance.now();
-      const tick = (t) => {
-        const p = Math.min((t - t0) / dur, 1);
-        el.textContent = Math.floor(start + (end - start) * (1 - Math.pow(1 - p, 3))).toLocaleString();
-        if (p < 1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    }
-
     bindEvents() {
-      window.addEventListener("scroll", () => this.updateScroll(), { passive: true });
       window.addEventListener("resize", () => this.sizeToStage());
     }
 
+    /* the scroll position is read here rather than from a scroll listener, so
+       the camera is posed from the same scroll value as the frame it renders.
+       Reading it in a listener let the phone's compositor-driven momentum
+       scroll run ahead of the pose, which showed up as judder. */
     animate() {
       requestAnimationFrame(() => this.animate());
       if (!this.visible) return;
+      this.updateScroll();
       this.applyCamera();
       this.renderer.render(this.scene, this.camera);
     }

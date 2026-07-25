@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=46" />
+  <link rel="stylesheet" href="styles.css?v=49" />
   <link rel="stylesheet" href="orange-theme.css?v=36" />
 </head>
 <body>
@@ -70,11 +70,11 @@
           <div class="win__bar">
             <span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
             <span class="win__url">hexera · mesh studio</span>
-            <span class="win__tag" aria-hidden="true" data-wintag>NACA&nbsp;0012</span>
+            <span class="win__tag" aria-hidden="true">NACA&nbsp;0012</span>
           </div>
 
           <div class="win__stage">
-            <div class="chat" data-chat>
+            <div class="chat">
               <div class="chat__log" data-log></div>
               <div class="chat__bar">
                 <span class="chat__field" data-field></span>
@@ -206,28 +206,28 @@
               <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(77.0 77.0) rotate(315.0)"/>
               <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(323.0 77.0) rotate(405.0)"/>
             </g>
-            <circle class="ring-node" data-i="0" cx="200" cy="50" r="5" />
-            <circle class="ring-node" data-i="1" cx="350" cy="200" r="5" />
-            <circle class="ring-node" data-i="2" cx="200" cy="350" r="5" />
-            <circle class="ring-node" data-i="3" cx="50" cy="200" r="5" />
+            <circle class="ring-node" cx="200" cy="50" r="5" />
+            <circle class="ring-node" cx="350" cy="200" r="5" />
+            <circle class="ring-node" cx="200" cy="350" r="5" />
+            <circle class="ring-node" cx="50" cy="200" r="5" />
             <text class="ring-center-word" data-ring-word x="200" y="200" text-anchor="middle" dominant-baseline="middle">Ingest</text>
             <text class="ring-center-count" data-ring-count x="200" y="226" text-anchor="middle" dominant-baseline="middle">01 / 04</text>
             <circle class="ring-marker" cx="200" cy="50" r="9" />
           </svg>
 
-            <div class="ring-label ring-label--top active" data-i="0">
+            <div class="ring-label ring-label--top active">
               <span class="ring-label__t" data-phase-name>Ingest</span>
               <span class="ring-label__d">Opens the CAD, heals gaps, tags the walls that matter.</span>
             </div>
-            <div class="ring-label ring-label--right" data-i="1">
+            <div class="ring-label ring-label--right">
               <span class="ring-label__t" data-phase-name>Mesh</span>
               <span class="ring-label__d">Turns plain-language intent into real y+ and prism layers.</span>
             </div>
-            <div class="ring-label ring-label--bottom" data-i="2">
+            <div class="ring-label ring-label--bottom">
               <span class="ring-label__t" data-phase-name>Verify</span>
               <span class="ring-label__d">Grades skewness and orthogonality, re-refines the failures.</span>
             </div>
-            <div class="ring-label ring-label--left" data-i="3">
+            <div class="ring-label ring-label--left">
               <span class="ring-label__t" data-phase-name>Deliver</span>
               <span class="ring-label__d">Exports solver-ready to OpenFOAM, ANSYS or Abaqus.</span>
             </div>
@@ -335,7 +335,7 @@
   <!-- ===== The frontier: ghosted scrolling list of simulation domains ===== -->
   <section class="amb" id="ambition" aria-label="Simulation domains">
     <div class="amb__stage">
-      <ul class="amb__list" id="ambList" aria-hidden="true">
+      <ul class="amb__list" aria-hidden="true">
         <li class="amb__item">Aeroacoustics</li>
         <li class="amb__item">Aerospace Structures</li>
         <li class="amb__item">Battery Thermal Runaway</li>
@@ -448,14 +448,13 @@
   </div><!-- /.home-flow -->
 
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
-  <script src="hero.js?v=9" defer></script>
-  <script src="fluid.js?v=10" defer></script>
+  <script src="hero.js?v=11" defer></script>
+  <script src="fluid.js?v=11" defer></script>
   <script src="demo.js?v=9" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js" defer></script>
-  <script src="airfoil.js?v=12" defer></script>
-  <script src="site.js?v=9" defer></script>
-  <script src="pages.js?v=76" defer></script>
-  <script src="waitlist.js?v=9" defer></script>
+  <script src="airfoil.js?v=14" defer></script>
+  <script src="pages.js?v=79" defer></script>
+  <script src="waitlist.js?v=10" defer></script>
 </body>
 </html>

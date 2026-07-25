@@ -1,19 +1,12 @@
 /* ============================================================
-   Hexera hero — HUD count-up, sticky nav,
-   and ambient background drift + subtle mouse parallax.
+   Hexera hero — ambient background drift + subtle mouse parallax.
    (Background is a generated still image; no canvas engine.)
+   The sticky-nav state lives in pages.js, which serves every page.
    ============================================================ */
 
 (() => {
   "use strict";
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
-
-  /* sticky nav */
-  const nav = document.getElementById("nav");
-  const onScroll = () => nav.classList.toggle("is-stuck", window.scrollY > 10);
-  window.addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
 
   /* ambient background drift + subtle mouse parallax
      (single GPU transform on the fixed art layer; paused when hidden) */

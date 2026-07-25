@@ -23,20 +23,7 @@ let config = {
     CURL: 11,
     SPLAT_RADIUS: 0.15,
     SPLAT_FORCE: 3000,
-    SHADING: false,
-    COLORFUL: true,
     COLOR_UPDATE_SPEED: 0.6,
-    PAUSED: false,
-    TRANSPARENT: true,
-    BLOOM: false,
-    BLOOM_ITERATIONS: 8,
-    BLOOM_RESOLUTION: 256,
-    BLOOM_INTENSITY: 0.8,
-    BLOOM_THRESHOLD: 0.6,
-    BLOOM_SOFT_KNEE: 0.7,
-    SUNRAYS: false,
-    SUNRAYS_RESOLUTION: 196,
-    SUNRAYS_WEIGHT: 1.0,
     // --- Obstacle mask: confine the fluid to the dark areas of the hero art ---
     OBSTACLES: true,                       // master switch
     OBSTACLE_IMAGE: 'assets/hero-bg.jpg',  // must match the .hero-art background
@@ -60,7 +47,6 @@ function pointerPrototype () {
 }
 
 let pointers = [];
-let splatStack = [];
 pointers.push(new pointerPrototype());
 
 const { gl, ext } = getWebGLContext(canvas);
@@ -70,8 +56,6 @@ if (isMobile()) {
 }
 if (!ext.supportLinearFiltering) {
     config.DYE_RESOLUTION = 512;
-    config.SHADING = false;
-    config.BLOOM = false;
 }
 
 function getWebGLContext (canvas) {
@@ -143,30 +127,6 @@ function isMobile () {
     return /Mobi|Android/i.test(navigator.userAgent);
 }
 
-class Material {
-    constructor (vertexShader, fragmentShaderSource) {
-        this.vertexShader = vertexShader;
-        this.fragmentShaderSource = fragmentShaderSource;
-        this.programs = [];
-        this.activeProgram = null;
-        this.uniforms = [];
-    }
-    setKeywords (keywords) {
-        let hash = 0;
-        for (let i = 0; i < keywords.length; i++) hash += hashCode(keywords[i]);
-        let program = this.programs[hash];
-        if (program == null) {
-            let fragmentShader = compileShader(gl.FRAGMENT_SHADER, this.fragmentShaderSource, keywords);
-            program = createProgram(this.vertexShader, fragmentShader);
-            this.programs[hash] = program;
-        }
-        if (program == this.activeProgram) return;
-        this.uniforms = getUniforms(program);
-        this.activeProgram = program;
-    }
-    bind () { gl.useProgram(this.activeProgram); }
-}
-
 class Program {
     constructor (vertexShader, fragmentShader) {
         this.uniforms = {};
@@ -232,36 +192,6 @@ const baseVertexShader = compileShader(gl.VERTEX_SHADER, `
     }
 `);
 
-const blurVertexShader = compileShader(gl.VERTEX_SHADER, `
-    precision highp float;
-    attribute vec2 aPosition;
-    varying vec2 vUv;
-    varying vec2 vL;
-    varying vec2 vR;
-    uniform vec2 texelSize;
-    void main () {
-        vUv = aPosition * 0.5 + 0.5;
-        float offset = 1.33333333;
-        vL = vUv - texelSize * offset;
-        vR = vUv + texelSize * offset;
-        gl_Position = vec4(aPosition, 0.0, 1.0);
-    }
-`);
-
-const blurShader = compileShader(gl.FRAGMENT_SHADER, `
-    precision mediump float;
-    precision mediump sampler2D;
-    varying vec2 vUv;
-    varying vec2 vL;
-    varying vec2 vR;
-    uniform sampler2D uTexture;
-    void main () {
-        vec4 sum = texture2D(uTexture, vUv) * 0.29411764;
-        sum += texture2D(uTexture, vL) * 0.35294117;
-        sum += texture2D(uTexture, vR) * 0.35294117;
-        gl_FragColor = sum;
-    }
-`);
 
 const copyShader = compileShader(gl.FRAGMENT_SHADER, `
     precision mediump float;
@@ -280,104 +210,27 @@ const clearShader = compileShader(gl.FRAGMENT_SHADER, `
     void main () { gl_FragColor = value * texture2D(uTexture, vUv); }
 `);
 
-const colorShader = compileShader(gl.FRAGMENT_SHADER, `
-    precision mediump float;
-    uniform vec4 color;
-    void main () { gl_FragColor = color; }
-`);
 
 // Standard smooth-dye display — renders the fluid as soft glowing smoke
-// (no grid). This is the look the HEXARA hero uses. SHADING is optional and
-// off by default, so the #ifdef block compiles out.
-const displayShaderSource = `
+// (no grid). This is the look the Hexera hero uses.
+const displayShader = compileShader(gl.FRAGMENT_SHADER, `
     precision highp float;
     precision highp sampler2D;
     varying vec2 vUv;
-    varying vec2 vL;
-    varying vec2 vR;
-    varying vec2 vT;
-    varying vec2 vB;
     uniform sampler2D uTexture;   // dye / colour field
     uniform sampler2D uObstacle;  // walls = 1.0, open fluid = 0.0
-    uniform vec2 texelSize;
-
     void main () {
         vec3 c = texture2D(uTexture, vUv).rgb;
-    #ifdef SHADING
-        vec3 lc = texture2D(uTexture, vL).rgb;
-        vec3 rc = texture2D(uTexture, vR).rgb;
-        vec3 tc = texture2D(uTexture, vT).rgb;
-        vec3 bc = texture2D(uTexture, vB).rgb;
-        float dx = length(rc) - length(lc);
-        float dy = length(tc) - length(bc);
-        vec3 n = normalize(vec3(dx, dy, length(texelSize)));
-        vec3 l = vec3(0.0, 0.0, 1.0);
-        float diffuse = clamp(dot(n, l) + 0.7, 0.7, 1.0);
-        c *= diffuse;
-    #endif
         float a = max(c.r, max(c.g, c.b));
         // never let the dye render over the coloured art — fade it out at walls
         float free = 1.0 - smoothstep(0.35, 0.65, texture2D(uObstacle, vUv).x);
         c *= free; a *= free;
         gl_FragColor = vec4(c, a);
     }
-`;
-
-const bloomPrefilterShader = compileShader(gl.FRAGMENT_SHADER, `
-    precision mediump float;
-    precision mediump sampler2D;
-    varying vec2 vUv;
-    uniform sampler2D uTexture;
-    uniform vec3 curve;
-    uniform float threshold;
-    void main () {
-        vec3 c = texture2D(uTexture, vUv).rgb;
-        float br = max(c.r, max(c.g, c.b));
-        float rq = clamp(br - curve.x, 0.0, curve.y);
-        rq = curve.z * rq * rq;
-        c *= max(rq, br - threshold) / max(br, 0.0001);
-        gl_FragColor = vec4(c, 0.0);
-    }
 `);
 
-const bloomBlurShader = compileShader(gl.FRAGMENT_SHADER, `
-    precision mediump float;
-    precision mediump sampler2D;
-    varying vec2 vL;
-    varying vec2 vR;
-    varying vec2 vT;
-    varying vec2 vB;
-    uniform sampler2D uTexture;
-    void main () {
-        vec4 sum = vec4(0.0);
-        sum += texture2D(uTexture, vL);
-        sum += texture2D(uTexture, vR);
-        sum += texture2D(uTexture, vT);
-        sum += texture2D(uTexture, vB);
-        sum *= 0.25;
-        gl_FragColor = sum;
-    }
-`);
 
-const bloomFinalShader = compileShader(gl.FRAGMENT_SHADER, `
-    precision mediump float;
-    precision mediump sampler2D;
-    varying vec2 vL;
-    varying vec2 vR;
-    varying vec2 vT;
-    varying vec2 vB;
-    uniform sampler2D uTexture;
-    uniform float intensity;
-    void main () {
-        vec4 sum = vec4(0.0);
-        sum += texture2D(uTexture, vL);
-        sum += texture2D(uTexture, vR);
-        sum += texture2D(uTexture, vT);
-        sum += texture2D(uTexture, vB);
-        sum *= 0.25;
-        gl_FragColor = sum * intensity;
-    }
-`);
+
 
 const splatShader = compileShader(gl.FRAGMENT_SHADER, `
     precision highp float;
@@ -594,16 +447,11 @@ const blit = (() => {
     };
 })();
 
-let dye, velocity, divergence, curl, pressure, bloom, bloomFramebuffers = [], sunrays, sunraysTemp;
+let dye, velocity, divergence, curl, pressure;
 
 
-const blurProgram            = new Program(blurVertexShader, blurShader);
 const copyProgram            = new Program(baseVertexShader, copyShader);
 const clearProgram           = new Program(baseVertexShader, clearShader);
-const colorProgram           = new Program(baseVertexShader, colorShader);
-const bloomPrefilterProgram  = new Program(baseVertexShader, bloomPrefilterShader);
-const bloomBlurProgram       = new Program(baseVertexShader, bloomBlurShader);
-const bloomFinalProgram      = new Program(baseVertexShader, bloomFinalShader);
 const splatProgram           = new Program(baseVertexShader, splatShader);
 const advectionProgram       = new Program(baseVertexShader, advectionShader);
 const divergenceProgram      = new Program(baseVertexShader, divergenceShader);
@@ -611,7 +459,7 @@ const curlProgram            = new Program(baseVertexShader, curlShader);
 const vorticityProgram       = new Program(baseVertexShader, vorticityShader);
 const pressureProgram        = new Program(baseVertexShader, pressureShader);
 const gradienSubtractProgram = new Program(baseVertexShader, gradientSubtractShader);
-const displayMaterial        = new Material(baseVertexShader, displayShaderSource);
+const displayProgram         = new Program(baseVertexShader, displayShader);
 
 function initFramebuffers () {
     let simRes = getResolution(config.SIM_RESOLUTION);
@@ -636,23 +484,6 @@ function initFramebuffers () {
     divergence = createFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
     curl       = createFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
     pressure   = createDoubleFBO(simRes.width, simRes.height, r.internalFormat, r.format, texType, gl.NEAREST);
-
-    initBloomFramebuffers();
-}
-
-function initBloomFramebuffers () {
-    let res = getResolution(config.BLOOM_RESOLUTION);
-    const texType   = ext.halfFloatTexType;
-    const rgba      = ext.formatRGBA;
-    const filtering = ext.supportLinearFiltering ? gl.LINEAR : gl.NEAREST;
-    bloom = createFBO(res.width, res.height, rgba.internalFormat, rgba.format, texType, filtering);
-    bloomFramebuffers.length = 0;
-    for (let i = 0; i < config.BLOOM_ITERATIONS; i++) {
-        let width  = res.width  >> (i + 1);
-        let height = res.height >> (i + 1);
-        if (width < 2 || height < 2) break;
-        bloomFramebuffers.push(createFBO(width, height, rgba.internalFormat, rgba.format, texType, filtering));
-    }
 }
 
 function createFBO (w, h, internalFormat, format, type, param) {
@@ -704,14 +535,6 @@ function resizeDoubleFBO (target, w, h, internalFormat, format, type, param) {
     target.width = w; target.height = h;
     target.texelSizeX = 1.0 / w; target.texelSizeY = 1.0 / h;
     return target;
-}
-
-function updateKeywords () {
-    let displayKeywords = [];
-    if (config.SHADING) displayKeywords.push('SHADING');
-    if (config.BLOOM)   displayKeywords.push('BLOOM');
-    if (config.SUNRAYS) displayKeywords.push('SUNRAYS');
-    displayMaterial.setKeywords(displayKeywords);
 }
 
 // ---------------------------------------------------------------
@@ -913,7 +736,6 @@ function featherWall (wall, w, h, r) {
     return out;
 }
 
-updateKeywords();
 initFramebuffers();
 // start calm — no intro splats; the effect only wakes on cursor movement
 
@@ -933,7 +755,7 @@ function update () {
     if (resizeCanvas()) { initFramebuffers(); buildObstacleMask(); }
     updateColors(dt);
     applyInputs();
-    if (!config.PAUSED) step(dt);
+    step(dt);
     render(null);
     requestAnimationFrame(update);
 }
@@ -958,7 +780,6 @@ function resizeCanvas () {
 }
 
 function updateColors (dt) {
-    if (!config.COLORFUL) return;
     colorUpdateTimer += dt * config.COLOR_UPDATE_SPEED;
     if (colorUpdateTimer >= 1) {
         colorUpdateTimer = wrap(colorUpdateTimer, 0, 1);
@@ -967,7 +788,6 @@ function updateColors (dt) {
 }
 
 function applyInputs () {
-    if (splatStack.length > 0) multipleSplats(splatStack.pop());
     pointers.forEach(p => {
         if (p.moved) { p.moved = false; splatPointer(p); }
     });
@@ -1045,8 +865,6 @@ function step (dt) {
 
 // Modified render: transparent canvas, no checkerboard
 function render (target) {
-    if (config.BLOOM) applyBloom(dye.read, bloom);
-
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.enable(gl.BLEND);
 
@@ -1062,86 +880,16 @@ function render (target) {
 function drawDisplay (target) {
     let width  = target == null ? gl.drawingBufferWidth  : target.width;
     let height = target == null ? gl.drawingBufferHeight : target.height;
-    displayMaterial.bind();
-    gl.uniform2f(displayMaterial.uniforms.texelSize, 1.0 / width, 1.0 / height);
-    gl.uniform1i(displayMaterial.uniforms.uTexture,  dye.read.attach(0));
-    gl.uniform1i(displayMaterial.uniforms.uObstacle, obstacle.attach(1));
+    displayProgram.bind();
+    gl.uniform1i(displayProgram.uniforms.uTexture,  dye.read.attach(0));
+    gl.uniform1i(displayProgram.uniforms.uObstacle, obstacle.attach(1));
     blit(target);
-}
-
-function applyBloom (source, destination) {
-    if (bloomFramebuffers.length < 2) return;
-    let last = destination;
-    gl.disable(gl.BLEND);
-    bloomPrefilterProgram.bind();
-    let knee   = config.BLOOM_THRESHOLD * config.BLOOM_SOFT_KNEE + 0.0001;
-    let curve0 = config.BLOOM_THRESHOLD - knee;
-    let curve1 = knee * 2;
-    let curve2 = 0.25 / knee;
-    gl.uniform3f(bloomPrefilterProgram.uniforms.curve, curve0, curve1, curve2);
-    gl.uniform1f(bloomPrefilterProgram.uniforms.threshold, config.BLOOM_THRESHOLD);
-    gl.uniform1i(bloomPrefilterProgram.uniforms.uTexture, source.attach(0));
-    blit(last);
-
-    bloomBlurProgram.bind();
-    for (let i = 0; i < bloomFramebuffers.length; i++) {
-        let dest = bloomFramebuffers[i];
-        gl.uniform2f(bloomBlurProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
-        gl.uniform1i(bloomBlurProgram.uniforms.uTexture, last.attach(0));
-        blit(dest);
-        last = dest;
-    }
-
-    gl.blendFunc(gl.ONE, gl.ONE);
-    gl.enable(gl.BLEND);
-
-    for (let i = bloomFramebuffers.length - 2; i >= 0; i--) {
-        let baseTex = bloomFramebuffers[i];
-        gl.uniform2f(bloomBlurProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
-        gl.uniform1i(bloomBlurProgram.uniforms.uTexture, last.attach(0));
-        gl.viewport(0, 0, baseTex.width, baseTex.height);
-        blit(baseTex);
-        last = baseTex;
-    }
-
-    gl.disable(gl.BLEND);
-    bloomFinalProgram.bind();
-    gl.uniform2f(bloomFinalProgram.uniforms.texelSize, last.texelSizeX, last.texelSizeY);
-    gl.uniform1i(bloomFinalProgram.uniforms.uTexture, last.attach(0));
-    gl.uniform1f(bloomFinalProgram.uniforms.intensity, config.BLOOM_INTENSITY);
-    blit(destination);
-}
-
-function blur (target, temp, iterations) {
-    blurProgram.bind();
-    for (let i = 0; i < iterations; i++) {
-        gl.uniform2f(blurProgram.uniforms.texelSize, target.texelSizeX, 0.0);
-        gl.uniform1i(blurProgram.uniforms.uTexture, target.attach(0));
-        blit(temp);
-        gl.uniform2f(blurProgram.uniforms.texelSize, 0.0, target.texelSizeY);
-        gl.uniform1i(blurProgram.uniforms.uTexture, temp.attach(0));
-        blit(target);
-    }
 }
 
 function splatPointer (pointer) {
     let dx = pointer.deltaX * config.SPLAT_FORCE;
     let dy = pointer.deltaY * config.SPLAT_FORCE;
     splat(pointer.texcoordX, pointer.texcoordY, dx, dy, pointer.color);
-}
-
-function multipleSplats (amount) {
-    for (let i = 0; i < amount; i++) {
-        const color = generateColor();
-        color.r *= 4.0;
-        color.g *= 4.0;
-        color.b *= 4.0;
-        const x  = Math.random();
-        const y  = Math.random();
-        const dx = 1000 * (Math.random() - 0.5);
-        const dy = 1000 * (Math.random() - 0.5);
-        splat(x, y, dx, dy, color);
-    }
 }
 
 function splat (x, y, dx, dy, color) {
@@ -1218,10 +966,6 @@ window.addEventListener('touchend', e => {
         if (pointer == null) continue;
         updatePointerUpData(pointer);
     }
-});
-
-window.addEventListener('keydown', e => {
-    if (e.key === ' ') splatStack.push(parseInt(Math.random() * 20) + 5);
 });
 
 function updatePointerDownData (pointer, id, posX, posY) {
@@ -1305,16 +1049,6 @@ function getResolution (resolution) {
 function scaleByPixelRatio (input) {
     let pixelRatio = window.devicePixelRatio || 1;
     return Math.floor(input * pixelRatio);
-}
-
-function hashCode (s) {
-    if (s.length == 0) return 0;
-    let hash = 0;
-    for (let i = 0; i < s.length; i++) {
-        hash = (hash << 5) - hash + s.charCodeAt(i);
-        hash |= 0;
-    }
-    return hash;
 }
 
 })();
