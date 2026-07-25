@@ -490,7 +490,13 @@ html.lenis, html.lenis body { height: auto; }
    ORBITAL PROCESS RING — pinned section; a marker travels the
    ring as you scroll, the left copy + bottom tabs track phase.
    ============================================================ */
-.ring-sec { position: relative; height: 360vh; z-index: var(--z-content); overflow-x: clip; }  /* pinch-zoom must not reveal the oversized dial art */
+/* no overflow clipping here at any width where .ring-sticky is sticky — an
+   overflow-clip ancestor drops the sticky off the scrolling thread and it
+   judders on touch. The oversized dial art only needs clipping in the
+   761-1100px band, and that is exactly the band where .ring-sticky is
+   position: static (see the 1100px block), so the two never overlap. */
+.ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
+@media (min-width: 761px) and (max-width: 1100px) { .ring-sec { overflow-x: clip; } }
 .ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); }
 /* streamline backdrop: static artwork with the site background color baked
    into everything except the smoke, painted plainly — no blend modes, no
@@ -683,12 +689,21 @@ html.lenis, html.lenis body { height: auto; }
    ============================================================ */
 /* section header (canonical rules from 2cd5596 — do not let a splice eat
    these again; the header renders unstyled without them) */
-/* overflow-x: clip — body's overflow-x propagates to the viewport instead of
-   clipping descendants, so the oversized smoke plate painted onto the canvas
-   became visible when pinch-zooming out. Clipping at the section hard-stops
-   that; unlike hidden it creates no scroll container, so the sticky stage
-   inside keeps pinning (root-level clip DOES break sticky — don't move it). */
-.indx { position: relative; z-index: var(--z-content); background: var(--bg); padding: clamp(7rem, 16vh, 11rem) var(--pad-x) 0; overflow-x: clip; }
+/* The oversized smoke plate used to be held in by `overflow-x: clip` on
+   .indx. That is CORRECT about layout — clip creates no scroll container, so
+   .spec__sticky did keep pinning — but it is wrong about compositing, and
+   that cost us: an overflow-clip ANCESTOR makes WebKit position the sticky
+   stage on the main thread instead of the scrolling thread, which judders
+   badly on iOS. The plate is now clipped on .indx::before itself. */
+/* NO overflow clipping here: .spec__sticky is a sticky descendant at every
+   width, and an overflow-clip ancestor forces WebKit to position it on the
+   main thread instead of the scrolling thread — which on iOS makes the whole
+   pinned stage judder against the page. The oversized header smoke that this
+   used to clip is now clipped on .indx::before itself (see the 640px block);
+   a pseudo-element has no descendants, so it can never be a sticky ancestor.
+   Do NOT "fix" this with overflow:hidden or contain:paint — hidden would make
+   this section the sticky's scroll container and the pin would stop working. */
+.indx { position: relative; z-index: var(--z-content); background: var(--bg); padding: clamp(7rem, 16vh, 11rem) var(--pad-x) 0; }
 .indx__head { width: min(100%, 1280px); margin-inline: auto; max-width: 42ch; margin-bottom: clamp(10rem, 22vh, 17rem); }
 .indx__eyebrow { font-family: var(--font-mono); font-weight: 500; font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
 .indx__title { margin: 1rem 0 0; font-family: var(--font-display); font-weight: 500; font-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); line-height: 1.02; color: var(--ink); text-wrap: balance; }
@@ -719,8 +734,13 @@ html.lenis, html.lenis body { height: auto; }
      above the heading — oversize it (aspect intact, sides run out off-screen)
      and centre its bloom on the title + lede so the burst sits dead behind
      "gets hard." / "One meshing core" (plate half-height = 40.11vw) */
+  /* clip-path replaces the section-level overflow-x: clip that used to hold
+     this plate in. The box spans -45vw..145vw, so trimming (190vw-100vw)/2
+     = 45vw off each side leaves exactly 0..100vw — the same visible pixels,
+     with no clipping ancestor above the sticky stage. */
   .indx::before { left: 50%; right: auto; width: 190vw; margin-left: -95vw; height: calc(190vw / 2.3683);
-    top: max(0px, calc(clamp(3.5rem, 9vh, 5.5rem) + 145px - 40.11vw)); }
+    top: max(0px, calc(clamp(3.5rem, 9vh, 5.5rem) + 145px - 40.11vw));
+    clip-path: inset(0 calc((100% - 100vw) / 2)); }
 }
 
 /* tall scroll runway: ~215vh of scrolling per industry before the
