@@ -9,15 +9,20 @@
 (function () {
   "use strict";
 
-  // airfoil + mesh share this colour; themed via --mesh-line-rgb (falls back to teal)
-  const TEAL = (() => {
+  /* airfoil + mesh share this colour; themed via --mesh-line-rgb.
+     Read LATE, never at script-execution time: the token is overridden by
+     orange-theme.css, which is a second stylesheet request. Reading it up
+     front could resolve against styles.css alone and bake the base teal
+     into the material permanently — which is what turned the mesh teal on
+     slower connections while desktop looked fine. */
+  let TEAL = 0x0fb6ac;
+  const readTheme = () => {
     const v = getComputedStyle(document.documentElement).getPropertyValue("--mesh-line-rgb").trim();
     if (/^\d+\s*,\s*\d+\s*,\s*\d+$/.test(v)) {
       const [r, g, b] = v.split(",").map((n) => parseInt(n, 10));
-      return (r << 16) | (g << 8) | b;
+      TEAL = (r << 16) | (g << 8) | b;
     }
-    return 0x0fb6ac;
-  })();
+  };
 
   // ─── mesh parsing (verbatim from HEXARA) ───
   function parseMshContent(data) {
@@ -330,6 +335,7 @@
         const meshData = parseMshContent(raw);
         const loading = document.getElementById("meshLoading");
         if (loading) loading.classList.add("hidden");
+        readTheme();   // every stylesheet is applied by now — take the themed colour
         new AirfoilExperience(meshData);
       })
       .catch((e) => {

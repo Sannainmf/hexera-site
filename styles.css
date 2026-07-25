@@ -656,7 +656,9 @@ html.lenis, html.lenis body { height: auto; }
    description box under the dial (same grid cell, .active fades in) that
    updates at each checkpoint. 761-1100px keeps the static stacked list. */
 @media (max-width: 760px) {
-  .ring-sec, .home-flow .ring-sec { height: 300vh; }
+  /* the marker's speed is set by this height alone (the scrub normalises by
+     offsetHeight), so a taller runway = a slower orbit */
+  .ring-sec, .home-flow .ring-sec { height: 460vh; }
   .ring-sticky { position: sticky; top: 0; min-height: auto; height: 100vh; height: 100svh;
     align-items: flex-start; padding: calc(var(--nav-h) + 0.75rem) var(--pad-x) 1.25rem; overflow: hidden; }
   .ring-stage { margin-top: 1.25rem; }

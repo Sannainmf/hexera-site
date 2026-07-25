@@ -20,35 +20,41 @@
      scheduler and the Lenis gate below for why that matters */
   const touch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
-  /* ---------- one rAF-driven scroll frame ----------
-     Every scroll-linked visual below used to write straight from its own
-     `scroll` listener. On a phone the momentum scroll is driven by the
-     compositor while those listeners run on the main thread, so each write
-     landed a frame late: the pinned section visibly lagged the page and
-     the whole stage read as jitter. Scroll events now only mark the frame
-     dirty; all reads/writes happen together in one rAF, in sync with paint.
-     (Desktop is unaffected — Lenis already drove scroll from rAF there.) */
-  const frameJobs = [];
-  let framePending = false;
-  const runFrame = () => {
-    framePending = false;
-    for (let i = 0; i < frameJobs.length; i++) frameJobs[i]();
+  /* ---------- free-running rAF loop for scroll-linked set-pieces ----------
+     These must NOT be driven by scroll events. On a phone the momentum
+     scroll is advanced by the compositor every frame, but scroll events are
+     dispatched to JS coalesced and late — so anything driven by them (even
+     via requestAnimationFrame) updates on an irregular cadence and the
+     pinned stage judders against the page underneath it.
+
+     Instead each section re-reads its own geometry EVERY frame while it is
+     on screen, which is exactly what the airfoil mesh does and why that one
+     is smooth. An IntersectionObserver per section keeps the loop asleep
+     whenever nothing that needs it is visible. */
+  const active = new Set();
+  let loopId = 0;
+  const tick = () => {
+    for (const fn of active) fn();
+    loopId = active.size ? requestAnimationFrame(tick) : 0;
   };
-  const invalidate = () => {
-    if (framePending) return;
-    framePending = true;
-    requestAnimationFrame(runFrame);
+  const startLoop = () => { if (!loopId && active.size) loopId = requestAnimationFrame(tick); };
+  /* fn runs once now, then every frame for as long as any of `els` is on
+     screen (several elements can share one update, so track which are
+     showing rather than toggling on the last entry seen) */
+  const onScrollFrame = (fn, els) => {
+    fn();
+    const targets = Array.isArray(els) ? els : [els];
+    const showing = new Set();
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) showing.add(e.target);
+        else showing.delete(e.target);
+      }
+      if (showing.size) { active.add(fn); startLoop(); }
+      else { active.delete(fn); fn(); }     // settle on the way out
+    }, { rootMargin: "20% 0px" });
+    targets.forEach((t) => io.observe(t));
   };
-  /* register a scroll-linked update; it runs once now, then once per frame
-     for as long as the page is being scrolled or resized */
-  const onScrollFrame = (fn) => { frameJobs.push(fn); fn(); };
-  window.addEventListener("scroll", invalidate, { passive: true });
-  window.addEventListener("resize", invalidate);
-  /* rAF is paused while the page is hidden, so a scroll restored by the
-     browser (tab switch, bfcache) would otherwise leave the set-pieces
-     drawn at a stale position until the next scroll */
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) invalidate(); });
-  window.addEventListener("pageshow", invalidate);
 
   /* ---------- smooth (inertia) scrolling via Lenis ----------
      Lenis still drives the real window scroll on desktop, so every
@@ -79,13 +85,17 @@
   /* ---------- nav: stuck state ---------- */
   const nav = document.getElementById("nav");
   if (nav) {
+    /* a discrete state flip, not an animation — a scroll listener is the
+       right tool here, and it stays off the per-frame path */
     let stuck = null;
-    onScrollFrame(() => {
+    const upd = () => {
       const s = window.scrollY > 10;
       if (s === stuck) return;          // only touch the DOM when it flips
       stuck = s;
       nav.classList.toggle("is-stuck", s);
-    });
+    };
+    window.addEventListener("scroll", upd, { passive: true });
+    upd();
   }
 
   /* ---------- footer year ---------- */
@@ -109,7 +119,7 @@
           el.style.transform = "translateY(" + (n * 42).toFixed(1) + "px)";
         });
       };
-      onScrollFrame(upd);
+      onScrollFrame(upd, pfade);
     }
   }
 
@@ -133,7 +143,7 @@
     const CIRC = 2 * Math.PI * R;
     if (prog) { prog.style.strokeDasharray = CIRC; prog.style.strokeDashoffset = CIRC; }
 
-    let curPhase = -1;
+    let curPhase = -1, lastMx = "", lastMy = "", lastOff = "";
     const setPhase = (idx) => {
       if (idx === curPhase) return;     // phase only flips 4× across the whole scrub
       curPhase = idx;
@@ -144,22 +154,34 @@
       if (centerCount) centerCount.textContent = String(idx + 1).padStart(2, "0") + " / " + String(N).padStart(2, "0");
     };
 
+    /* cached: offsetHeight forces a layout flush, and this runs every frame */
+    let ringH = ring.offsetHeight;
+    window.addEventListener("resize", () => { ringH = ring.offsetHeight; });
     const update = () => {
       const rect = ring.getBoundingClientRect();
-      const scrollable = ring.offsetHeight - window.innerHeight;
+      const scrollable = ringH - window.innerHeight;
       const p = clamp(-rect.top / Math.max(scrollable, 1), 0, 1);
       // marker travels the full circle starting at the top (-90°)
       const ang = (-90 + p * 360) * (Math.PI / 180);
+      /* each of these is an SVG paint on the main thread — at 60fps on a
+         phone they are the section's whole frame budget. Round to the
+         nearest tenth of a user unit and skip the write when it lands on
+         the same value, which it does for most frames. */
       if (svgMarker) {
-        svgMarker.setAttribute("cx", CX + R * Math.cos(ang));
-        svgMarker.setAttribute("cy", CY + R * Math.sin(ang));
+        const mx = (CX + R * Math.cos(ang)).toFixed(1);
+        const my = (CY + R * Math.sin(ang)).toFixed(1);
+        if (mx !== lastMx) { lastMx = mx; svgMarker.setAttribute("cx", mx); }
+        if (my !== lastMy) { lastMy = my; svgMarker.setAttribute("cy", my); }
       }
-      if (prog) prog.style.strokeDashoffset = CIRC * (1 - p);
+      if (prog) {
+        const off = (CIRC * (1 - p)).toFixed(1);
+        if (off !== lastOff) { lastOff = off; prog.style.strokeDashoffset = off; }
+      }
       const idx = clamp(Math.floor(p * N - 1e-6), 0, N - 1);
       setPhase(idx);
     };
     setPhase(0);
-    onScrollFrame(update);
+    onScrollFrame(update, ring);
   }
 
   /* ---------- "Our ambition": scroll the ghosted list through the centre line ----------
@@ -170,9 +192,11 @@
     const stage = amb.querySelector(".amb__stage");
     const list = amb.querySelector(".amb__list");
     let ambPad = 0, loopH = 0, listD = 0, lastScr = null, lastClip = "";
+    let ambH = 0;
     const measure = () => {
       ambPad = parseFloat(getComputedStyle(list).paddingLeft) || 0;
       loopH = list.scrollHeight / 2;   // list is two identical sets of 30 — one set is the seamless loop period
+      ambH = amb.offsetHeight;         // cached: read every frame otherwise
     };
     measure();
     const update = () => {
@@ -193,7 +217,7 @@
       const scrolled = Math.max(vh - rect.top, 0);
       // ZOOM + CENTRE-DRIFT both run on WHOLE-SECTION progress, in step with each
       // other, so they ramp the entire way down — never finishing up front.
-      const pFull = clamp(scrolled / amb.offsetHeight, 0, 1);
+      const pFull = clamp(scrolled / Math.max(ambH, 1), 0, 1);
       const zStart = 3.0, zEnd = 0.56;
       // geometric (constant-ratio) zoom so the shrink reads as EVEN from the very first
       // scroll, instead of a linear ramp that looks like little happens early then
@@ -219,7 +243,7 @@
       list.style.opacity = clamp(fadeP / 0.8, 0, 1).toFixed(3);   // invisible → visible, gradual
     };
     window.addEventListener("resize", measure);
-    onScrollFrame(update);
+    onScrollFrame(update, amb);
   }
 
   /* ---------- Industries: four workbenches ----------
@@ -243,6 +267,11 @@
     const GOLD = cssRGB("--mesh-accent-rgb", "255,186,0");
     const TEAL = cssRGB("--mesh-line-rgb", "15,182,172");
     const INK = cssRGB("--mesh-ink-rgb", "236,234,229");
+    /* this whole stage is cleared and redrawn every frame. At DPR 3 on a
+       phone that is ~2.7M pixels of fill per frame, which blows the budget
+       and shows up as judder; 1.5 costs ~44% less than 2 and the wireframes
+       are thin strokes, so the difference is not visible at arm's length. */
+    const DPR_CAP = touch ? 1.5 : 2;
     const LINE3 = TEAL.split(",").map(Number), ACC3 = GOLD.split(",").map(Number);
     const sstep = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * k * (k * (k * 6 - 15) + 10));
     const MW = 0.16;                                 // blend window, in total-scroll units
@@ -689,7 +718,7 @@
       ];
     };
     const build = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
       W = canvas.clientWidth; H = canvas.clientHeight;
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -859,7 +888,7 @@
       const scv = p.sc !== undefined ? p.sc : (base.sc !== undefined ? base.sc : e.sc);
       const cyf = p.cy !== undefined ? p.cy : (base.cy !== undefined ? base.cy : e.cy);
       e.baked = { ry: ry, rx: rx, sc: scv, cy: cyf };
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
       e.canvas.width = Math.round(W * dpr); e.canvas.height = Math.round(H * dpr);
       const g = e.rctx;
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
