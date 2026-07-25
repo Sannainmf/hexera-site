@@ -864,7 +864,10 @@
        each frame so it never costs a per-frame redraw. Keyed by phase index;
        any phase without an entry falls back to the procedural drawModel. ---- */
     const REAL = {
-      0: { url: "assets/scene_aero.json.gz?v=14", ry: 0.14, rx: -0.17, sc: 0.804, cx: 0.511, cy: 0.231, f3: 4.4, scene: 1, mcy: 0.43, mgs: [{ g: 0, dy: -0.085 }] },
+      /* v15: wireframe colour re-baked teal -> steel (109,139,175) to match
+         --mesh-line-rgb. These groups carry their own colour inside the
+         asset, so the theme token does not reach them. */
+      0: { url: "assets/scene_aero.json.gz?v=15", ry: 0.14, rx: -0.17, sc: 0.804, cx: 0.511, cy: 0.231, f3: 4.4, scene: 1, mcy: 0.43, mgs: [{ g: 0, dy: -0.085 }] },
       /* mrot: portrait roll, screen-space, y-down — so a LESS negative value
          rolls the arch clockwise. Eased off -0.50 so the lower limb clears
          the report panels sitting under it on phones. */
