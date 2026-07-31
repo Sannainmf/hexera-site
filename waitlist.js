@@ -35,7 +35,7 @@
         <input class="wl-input" id="wlName" name="name" type="text" autocomplete="name" placeholder="Your name" required />
         <label class="wl-label" for="wlEmail">Email</label>
         <input class="wl-input" id="wlEmail" name="email" type="email" autocomplete="email" placeholder="Your email" required />
-        <label class="wl-label" for="wlCompany">Company <span class="wl-opt">(optional)</span></label>
+        <label class="wl-label" for="wlCompany">Company</label>
         <input class="wl-input" id="wlCompany" name="company" type="text" autocomplete="organization" placeholder="Company, lab or school" />
         <button class="wl-submit" type="submit">Join waitlist <span aria-hidden="true">&rarr;</span></button>
         <p class="wl-note" role="status" aria-live="polite"></p>

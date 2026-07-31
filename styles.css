@@ -926,7 +926,6 @@ html.wl-lock, html.wl-lock body { overflow: hidden; }
   padding: 0.5em 0; font-family: var(--font-body); font-size: 1rem; color: var(--ink);
   caret-color: var(--teal); transition: border-color 0.2s ease;
 }
-.wl-opt { letter-spacing: 0.08em; opacity: 0.65; text-transform: none; }
 .wl-input::placeholder { color: var(--faint); }
 .wl-input:focus { outline: none; border-bottom-color: var(--teal); }
 .wl-label:has(+ .wl-input:focus) { color: var(--teal); }
