@@ -29,14 +29,14 @@
       <i class="wl-corner wl-corner--br" aria-hidden="true"></i>
       <button class="wl-close" type="button" aria-label="Close">&times;</button>
       <h3 class="wl-title" id="wlTitle">Get in the <em>queue</em>.</h3>
-      <p class="wl-sub">Leave a name and a work email. We reach out as access opens.</p>
+      <p class="wl-sub">Leave a name and an email. We reach out as access opens.</p>
       <form class="wl-form" novalidate>
         <label class="wl-label" for="wlName">Name</label>
         <input class="wl-input" id="wlName" name="name" type="text" autocomplete="name" placeholder="Your name" required />
-        <label class="wl-label" for="wlEmail">Work email</label>
-        <input class="wl-input" id="wlEmail" name="email" type="email" autocomplete="email" placeholder="you@company.com" required />
+        <label class="wl-label" for="wlEmail">Email</label>
+        <input class="wl-input" id="wlEmail" name="email" type="email" autocomplete="email" placeholder="Your email" required />
         <label class="wl-label" for="wlCompany">Company <span class="wl-opt">(optional)</span></label>
-        <input class="wl-input" id="wlCompany" name="company" type="text" autocomplete="organization" placeholder="Where you work" />
+        <input class="wl-input" id="wlCompany" name="company" type="text" autocomplete="organization" placeholder="Company, lab or school" />
         <button class="wl-submit" type="submit">Join waitlist <span aria-hidden="true">&rarr;</span></button>
         <p class="wl-note" role="status" aria-live="polite"></p>
       </form>
@@ -159,7 +159,7 @@
       e.preventDefault();
       const v = (input.value || "").trim();
       if (v && !EMAIL_RE.test(v)) {
-        if (n) { n.textContent = "Please enter a valid work email."; n.dataset.state = "err"; }
+        if (n) { n.textContent = "Please enter a valid email."; n.dataset.state = "err"; }
         input.focus();
         return;
       }
