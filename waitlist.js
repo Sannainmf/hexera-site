@@ -35,6 +35,8 @@
         <input class="wl-input" id="wlName" name="name" type="text" autocomplete="name" placeholder="Your name" required />
         <label class="wl-label" for="wlEmail">Work email</label>
         <input class="wl-input" id="wlEmail" name="email" type="email" autocomplete="email" placeholder="you@company.com" required />
+        <label class="wl-label" for="wlCompany">Company <span class="wl-opt">(optional)</span></label>
+        <input class="wl-input" id="wlCompany" name="company" type="text" autocomplete="organization" placeholder="Where you work" />
         <button class="wl-submit" type="submit">Join waitlist <span aria-hidden="true">&rarr;</span></button>
         <p class="wl-note" role="status" aria-live="polite"></p>
       </form>
@@ -43,6 +45,7 @@
   const form = overlay.querySelector(".wl-form");
   const nameInput = overlay.querySelector("#wlName");
   const emailInput = overlay.querySelector("#wlEmail");
+  const companyInput = overlay.querySelector("#wlCompany");
   const submitBtn = overlay.querySelector(".wl-submit");
   const note = overlay.querySelector(".wl-note");
   const closeBtn = overlay.querySelector(".wl-close");
@@ -85,6 +88,7 @@
 
     const name = (nameInput.value || "").trim();
     const email = (emailInput.value || "").trim().toLowerCase();
+    const company = (companyInput.value || "").trim();
 
     if (!name) { setNote("Please enter your name.", "err"); nameInput.focus(); return; }
     if (!EMAIL_RE.test(email)) { setNote("Please enter a valid email.", "err"); emailInput.focus(); return; }
@@ -103,7 +107,9 @@
           "Content-Type": "application/json",
           Prefer: "return=minimal",
         },
-        body: JSON.stringify({ name, email }),
+        /* company is nullable — send null rather than "" so blank rows stay
+           empty in the table instead of holding an empty string */
+        body: JSON.stringify({ name, email, company: company || null }),
       });
 
       if (res.status === 201) {
@@ -111,6 +117,7 @@
         form.reset();
         nameInput.disabled = true;
         emailInput.disabled = true;
+        companyInput.disabled = true;
         submitBtn.textContent = "You're in";
       } else if (res.status === 409) {
         setNote("This email is already on the list.", "ok");
