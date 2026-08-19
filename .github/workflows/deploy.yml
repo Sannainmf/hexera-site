@@ -1,15 +1,15 @@
-# Deploy hexera.so on every push to main.
+# Deploy hexera.ai on every push to main.
 #
 # Why a workflow instead of Vercel's native Git integration: this repo is
 # private AND owned by an organisation, which Vercel's Hobby plan refuses to
 # connect. The CLI uploads the build directly and never touches that
 # integration, so it works on Hobby. Deploys target the existing project by
-# VERCEL_PROJECT_ID, which is what keeps the hexera.so domain attached.
+# VERCEL_PROJECT_ID, which is what keeps the hexera.ai domain attached.
 #
 # Required repo secrets (Settings -> Secrets and variables -> Actions):
 #   VERCEL_TOKEN       account token, Vercel -> Account Settings -> Tokens
 #   VERCEL_ORG_ID      Vercel -> Account/Team Settings -> General
-#   VERCEL_PROJECT_ID  the EXISTING hexera.so project -> Settings -> General
+#   VERCEL_PROJECT_ID  the EXISTING hexera.ai project -> Settings -> General
 name: Deploy to Vercel
 
 on:
