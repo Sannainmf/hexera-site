@@ -358,7 +358,7 @@
         groups: [
           { pl: fins, col: TEAL, a: 0.22, w: 0.8, flat: true },
           { pl: lattice, col: TEAL, a: 0.26, w: 0.8, flat: true },
-          { pl: accents, col: GOLD, a: 0.85, w: 1.4, glow: true, track: true },
+          { pl: accents, col: GOLD, a: 0.85, w: 1.4, glow: true },
         ],
       };
     };
@@ -522,7 +522,7 @@
           { pl: ledge, col: TEAL, a: 0.42, w: 0.8, flat: true },
           { pl: ledgeEdge, col: INK, a: 0.55, w: 1.1, flat: true },
           { pl: bridges, col: GOLD, a: 0.60, w: 1.1 },
-          { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true, track: true },
+          { pl: rings, col: GOLD, a: 0.85, w: 1.2, glow: true },
         ],
       };
     };
@@ -580,7 +580,7 @@
         groups: [
           { pl: [base], col: GOLD, a: 0.35, w: 1.2 },
           { pl: dias, col: TEAL, a: 0.09, w: 0.8, flat: true },
-          { pl: rows, col: TEAL, a: 0.22, w: 0.8, hgt: hRows, track: true },
+          { pl: rows, col: TEAL, a: 0.22, w: 0.8, hgt: hRows },
           { pl: cols, col: TEAL, a: 0.22, w: 0.8, hgt: hCols },
           { pl: contours, col: GOLD, a: 0.40, w: 1, flat: true },
         ],
@@ -707,7 +707,7 @@
           { pl: backR, col: TEAL, a: 0.10, w: 0.8, flat: true },
           { pl: vanes, col: TEAL, a: 0.14, w: 0.8, flat: true },
           { pl: rim, col: GOLD, a: 0.18, w: 0.8, flat: true },
-          { pl: hotPl, col: TEAL, a: 0.22, w: 0.8, pol: hotPol, track: true },
+          { pl: hotPl, col: TEAL, a: 0.22, w: 0.8, pol: hotPol },
           { pl: holes, col: TEAL, a: 0.30, w: 0.8, flat: true },
           { pl: hub, col: GOLD, a: 0.55, w: 1.1 },
           { pl: cal, col: GOLD, a: 0.85, w: 1.8, glow: true, noSpin: true },
@@ -721,7 +721,7 @@
     const PAD_ANG = -0.62;                           // caliper pad centre angle
 
     /* ---- state ---- */
-    let W = 0, H = 0, sref = 0, lastBB = null, lastPj = null;
+    let W = 0, H = 0, sref = 0, lastPj = null;
     const lastRot = { y: 0, x: 0 };
     // blood cells riding the stent lumen (biomedical phase only)
     const BLOOD = Array.from({ length: 12 }, (_, i) => ({
@@ -743,7 +743,6 @@
       canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       sref = Math.min(W, H);
-      lastBB = { x0: W * 0.25, y0: H * 0.25, x1: W * 0.75, y1: H * 0.75 };
       for (const k in REAL) if (REAL[k].V) renderReal(REAL[k]);
     };
 
@@ -769,35 +768,11 @@
       if (trackBB) {
         lastPj = { pj };
         lastRot.y = rotY; lastRot.x = rotX;
-        lastBB.x0 = 1e9; lastBB.y0 = 1e9; lastBB.x1 = -1e9; lastBB.y1 = -1e9;
       }
-      const tb = (p2) => {
-        if (p2[0] < lastBB.x0) lastBB.x0 = p2[0];
-        if (p2[0] > lastBB.x1) lastBB.x1 = p2[0];
-        if (p2[1] < lastBB.y0) lastBB.y0 = p2[1];
-        if (p2[1] > lastBB.y1) lastBB.y1 = p2[1];
-      };
       const breath = 0.74 + 0.26 * Math.sin(t * 0.0011);
       const NB = 8;                              // colour-quantisation buckets
       for (const g of M.groups) {
         const spun = M.spinRate ? g.noSpin !== true : false;
-        const tk = trackBB && g.track === true;
-        if (g.occ) {
-          // hidden-line removal with the EXACT silhouette: fill the union of
-          // every station ring's projected polygon (nonzero winding), so the
-          // opaque region hugs the bent tube instead of hull-bridging it
-          ctx.fillStyle = "rgba(9,7,3," + (0.96 * alphaMul).toFixed(3) + ")";
-          ctx.beginPath();
-          for (const pl of g.pl) {
-            for (let k = 0; k < pl.length; k++) {
-              const p3 = pj(pl[k], spun);
-              k ? ctx.lineTo(p3[0], p3[1]) : ctx.moveTo(p3[0], p3[1]);
-            }
-            ctx.closePath();
-          }
-          ctx.fill();
-          continue;
-        }
         ctx.lineWidth = g.w;
         if (g.pol || g.hgt) {
           /* field-coloured lattice (rotor heat / terrain altitude): quantise
@@ -808,10 +783,8 @@
           for (let pi = 0; pi < g.pl.length; pi++) {
             const pl = g.pl[pi];
             let prev = pj(pl[0], spun);
-            if (tk) tb(prev);
             for (let k = 1; k < pl.length; k++) {
               const cur = pj(pl[k], spun);
-              if (tk) tb(cur);
               let mix;
               if (g.pol) {
                 const po = g.pol[pi][k];
@@ -847,7 +820,6 @@
             const pl = g.pl[pi];
             for (let k = 0; k < pl.length; k++) {
               const p2 = pj(pl[k], spun);
-              if (tk) tb(p2);
               k ? ctx.lineTo(p2[0], p2[1]) : ctx.moveTo(p2[0], p2[1]);
             }
           }
@@ -864,7 +836,6 @@
             for (let k = 0; k < pl.length; k++) {
               const p2 = pj(pl[k], spun);
               kSum += p2[2];
-              if (tk) tb(p2);
               k ? path.lineTo(p2[0], p2[1]) : path.moveTo(p2[0], p2[1]);
             }
             const dep = clamp(0.45 + (kSum / pl.length - 0.96) * 5, 0.30, 1.15);
@@ -902,14 +873,13 @@
       e.ready = false; e.V = null; e.E = null; e.pj = null; e.bb = null;
     }
 
-    const renderReal = (e, pose) => {
+    const renderReal = (e) => {
       if (!e.V || !W || !H) return;
       const base = e.baked || {};
-      const p = pose || {};
-      const ry = p.ry !== undefined ? p.ry : (base.ry !== undefined ? base.ry : e.ry);
-      const rx = p.rx !== undefined ? p.rx : (base.rx !== undefined ? base.rx : e.rx);
-      const scv = p.sc !== undefined ? p.sc : (base.sc !== undefined ? base.sc : e.sc);
-      const cyf = p.cy !== undefined ? p.cy : (base.cy !== undefined ? base.cy : e.cy);
+      const ry = base.ry !== undefined ? base.ry : e.ry;
+      const rx = base.rx !== undefined ? base.rx : e.rx;
+      const scv = base.sc !== undefined ? base.sc : e.sc;
+      const cyf = base.cy !== undefined ? base.cy : e.cy;
       e.baked = { ry: ry, rx: rx, sc: scv, cy: cyf };
       const dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
       e.canvas.width = Math.round(W * dpr); e.canvas.height = Math.round(H * dpr);
@@ -1125,52 +1095,6 @@
           }
         }
       }
-      /* captions: free text at a 3D anchor (assembly notes, no tri-count) */
-      if (e.captions) {
-        g.textBaseline = "top";
-        for (const C of e.captions) {
-          const s = e.pj.pj(C.p);
-          g.fillStyle = "rgba(150,162,180," + (C.al || 0.6) + ")";
-          g.font = "500 " + (C.sz || 13) + "px 'Geist Mono', ui-monospace, monospace";
-          g.fillText(C.text, s[0], s[1]);
-        }
-      }
-      /* legend: a screen-space colour ramp with a title + end labels */
-      if (e.legend) {
-        const lg = e.legend, lx = lg.x * W, ly = lg.y * H, bw = (lg.w || 0.14) * W, bh = 13;
-        const rampAt = (t) => {
-          const st = lg.stops;
-          for (let k = 0; k < st.length - 1; k++) {
-            if (t <= st[k + 1][0]) {
-              const f = (t - st[k][0]) / (st[k + 1][0] - st[k][0] + 1e-9);
-              const a = st[k][1].split(",").map(Number), b = st[k + 1][1].split(",").map(Number);
-              return a.map((v, i) => Math.round(v + (b[i] - v) * f)).join(",");
-            }
-          }
-          return st[st.length - 1][1];
-        };
-        g.textBaseline = "top";
-        g.fillStyle = "rgba(150,160,175,0.85)"; g.font = "500 14px 'Geist Mono', ui-monospace, monospace";
-        g.fillText(lg.title || "", lx, ly - 24);
-        const N = 72, seg = bw / N;
-        for (let i = 0; i < N; i++) { g.fillStyle = "rgb(" + rampAt(i / (N - 1)) + ")"; g.fillRect(lx + i * seg, ly, seg + 1, bh); }
-        g.fillStyle = "rgba(142,152,166,0.8)"; g.font = "13px 'Geist Mono', ui-monospace, monospace";
-        g.fillText(lg.lo || "", lx, ly + bh + 5);
-        if (lg.hi) g.fillText(lg.hi, lx + bw + 12, ly + bh + 5);
-      }
-      /* screen-space axis triad, oriented by the scene camera */
-      if (e.sgizmo) {
-        const gz = e.sgizmo, sx = gz.x * W, sy = gz.y * H, o = e.pj.pj([0, 0, 0]);
-        g.textBaseline = "top";
-        for (const [d, c, lab] of [[[1, 0, 0], "206,96,74", "x"], [[0, -1, 0], "120,182,120", "y"], [[0, 0, 1], "92,132,206", "z"]]) {
-          const p = e.pj.pj([d[0] * 0.3, d[1] * 0.3, d[2] * 0.3]);
-          const ex = p[0] - o[0], ey = p[1] - o[1];
-          g.strokeStyle = "rgb(" + c + ")"; g.lineWidth = 2;
-          g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + ex, sy + ey); g.stroke();
-          g.fillStyle = "rgb(" + c + ")"; g.font = "13px 'Geist Mono', ui-monospace, monospace";
-          g.fillText(lab, sx + ex + 3, sy + ey - 6);
-        }
-      }
       /* annotations: screen-space engineering callouts (arrows / arcs / text)
          in an accent colour, e.g. the freestream + angle-of-attack marker */
       if (e.annot && !PORT) {   /* landscape garnish; on phones it lands on the geometry */
@@ -1207,7 +1131,6 @@
         lastPj = e.pj;
         lastRot.y = b2.ry !== undefined ? b2.ry : e.ry;
         lastRot.x = b2.rx !== undefined ? b2.rx : e.rx;
-        lastBB = e.bb;
       }
       /* entries with pulse beat at the same 72bpm as the blood cells and
          the trace: a sub-1% scale throb about the model's own centre plus
@@ -1272,7 +1195,7 @@
           e.V = new Float32Array(d.v.length);
           for (let i = 0; i < d.v.length; i++) e.V[i] = d.v[i] / 32767;
           e.E = Int32Array.from(d.e);
-          if (d.grid) { e.grid = d.grid; e.gy = d.gy; e.labels = d.labels; e.boxes = d.boxes; e.gizmo = d.gizmo; e.groups = d.groups; e.captions = d.captions; e.legend = d.legend; e.sgizmo = d.sgizmo; e.annot = d.annot; }
+          if (d.grid) { e.grid = d.grid; e.gy = d.gy; e.labels = d.labels; e.boxes = d.boxes; e.gizmo = d.gizmo; e.groups = d.groups; e.annot = d.annot; }
           /* the bake burns TEAL into an offscreen bitmap (ground grid, boxes,
              untinted meshes), so the palette has to be right BEFORE it runs */
           readPalette();
@@ -1391,15 +1314,12 @@
     } else {
       build();
 
-      /* debug override for headless verification: ?specp=0.375 pins the scrub */
-      const dbgP = parseFloat(new URLSearchParams(location.search).get("specp"));
       let p = 0, lastFade = "";
       /* read the scrub INSIDE the draw loop, not from a scroll listener:
          the value and the frame it draws then come from the same moment.
          Reading it a listener earlier meant the canvas was drawn against a
          stale p on phones, which is what made the bench judder. */
       const readScroll = () => {
-        if (!isNaN(dbgP)) { p = clamp(dbgP, 0, 1); return; }
         const r = spec.getBoundingClientRect();
         /* stage height, not innerHeight: the iOS URL-bar toggle flips
            innerHeight ~97px mid-scroll and made the scrub p hop */

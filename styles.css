@@ -272,7 +272,7 @@ a { color: inherit; text-decoration: none; }
 .hero__demo { animation-delay: 0.34s; transform: translateY(1.6rem); }
 @keyframes rise { to { opacity: 1; transform: translateY(0); } }
 
-/* Hero CTA entrance, the two buttons clip-wipe in left-to-right, staggered */
+/* Hero CTA entrance: the button clip-wipes in left-to-right */
 @keyframes ha-wipe-in {
   from { opacity: 0; clip-path: inset(0 100% 0 0); filter: blur(3px); }
   60%  { opacity: 1; }
@@ -285,7 +285,6 @@ a { color: inherit; text-decoration: none; }
   animation-delay: calc(0.45s + var(--i, 0) * 0.12s);
 }
 .hero__actions.ha-wipe .btn:nth-child(1) { --i: 0; }
-.hero__actions.ha-wipe .btn:nth-child(2) { --i: 1; }
 @media (prefers-reduced-motion: reduce) {
   .hero__actions.ha-wipe .btn { animation: none; opacity: 1; clip-path: none; filter: none; }
 }
@@ -422,8 +421,6 @@ a { color: inherit; text-decoration: none; }
 /* Lenis smooth-scroll plumbing */
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
-.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
-.lenis.lenis-stopped { overflow: hidden; }
 .lenis.lenis-smooth iframe { pointer-events: none; }
 
 /* ============================================================
@@ -572,7 +569,6 @@ html.lenis, html.lenis body { height: auto; }
 }
 .fend__submit:hover { background: var(--gold-soft); transform: translateY(-1px); }
 .fend__note { min-height: 1.1em; margin: 0; font-size: 0.78rem; letter-spacing: 0.02em; color: var(--muted); }
-.fend__note[data-state="ok"] { color: var(--teal); }
 .fend__note[data-state="err"] { color: var(--crimson); }
 
 .fend__foot { width: min(100%, 1280px); margin-inline: auto; display: flex; flex-direction: column; gap: clamp(1.8rem, 4vh, 2.6rem); }
