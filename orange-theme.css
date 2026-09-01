@@ -27,6 +27,7 @@
 
   /* cool the canvas slightly: near-neutral blacks instead of amber-blacks */
   --bg:    #0d0d0c;
+  --bg-rgb: 13,13,12;   /* keeps the nav + section fades on the same black */
   --bg-2:  #131312;
   --black: #0d0d0c;
   --green: #141413;

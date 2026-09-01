@@ -123,65 +123,55 @@
     }
   }
 
-  /* ---------- orbital process ring ----------
-     The section is tall (≈360vh) with a sticky stage. Scroll progress
-     drives a marker around the ring; four phases drive the copy, the
-     active node, and the tab bar. */
-  const ring = document.querySelector(".ring-sec");
-  if (ring) {
-    const svgMarker = ring.querySelector(".ring-marker");
-    const prog = ring.querySelector(".ring-prog");
-    const nodes = Array.from(ring.querySelectorAll(".ring-node"));
-    const phaseItems = Array.from(ring.querySelectorAll(".ring-label"));
-    const N = phaseItems.length || 4;
-    const centerWord = ring.querySelector("[data-ring-word]");
-    const centerCount = ring.querySelector("[data-ring-count]");
-    const logLines = Array.from(ring.querySelectorAll(".ring-log__ln"));
-    const phaseNames = phaseItems.map((el) => (el.querySelector("[data-phase-name]") || el).textContent.trim());
-
-    const CX = 200, CY = 200, R = 150;
-    const CIRC = 2 * Math.PI * R;
-    if (prog) { prog.style.strokeDasharray = CIRC; prog.style.strokeDashoffset = CIRC; }
-
-    let curPhase = -1, lastMx = "", lastMy = "", lastOff = "";
-    const setPhase = (idx) => {
-      if (idx === curPhase) return;     // phase only flips 4× across the whole scrub
-      curPhase = idx;
-      phaseItems.forEach((el, i) => el.classList.toggle("active", i === idx));
-      nodes.forEach((el, i) => el.classList.toggle("active", i === idx));
-      logLines.forEach((el, i) => el.classList.toggle("on", i === idx));
-      if (centerWord && phaseNames[idx]) centerWord.textContent = phaseNames[idx];
-      if (centerCount) centerCount.textContent = String(idx + 1).padStart(2, "0") + " / " + String(N).padStart(2, "0");
+  /* ---------- pipeline: reveal each phase as it scrolls into view ----------
+     This used to be a 600vh pinned ring with a marker scrubbing around a
+     dial. It read as a scroll trap: six screens of hijack for four
+     sentences. Now the phases are static and simply reveal in sequence,
+     and each one lights its line in the console as it lands. */
+  const flow = document.querySelector(".flow");
+  if (flow) {
+    const steps = Array.from(flow.querySelectorAll(".flow__step"));
+    const logLines = Array.from(flow.querySelectorAll(".ring-log__ln"));
+    const light = (i) => {
+      steps[i].classList.add("is-in");
+      if (logLines[i]) logLines[i].classList.add("on");
     };
+    if (reduce || !("IntersectionObserver" in window)) {
+      steps.forEach((_, i) => light(i));
+    } else {
+      flow.querySelector(".flow__steps").classList.add("is-armed");
+      /* Arming sets the steps to opacity 0, so the observer failing would
+         hide the copy outright. It always reports once on observe(), so
+         this net only ever fires if it genuinely never ran. */
+      let reported = false;
+      setTimeout(() => { if (!reported) steps.forEach((_, i) => light(i)); }, 1500);
+      const io = new IntersectionObserver((entries) => {
+        reported = true;
+        entries.forEach((en) => {
+          if (!en.isIntersecting) return;
+          const i = steps.indexOf(en.target);
+          /* stagger by position so a fast scroll still cascades */
+          setTimeout(() => light(i), (i % 4) * 90);
+          io.unobserve(en.target);
+        });
+      }, { rootMargin: "0px 0px -12% 0px", threshold: 0.3 });
+      steps.forEach((el) => io.observe(el));
+    }
+  }
 
-    /* cached: offsetHeight forces a layout flush, and this runs every frame */
-    let ringH = ring.offsetHeight;
-    window.addEventListener("resize", () => { ringH = ring.offsetHeight; });
-    const update = () => {
-      const rect = ring.getBoundingClientRect();
-      const scrollable = ringH - window.innerHeight;
-      const p = clamp(-rect.top / Math.max(scrollable, 1), 0, 1);
-      // marker travels the full circle starting at the top (-90°)
-      const ang = (-90 + p * 360) * (Math.PI / 180);
-      /* each of these is an SVG paint on the main thread, at 60fps on a
-         phone they are the section's whole frame budget. Round to the
-         nearest tenth of a user unit and skip the write when it lands on
-         the same value, which it does for most frames. */
-      if (svgMarker) {
-        const mx = (CX + R * Math.cos(ang)).toFixed(1);
-        const my = (CY + R * Math.sin(ang)).toFixed(1);
-        if (mx !== lastMx) { lastMx = mx; svgMarker.setAttribute("cx", mx); }
-        if (my !== lastMy) { lastMy = my; svgMarker.setAttribute("cy", my); }
-      }
-      if (prog) {
-        const off = (CIRC * (1 - p)).toFixed(1);
-        if (off !== lastOff) { lastOff = off; prog.style.strokeDashoffset = off; }
-      }
-      const idx = clamp(Math.floor(p * N - 1e-6), 0, N - 1);
-      setPhase(idx);
+  /* ---------- scroll progress: a hairline under the nav ---------- */
+  const sprog = document.querySelector("[data-scroll-prog]");
+  if (sprog) {
+    const bar = sprog.parentElement;
+    const onProg = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const p = max > 0 ? clamp(window.scrollY / max, 0, 1) : 0;
+      sprog.style.transform = "scaleX(" + p.toFixed(4) + ")";
+      bar.classList.toggle("on", window.scrollY > 40);
     };
-    setPhase(0);
-    onScrollFrame(update, ring);
+    window.addEventListener("scroll", onProg, { passive: true });
+    window.addEventListener("resize", onProg);
+    onProg();
   }
 
   /* ---------- "Our ambition": scroll the ghosted list through the centre line ----------

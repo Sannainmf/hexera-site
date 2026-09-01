@@ -576,6 +576,9 @@ function buildObstacleMask () {
 
     const vw = canvas.clientWidth  || window.innerWidth;
     const vh = canvas.clientHeight || window.innerHeight;
+    /* no laid-out size yet (hidden tab, display:none at load): vw/vh can both
+       be 0, and 0/0 makes the mask dimensions NaN, which throws in getImageData */
+    if (!vw || !vh) return;
     const aspect = vw / vh;
 
     const mh = 512;

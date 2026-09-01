@@ -30,6 +30,7 @@
 
 :root {
   --bg:        #060402;   /* warm amber-black, the site's single dark canvas */
+  --bg-rgb:    6,4,2;     /* --bg as a triplet, for translucent nav/fades that must match it */
   --bg-2:      #0b0905;
   --ink:       oklch(0.93 0 0);
   --muted:     oklch(0.80 0 0);
@@ -109,7 +110,14 @@ a { color: inherit; text-decoration: none; }
   border-bottom: 1px solid transparent;
   transition: background 0.4s var(--ease-expo), border-color 0.4s var(--ease-expo), backdrop-filter 0.4s var(--ease-expo);
 }
-.nav.is-stuck { background: rgba(8,6,2,0.74); backdrop-filter: blur(14px) saturate(1.1); border-bottom-color: var(--line); }
+/* page scroll progress: a hairline under the nav that fills left to right */
+.scrollprog { position: fixed; top: var(--nav-h); left: 0; right: 0; height: 2px;
+  z-index: calc(var(--z-nav) - 1); background: var(--line);
+  opacity: 0; transition: opacity 0.35s var(--ease-expo); pointer-events: none; }
+.scrollprog.on { opacity: 1; }
+.scrollprog i { display: block; height: 100%; transform: scaleX(0); transform-origin: left center;
+  background: var(--gold); box-shadow: 0 0 12px rgba(255,79,0,0.45); will-change: transform; }
+.nav.is-stuck { background: rgba(var(--bg-rgb), 0.9); backdrop-filter: blur(14px) saturate(1.1); border-bottom-color: var(--line); }
 .brand { display: inline-flex; align-items: center; gap: 0.6rem; color: var(--ink); }
 .brand__mark { flex: none; display: block; height: 24px; width: auto; }
 .brand__word { font-family: var(--font-body); font-weight: 600; letter-spacing: 0.24em; font-size: 0.95rem; padding-left: 0.05em; }
@@ -138,7 +146,7 @@ a { color: inherit; text-decoration: none; }
 .btn span { transition: transform 0.3s var(--ease-expo); }
 .btn:hover { transform: translateY(-2px); }
 .btn:hover span { transform: translate(2px, -2px); }
-.btn--ghost { font-size: 0.9rem; padding: 0.7em 1.1em; color: var(--ink); background: rgba(8,6,2,0.42); backdrop-filter: blur(6px); }
+.btn--ghost { font-size: 0.9rem; padding: 0.7em 1.1em; color: var(--ink); background: rgba(var(--bg-rgb), 0.42); backdrop-filter: blur(6px); }
 .btn--ghost:hover { border-color: var(--teal); box-shadow: 0 0 0 1px rgba(15,182,172,0.4), 0 8px 30px rgba(15,182,172,0.12); }
 /* Mono nav CTA, sets the label in the same data-readout voice as the nav links */
 .nav__cta.cta-mono { font-family: var(--font-mono); font-weight: 500; font-size: 0.682rem; letter-spacing: 0.16em; text-transform: uppercase; padding-right: 1.1em; }
@@ -155,7 +163,7 @@ a { color: inherit; text-decoration: none; }
 /* fade the hero's background down to the section black so there's no hard seam */
 .hero::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 42vh;
-  background: linear-gradient(to bottom, rgba(13,10,4,0), var(--black));
+  background: linear-gradient(to bottom, rgba(var(--bg-rgb), 0), var(--black));
   z-index: -1; pointer-events: none;
 }
 .hero__grid {
@@ -279,7 +287,7 @@ a { color: inherit; text-decoration: none; }
 .cursor.show { opacity: 1; }
 .demo__replay {
   position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 25; display: inline-flex; align-items: center; gap: 0.4em;
-  font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.1em; background: rgba(8,6,2,0.7); color: var(--muted);
+  font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.1em; background: rgba(var(--bg-rgb), 0.7); color: var(--muted);
   border: 1px solid var(--line-2); border-radius: 99px; padding: 0.4em 0.8em; cursor: pointer;
   opacity: 0; pointer-events: none; transition: opacity 0.4s, color 0.25s, border-color 0.25s; backdrop-filter: blur(6px);
 }
@@ -318,8 +326,8 @@ a { color: inherit; text-decoration: none; }
 .mesh-experience-sticky { position: sticky; top: 0; height: 100vh; height: 100svh; display: flex; align-items: center; justify-content: center; overflow: hidden;
   background: var(--black); }   /* plain black, matches the section before it */
 #meshCanvas3D { position: absolute; inset: 0; width: 100%; height: 100%; }
-.mesh-experience-sticky::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to bottom, var(--black), rgba(13,10,4,0)); z-index: 10; pointer-events: none; }
-.mesh-experience-sticky::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to top, var(--black), rgba(13,10,4,0)); z-index: 10; pointer-events: none; }
+.mesh-experience-sticky::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to bottom, var(--black), rgba(var(--bg-rgb), 0)); z-index: 10; pointer-events: none; }
+.mesh-experience-sticky::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to top, var(--black), rgba(var(--bg-rgb), 0)); z-index: 10; pointer-events: none; }
 .mesh-loading { position: absolute; inset: 0; z-index: 30; background: var(--black); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem; transition: opacity 0.8s ease; }
 .mesh-loading.hidden { opacity: 0; pointer-events: none; }
 .mesh-loading-spinner { width: 32px; height: 32px; border: 3px solid rgba(15,182,172,0.15); border-top-color: var(--teal); border-radius: 50%; animation: spin 0.7s linear infinite; }
@@ -508,50 +516,62 @@ html.lenis, html.lenis body { height: auto; }
 .h2 { font-family: var(--font-display); font-weight: 300; font-size: clamp(2rem, 1.3rem + 2.4vw, 3.6rem); line-height: 1.04; letter-spacing: 0; margin: 1rem 0 0; text-wrap: balance; }
 .h2 em { font-style: normal; color: var(--gold); }
 /* ============================================================
-   ORBITAL PROCESS RING, pinned section; a marker travels the
-   ring as you scroll, the left copy + bottom tabs track phase.
+   PIPELINE, the four phases as a static, scroll-revealed rail.
+   Replaces a 600vh pinned ring that scrubbed a marker around a dial:
+   it looked good but hijacked the scroll for six screens to deliver
+   four sentences. Same content, read at the reader's own pace.
    ============================================================ */
-/* no overflow clipping here at any width where .ring-sticky is sticky, an
-   overflow-clip ancestor drops the sticky off the scrolling thread and it
-   judders on touch. The oversized dial art only needs clipping in the
-   761-1100px band, and that is exactly the band where .ring-sticky is
-   position: static (see the 1100px block), so the two never overlap. */
-.ring-sec { position: relative; height: 360vh; z-index: var(--z-content); }
-@media (min-width: 761px) and (max-width: 1100px) { .ring-sec { overflow-x: clip; } }
-.ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); }
-/* streamline backdrop: static artwork with the site background color baked
-   into everything except the smoke, painted plainly, no blend modes, no
-   ramps. Stretched to the box so the baked edges land exactly on the
-   section edges; every seam is the same #0d0d0c meeting itself. */
-.ring-sticky::before { content: ""; position: absolute; inset: 0; z-index: 0;
-  background: url("assets/ring-bg5.png") center / 100% 100% no-repeat; }
-.ring-grid { position: relative; z-index: 1; width: min(100%, 1280px); margin-inline: auto; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 5rem); align-items: center; }
+.flow { position: relative; z-index: var(--z-content); background: var(--bg);
+  padding: clamp(5rem, 12vh, 9rem) var(--pad-x); }
+.flow__inner { width: min(100%, 1280px); margin-inline: auto; }
+.flow__head { max-width: 46ch; }
+.flow__lede { margin: 1.25rem 0 0; color: var(--muted); line-height: 1.6;
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.12rem); text-wrap: pretty; }
 
-.ring-copy { max-width: 30ch; }
-.ring-lede { margin: 1.25rem 0 0; color: var(--muted); line-height: 1.6; font-size: clamp(1rem, 0.95rem + 0.3vw, 1.12rem); }
-.ring-stage { position: relative; display: grid; place-items: center; }
-.ring-dial { position: relative; width: min(100%, 360px); margin-inline: auto; }
-.ring-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.flow__steps { list-style: none; margin: clamp(3rem, 8vh, 5.5rem) 0 0; padding: 0;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(1.25rem, 3vw, 2.75rem); }
 
-/* four labels around the dial, exactly two type sizes: a title and a description */
-.ring-label { position: absolute; display: flex; flex-direction: column; gap: 0.35rem; width: 11rem; opacity: 0.4; transition: opacity 0.45s var(--ease-expo); pointer-events: none; }
-.ring-label.active { opacity: 1; }
-.ring-label__t { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; line-height: 1.05; color: var(--ink); }
-.ring-label.active .ring-label__t { color: var(--gold); }
-.ring-label__d { font-size: 0.9rem; line-height: 1.5; color: var(--muted); }
-.ring-label--top    { left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 0.6rem; align-items: center; text-align: center; }
-.ring-label--bottom { left: 50%; top: 100%; transform: translateX(-50%); margin-top: 0.6rem; align-items: center; text-align: center; }
-.ring-label--right  { left: 100%; top: 50%; transform: translateY(-50%); margin-left: 0.6rem; align-items: flex-start; text-align: left; }
-.ring-label--left   { right: 100%; top: 50%; transform: translateY(-50%); margin-right: 0.6rem; align-items: flex-end; text-align: right; }
-.ring-track { fill: none; stroke: var(--line-2); stroke-width: 1; }
-.ring-prog { fill: none; stroke: var(--teal-deep); stroke-width: 2; stroke-linecap: round; filter: drop-shadow(0 0 6px rgba(10,139,132,0.55)); transition: stroke-dashoffset 0.3s linear; }
-.ring-node { fill: var(--bg); stroke: var(--line-2); stroke-width: 1.5; transition: stroke 0.4s, fill 0.4s; }
-.ring-node.active { stroke: var(--teal); fill: rgba(15,182,172,0.15); }
-.ring-marker { fill: var(--gold); filter: drop-shadow(0 0 8px rgba(255,186,0,0.8)); }
+/* each step carries its own segment of the rail, so the four together read
+   as one continuous line with a node at every phase */
+.flow__step { position: relative; padding-top: 2.1rem; }
+/* the reveal is opt-in: pages.js adds .is-armed only once it can actually
+   drive it. Without JS, or if IntersectionObserver never fires, the steps
+   stay visible rather than sitting at opacity 0 forever. */
+.flow__steps.is-armed .flow__step { opacity: 0; transform: translateY(14px);
+  transition: opacity 0.6s var(--ease-expo), transform 0.6s var(--ease-expo); }
+.flow__steps.is-armed .flow__step.is-in { opacity: 1; transform: none; }
+.flow__step::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: var(--line-2); }
+.flow__step::after { content: ""; position: absolute; top: -3.5px; left: 0;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--bg);
+  border: 1px solid var(--line-2);
+  transition: background 0.5s var(--ease-expo), border-color 0.5s var(--ease-expo), box-shadow 0.5s var(--ease-expo); }
+.flow__step.is-in::after { background: var(--gold); border-color: var(--gold);
+  box-shadow: 0 0 10px rgba(255,79,0,0.45); }
+
+.flow__idx { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.2em;
+  color: var(--faint); transition: color 0.5s var(--ease-expo); }
+.flow__step.is-in .flow__idx { color: var(--gold); }
+.flow__name { margin: 0.5rem 0 0; font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(1.4rem, 1.1rem + 0.8vw, 1.9rem); line-height: 1.05; color: var(--ink); }
+.flow__desc { margin: 0.6rem 0 0; color: var(--muted); font-size: 0.95rem; line-height: 1.55; text-wrap: pretty; }
+.flow__meta { margin: 0.9rem 0 0; font-family: var(--font-mono); font-size: 0.62rem;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+
+@media (max-width: 900px) {
+  /* the rail turns vertical and runs down the left edge */
+  .flow__steps { grid-template-columns: 1fr; gap: 0; }
+  .flow__step { padding: 1.6rem 0 1.6rem 1.6rem; }
+  .flow__step::before { top: 0; bottom: 0; left: 0; right: auto; width: 1px; height: auto; }
+  .flow__step::after { top: 1.75rem; left: -3.5px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow__steps.is-armed .flow__step { opacity: 1; transform: none; transition: none; }
+}
 
 /* Rehaan's phase console: demo-mesh log under the copy, phases light up
    in step with the dial */
-.ring-console { margin-top: 2.2rem; max-width: 21rem; border-top: 3px solid #2a2319; border-bottom: 3px solid #2a2319;
+.ring-console { margin-top: clamp(3rem, 7vh, 4.5rem); max-width: 21rem; border-top: 3px solid #2a2319; border-bottom: 3px solid #2a2319;
   padding: 1rem 0 0.95rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .ring-console__head { margin: 0 0 0.8rem; color: var(--faint); }
 .ring-log { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -619,88 +639,8 @@ html.lenis, html.lenis body { height: auto; }
   .fend__legal a { padding: 0.6em 0.2em; }
 }
 
-/* ---- responsive for the site system ---- */
-@media (max-width: 1000px) {
-  .ring-grid { grid-template-columns: 1fr; }
-  .ring-sec { height: auto; }
-  .ring-sticky { position: static; min-height: auto; }
-  .ring-stage { margin-top: 2.5rem; }
-  .ring-dial { width: min(100%, 300px); }
-  /* no room to orbit on narrow screens: the four phases drop below the ring as a stacked legend */
-  .ring-label { position: static; transform: none; width: 100%; opacity: 1; margin: 1.25rem 0 0; text-align: left; align-items: flex-start; }
-  .ring-label__t { font-size: 1.2rem; }
-  .ring-label__d { font-size: 0.88rem; }
 }
 
-/* the process ring sits on the warm canvas on the home page (covers the fixed hero
-   art); taller than the inner-page default so the wheel loop scrubs slower */
-.home-flow .ring-sec { background: var(--bg); height: 600vh; }
-
-/* dial detailing on the home ring: minor/major ticks, motion arrows, live centre word */
-.ring-tick { stroke-linecap: round; transition: stroke 0.35s, opacity 0.35s; }
-.ring-tick--min { stroke: var(--teal); stroke-width: 1.4; opacity: 0.45; }
-.ring-tick--maj { stroke: var(--gold); stroke-width: 2; opacity: 0.85; }
-.ring-arrow { fill: none; stroke: var(--faint); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0.55; }
-.ring-center-word { font-family: var(--font-mono); font-weight: 500; font-size: 21px; letter-spacing: 0.24em; fill: var(--ink); text-transform: uppercase; }
-.ring-center-count { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.28em; fill: var(--gold); }
-
-/* mid-width screens: the orbit labels hang outside the dial and clip the
-   viewport edge below ~1460px, scale the dial + labels with the viewport */
-@media (max-width: 1460px) and (min-width: 1101px) {
-  .ring-label { width: clamp(7.5rem, 8vw + 2rem, 11rem); }
-  .ring-label__t { font-size: clamp(1.2rem, 1vw + 0.55rem, 1.5rem); }
-  .ring-dial { width: min(100%, clamp(290px, 24vw, 360px)); }
-}
-/* no horizontal room to orbit below ~1100px: the four phases stack below
-   the ring (same treatment the 900px block gives phones). Placed after the
-   .home-flow height override so `height: auto` wins on the home page too -
-   without it the home ring keeps its 600vh scrub runway while unpinned and
-   phones scroll through five screens of black. */
-@media (max-width: 1100px) {
-  .ring-grid { grid-template-columns: 1fr; }
-  .ring-sec, .home-flow .ring-sec { height: auto; }
-  .ring-sticky { position: static; min-height: auto; }
-  /* the backdrop art is baked for a pinned 100vh box; stretched over the
-     tall stacked section it smears ~5:1. Move it behind the dial instead:
-     natural 1.7917 aspect, oversized, centred on the wheel, sides run out
-     off-screen, painted under the text (negative z). */
-  .ring-sticky::before { content: none; }
-  .ring-stage { position: relative; }
-  .ring-stage::before { content: ""; position: absolute; z-index: -1;
-    left: 50%; top: 150px; transform: translate(-50%, -50%);
-    width: min(170vw, 720px); height: calc(min(170vw, 720px) / 1.7917);
-    background: url("assets/ring-bg5.png") center / 100% 100% no-repeat;
-    pointer-events: none; }
-  .ring-stage { margin-top: 2.5rem; }
-  .ring-dial { width: min(100%, 300px); }
-  .ring-label { position: static; transform: none; width: 100%; opacity: 1; margin: 1.25rem 0 0; text-align: left; align-items: flex-start; }
-  .ring-label__t { font-size: 1.2rem; }
-  .ring-label__d { font-size: 0.88rem; }
-}
-/* phones: pin the loop again on a shorter runway, the dot orbits over ~2
-   screens of scroll and the four labels collapse into ONE crossfading
-   description box under the dial (same grid cell, .active fades in) that
-   updates at each checkpoint. 761-1100px keeps the static stacked list. */
-@media (max-width: 760px) {
-  /* the marker's speed is set by this height alone (the scrub normalises by
-     offsetHeight), so a taller runway = a slower orbit */
-  .ring-sec, .home-flow .ring-sec { height: 460vh; }
-  .ring-sticky { position: sticky; top: 0; min-height: auto; height: 100vh; height: 100svh;
-    align-items: flex-start; padding: calc(var(--nav-h) + 0.75rem) var(--pad-x) 1.25rem; overflow: hidden; }
-  .ring-stage { margin-top: 1.25rem; }
-  .ring-dial { width: min(100%, 300px, 38svh); display: grid; }
-  .ring-svg { grid-column: 1; grid-row: 1; }
-  .ring-label { grid-column: 1; grid-row: 2; width: 100%; min-height: 6.5rem; opacity: 0; margin: 0.75rem 0 0;
-    text-align: center; align-items: center; transition: opacity 0.45s var(--ease-expo); }
-  .ring-label.active { opacity: 1; }
-}
-/* short viewports: shrink the dial + label type so the top/bottom phase
-   labels clear the nav and the viewport bottom while the section is pinned */
-@media (max-height: 720px) and (min-width: 1101px) {
-  .ring-dial { width: min(100%, 296px); }
-  .ring-label__t { font-size: 1.25rem; }
-  .ring-label__d { font-size: 0.82rem; }
-}
 
 /* ============================================================
    INDUSTRIES, four workbenches. One full-viewport sticky stage;

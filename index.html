@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=55" />
+  <link rel="stylesheet" href="styles.css?v=57" />
   <link rel="stylesheet" href="orange-theme.css?v=36" />
 </head>
 <body>
@@ -47,6 +47,8 @@
       <a class="btn btn--ghost nav__cta cta-mono" href="contact.html">Join waitlist <span aria-hidden="true">↗</span></a>
     </div>
   </header>
+
+  <div class="scrollprog" aria-hidden="true"><i data-scroll-prog></i></div>
 
   <main class="hero" id="top">
     <div class="hero__grid">
@@ -146,93 +148,53 @@
   <!-- ===== Everything below the hero/mesh sits on its own studio bg ===== -->
   <div class="home-flow">
 
-  <!-- ===== Process ring: scroll-driven 4-phase wheel (tech) ===== -->
-  <section class="ring-sec" aria-label="Hexera's four-phase meshing process">
-    <div class="ring-sticky">
-      <div class="ring-grid">
-        <div class="ring-copy">
-          <h2 class="h2">Four phases,<br><em>one&nbsp;pipeline.</em></h2>
-          <p class="ring-lede">A multi-agent pipeline takes each part from raw CAD to solver-ready. Specialized agents read the geometry, mesh to intent, check their own work, and hand off.</p>
+  <!-- ===== Pipeline: four phases, static and scroll-revealed ===== -->
+  <section class="flow" aria-label="Hexera's four-phase meshing process">
+    <div class="flow__inner">
+      <header class="flow__head" data-parallax-fade>
+        <h2 class="h2">Four phases,<br><em>one&nbsp;pipeline.</em></h2>
+        <p class="flow__lede">A multi-agent pipeline takes each part from raw CAD to solver-ready. Specialized agents read the geometry, mesh to intent, check their own work, and hand off.</p>
+      </header>
 
-          <div class="ring-console" aria-hidden="true">
-            <p class="ring-console__head">demo mesh · naca 0012</p>
-            <div class="ring-log">
-              <p class="ring-log__ln"><span class="idx">01</span><span class="nm">ingest</span></p>
-              <p class="ring-log__ln"><span class="idx">02</span><span class="nm">mesh</span></p>
-              <p class="ring-log__ln"><span class="idx">03</span><span class="nm">verify</span></p>
-              <p class="ring-log__ln"><span class="idx">04</span><span class="nm">deliver</span></p>
-            </div>
-            <p class="ring-console__strip">
-              <span><span class="k">nodes</span> <span class="v">86,747</span></span>
-              <span><span class="k">elements</span> <span class="v">172,874</span></span>
-            </p>
-          </div>
+      <ol class="flow__steps">
+        <li class="flow__step">
+          <span class="flow__idx">01</span>
+          <h3 class="flow__name">Ingest</h3>
+          <p class="flow__desc">Opens the CAD, heals gaps, tags the walls that matter.</p>
+          <p class="flow__meta">STEP &middot; IGES &middot; Parasolid</p>
+        </li>
+        <li class="flow__step">
+          <span class="flow__idx">02</span>
+          <h3 class="flow__name">Mesh</h3>
+          <p class="flow__desc">Turns plain-language intent into real y+ and prism layers.</p>
+          <p class="flow__meta">y+ target &middot; prism layers</p>
+        </li>
+        <li class="flow__step">
+          <span class="flow__idx">03</span>
+          <h3 class="flow__name">Verify</h3>
+          <p class="flow__desc">Grades skewness and orthogonality, re-refines the failures.</p>
+          <p class="flow__meta">skewness &middot; orthogonality</p>
+        </li>
+        <li class="flow__step">
+          <span class="flow__idx">04</span>
+          <h3 class="flow__name">Deliver</h3>
+          <p class="flow__desc">Exports solver-ready to OpenFOAM, ANSYS or Abaqus.</p>
+          <p class="flow__meta">OpenFOAM &middot; ANSYS &middot; Abaqus</p>
+        </li>
+      </ol>
+
+      <div class="ring-console" aria-hidden="true">
+        <p class="ring-console__head">demo mesh &middot; naca 0012</p>
+        <div class="ring-log">
+          <p class="ring-log__ln"><span class="idx">01</span><span class="nm">ingest</span></p>
+          <p class="ring-log__ln"><span class="idx">02</span><span class="nm">mesh</span></p>
+          <p class="ring-log__ln"><span class="idx">03</span><span class="nm">verify</span></p>
+          <p class="ring-log__ln"><span class="idx">04</span><span class="nm">deliver</span></p>
         </div>
-
-        <div class="ring-stage">
-          <div class="ring-dial">
-          <svg class="ring-svg" viewBox="0 0 400 400" role="img" aria-label="Process ring">
-            <circle class="ring-track" cx="200" cy="200" r="150" />
-            <g transform="rotate(-90 200 200)"><circle class="ring-prog" cx="200" cy="200" r="150" /></g>
-            <g class="ring-ticks">
-              <line class="ring-tick ring-tick--min" x1="344.9" y1="238.8" x2="353.6" y2="241.2"/>
-              <line class="ring-tick ring-tick--min" x1="329.9" y1="275.0" x2="337.7" y2="279.5"/>
-              <line class="ring-tick ring-tick--min" x1="306.1" y1="306.1" x2="312.4" y2="312.4"/>
-              <line class="ring-tick ring-tick--min" x1="275.0" y1="329.9" x2="279.5" y2="337.7"/>
-              <line class="ring-tick ring-tick--min" x1="238.8" y1="344.9" x2="241.2" y2="353.6"/>
-              <line class="ring-tick ring-tick--min" x1="161.2" y1="344.9" x2="158.8" y2="353.6"/>
-              <line class="ring-tick ring-tick--min" x1="125.0" y1="329.9" x2="120.5" y2="337.7"/>
-              <line class="ring-tick ring-tick--min" x1="93.9" y1="306.1" x2="87.6" y2="312.4"/>
-              <line class="ring-tick ring-tick--min" x1="70.1" y1="275.0" x2="62.3" y2="279.5"/>
-              <line class="ring-tick ring-tick--min" x1="55.1" y1="238.8" x2="46.4" y2="241.2"/>
-              <line class="ring-tick ring-tick--min" x1="55.1" y1="161.2" x2="46.4" y2="158.8"/>
-              <line class="ring-tick ring-tick--min" x1="70.1" y1="125.0" x2="62.3" y2="120.5"/>
-              <line class="ring-tick ring-tick--min" x1="93.9" y1="93.9" x2="87.6" y2="87.6"/>
-              <line class="ring-tick ring-tick--min" x1="125.0" y1="70.1" x2="120.5" y2="62.3"/>
-              <line class="ring-tick ring-tick--min" x1="161.2" y1="55.1" x2="158.8" y2="46.4"/>
-              <line class="ring-tick ring-tick--min" x1="238.8" y1="55.1" x2="241.2" y2="46.4"/>
-              <line class="ring-tick ring-tick--min" x1="275.0" y1="70.1" x2="279.5" y2="62.3"/>
-              <line class="ring-tick ring-tick--min" x1="306.1" y1="93.9" x2="312.4" y2="87.6"/>
-              <line class="ring-tick ring-tick--min" x1="329.9" y1="125.0" x2="337.7" y2="120.5"/>
-              <line class="ring-tick ring-tick--min" x1="344.9" y1="161.2" x2="353.6" y2="158.8"/>
-              <line class="ring-tick ring-tick--maj" x1="344.0" y1="200.0" x2="363.0" y2="200.0"/>
-              <line class="ring-tick ring-tick--maj" x1="200.0" y1="344.0" x2="200.0" y2="363.0"/>
-              <line class="ring-tick ring-tick--maj" x1="56.0" y1="200.0" x2="37.0" y2="200.0"/>
-              <line class="ring-tick ring-tick--maj" x1="200.0" y1="56.0" x2="200.0" y2="37.0"/>
-            </g>
-            <g class="ring-arrows">
-              <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(323.0 323.0) rotate(135.0)"/>
-              <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(77.0 323.0) rotate(225.0)"/>
-              <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(77.0 77.0) rotate(315.0)"/>
-              <path class="ring-arrow" d="M-3.4,-3.4 L0,0 L-3.4,3.4" transform="translate(323.0 77.0) rotate(405.0)"/>
-            </g>
-            <circle class="ring-node" cx="200" cy="50" r="5" />
-            <circle class="ring-node" cx="350" cy="200" r="5" />
-            <circle class="ring-node" cx="200" cy="350" r="5" />
-            <circle class="ring-node" cx="50" cy="200" r="5" />
-            <text class="ring-center-word" data-ring-word x="200" y="200" text-anchor="middle" dominant-baseline="middle">Ingest</text>
-            <text class="ring-center-count" data-ring-count x="200" y="226" text-anchor="middle" dominant-baseline="middle">01 / 04</text>
-            <circle class="ring-marker" cx="200" cy="50" r="9" />
-          </svg>
-
-            <div class="ring-label ring-label--top active">
-              <span class="ring-label__t" data-phase-name>Ingest</span>
-              <span class="ring-label__d">Opens the CAD, heals gaps, tags the walls that matter.</span>
-            </div>
-            <div class="ring-label ring-label--right">
-              <span class="ring-label__t" data-phase-name>Mesh</span>
-              <span class="ring-label__d">Turns plain-language intent into real y+ and prism layers.</span>
-            </div>
-            <div class="ring-label ring-label--bottom">
-              <span class="ring-label__t" data-phase-name>Verify</span>
-              <span class="ring-label__d">Grades skewness and orthogonality, re-refines the failures.</span>
-            </div>
-            <div class="ring-label ring-label--left">
-              <span class="ring-label__t" data-phase-name>Deliver</span>
-              <span class="ring-label__d">Exports solver-ready to OpenFOAM, ANSYS or Abaqus.</span>
-            </div>
-          </div>
-        </div>
+        <p class="ring-console__strip">
+          <span><span class="k">nodes</span> <span class="v">86,747</span></span>
+          <span><span class="k">elements</span> <span class="v">172,874</span></span>
+        </p>
       </div>
     </div>
   </section>
@@ -449,12 +411,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
   <script src="hero.js?v=11" defer></script>
-  <script src="fluid.js?v=11" defer></script>
+  <script src="fluid.js?v=12" defer></script>
   <script src="demo.js?v=10" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js" defer></script>
   <script src="airfoil.js?v=15" defer></script>
-  <script src="pages.js?v=84" defer></script>
+  <script src="pages.js?v=87" defer></script>
   <script src="waitlist.js?v=12" defer></script>
 </body>
 </html>
