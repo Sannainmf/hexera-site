@@ -159,6 +159,20 @@
     }
   }
 
+  /* the pipeline rail fills as the section is read */
+  if (flow && !reduce) {
+    const list = flow.querySelector(".flow__steps");
+    const onRail = () => {
+      const r = list.getBoundingClientRect();
+      const span = r.height + window.innerHeight * 0.5;
+      const p = clamp((window.innerHeight * 0.75 - r.top) / Math.max(span, 1), 0, 1);
+      list.style.setProperty("--fill", p.toFixed(3));
+    };
+    window.addEventListener("scroll", onRail, { passive: true });
+    window.addEventListener("resize", onRail);
+    onRail();
+  }
+
   /* ---------- scroll progress: a hairline under the nav ---------- */
   const sprog = document.querySelector("[data-scroll-prog]");
   if (sprog) {

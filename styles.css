@@ -516,54 +516,91 @@ html.lenis, html.lenis body { height: auto; }
 .h2 { font-family: var(--font-display); font-weight: 300; font-size: clamp(2rem, 1.3rem + 2.4vw, 3.6rem); line-height: 1.04; letter-spacing: 0; margin: 1rem 0 0; text-wrap: balance; }
 .h2 em { font-style: normal; color: var(--gold); }
 /* ============================================================
-   PIPELINE, the four phases as a static, scroll-revealed rail.
+   PIPELINE, four phases read top to bottom.
    Replaces a 600vh pinned ring that scrubbed a marker around a dial:
-   it looked good but hijacked the scroll for six screens to deliver
-   four sentences. Same content, read at the reader's own pace.
+   it hijacked six screens of scroll to deliver four sentences. This is
+   a plain vertical read, and each phase shows the artifact it actually
+   produces (a parse readout, mesh parameters, quality metrics, the
+   export bundle) rather than four interchangeable blurbs.
    ============================================================ */
 .flow { position: relative; z-index: var(--z-content); background: var(--bg);
-  padding: clamp(5rem, 12vh, 9rem) var(--pad-x); }
-.flow__inner { width: min(100%, 1280px); margin-inline: auto; }
-.flow__head { max-width: 46ch; }
+  padding: clamp(5rem, 12vh, 9rem) var(--pad-x) clamp(4rem, 9vh, 7rem); }
+.flow__inner { width: min(100%, 1180px); margin-inline: auto; }
+.flow__head { max-width: 44ch; }
 .flow__lede { margin: 1.25rem 0 0; color: var(--muted); line-height: 1.6;
   font-size: clamp(1rem, 0.95rem + 0.3vw, 1.12rem); text-wrap: pretty; }
 
-.flow__steps { list-style: none; margin: clamp(3rem, 8vh, 5.5rem) 0 0; padding: 0;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(1.25rem, 3vw, 2.75rem); }
+/* one continuous rail down the left, a node per phase */
+.flow__steps { position: relative; list-style: none; margin: clamp(3.5rem, 9vh, 6rem) 0 0;
+  padding: 0 0 0 clamp(1.5rem, 4vw, 3.5rem); border-left: 1px solid var(--line-2); }
+/* the rail fills as you read down the section, the same gesture as the
+   progress hairline under the nav. It is what makes the space between
+   phases connective rather than just empty. */
+.flow__steps::after { content: ""; position: absolute; left: -1px; top: 0; width: 1px; height: 100%;
+  background: linear-gradient(to bottom, var(--gold), rgba(255,79,0,0.35));
+  transform-origin: top center; transform: scaleY(var(--fill, 0)); }
 
-/* each step carries its own segment of the rail, so the four together read
-   as one continuous line with a node at every phase */
-.flow__step { position: relative; padding-top: 2.1rem; }
-/* the reveal is opt-in: pages.js adds .is-armed only once it can actually
-   drive it. Without JS, or if IntersectionObserver never fires, the steps
-   stay visible rather than sitting at opacity 0 forever. */
-.flow__steps.is-armed .flow__step { opacity: 0; transform: translateY(14px);
-  transition: opacity 0.6s var(--ease-expo), transform 0.6s var(--ease-expo); }
-.flow__steps.is-armed .flow__step.is-in { opacity: 1; transform: none; }
-.flow__step::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: var(--line-2); }
-.flow__step::after { content: ""; position: absolute; top: -3.5px; left: 0;
-  width: 8px; height: 8px; border-radius: 50%; background: var(--bg);
-  border: 1px solid var(--line-2);
+.flow__step { position: relative; display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: clamp(1.75rem, 5vw, 4.5rem); align-items: start;
+  padding: clamp(2.5rem, 6.5vh, 4.25rem) 0; }
+.flow__step:first-child { padding-top: 0; }
+.flow__step:last-child { padding-bottom: 0; }
+/* the node sits on the rail, level with the phase number */
+.flow__step::before { content: ""; position: absolute; top: clamp(2.5rem, 6.5vh, 4.25rem); left: calc(clamp(1.5rem, 4vw, 3.5rem) * -1);
+  transform: translate(-50%, 0.5em); width: 11px; height: 11px; border-radius: 50%; z-index: 1;
+  background: var(--bg); border: 1px solid var(--line-2);
   transition: background 0.5s var(--ease-expo), border-color 0.5s var(--ease-expo), box-shadow 0.5s var(--ease-expo); }
-.flow__step.is-in::after { background: var(--gold); border-color: var(--gold);
+.flow__step:first-child::before { top: 0; }
+.flow__step.is-in::before { background: var(--gold); border-color: var(--gold);
   box-shadow: 0 0 10px rgba(255,79,0,0.45); }
 
-.flow__idx { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.2em;
-  color: var(--faint); transition: color 0.5s var(--ease-expo); }
-.flow__step.is-in .flow__idx { color: var(--gold); }
-.flow__name { margin: 0.5rem 0 0; font-family: var(--font-display); font-weight: 600;
-  font-size: clamp(1.4rem, 1.1rem + 0.8vw, 1.9rem); line-height: 1.05; color: var(--ink); }
-.flow__desc { margin: 0.6rem 0 0; color: var(--muted); font-size: 0.95rem; line-height: 1.55; text-wrap: pretty; }
-.flow__meta { margin: 0.9rem 0 0; font-family: var(--font-mono); font-size: 0.62rem;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+.flow__num { display: block; font-family: var(--font-mono); font-size: 0.7rem;
+  letter-spacing: 0.24em; color: var(--faint); transition: color 0.5s var(--ease-expo); }
+.flow__step.is-in .flow__num { color: var(--gold); }
+.flow__name { margin: 0.7rem 0 0; font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(1.9rem, 1.3rem + 1.9vw, 3rem); line-height: 1; color: var(--ink); }
+.flow__desc { margin: 0.9rem 0 0; color: var(--muted); line-height: 1.6;
+  font-size: clamp(0.95rem, 0.92rem + 0.2vw, 1.05rem); max-width: 34ch; text-wrap: pretty; }
 
-@media (max-width: 900px) {
-  /* the rail turns vertical and runs down the left edge */
-  .flow__steps { grid-template-columns: 1fr; gap: 0; }
-  .flow__step { padding: 1.6rem 0 1.6rem 1.6rem; }
-  .flow__step::before { top: 0; bottom: 0; left: 0; right: auto; width: 1px; height: auto; }
-  .flow__step::after { top: 1.75rem; left: -3.5px; }
+/* the artifact: an instrument panel, ruled not boxed-and-rounded */
+.art { margin: 0; border: 1px solid var(--line); background: rgba(var(--bg-rgb), 0.5); }
+.art__bar { margin: 0; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--faint); }
+.art__bar b { color: var(--gold); font-weight: 500; }
+.art__rows { margin: 0; padding: 0.35rem 0.9rem 0.75rem; font-family: var(--font-mono); font-size: 0.72rem; }
+.art__rows > div { display: flex; gap: 1.5rem; justify-content: space-between;
+  padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
+.art__rows > div:last-child { border-bottom: 0; }
+.art__rows dt { color: var(--faint); letter-spacing: 0.1em; text-transform: uppercase; }
+.art__rows dd { margin: 0; color: var(--ink); text-align: right; }
+
+.art__metrics { list-style: none; margin: 0; padding: 0.9rem;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+.art__metrics li { display: flex; flex-direction: column; gap: 0.3rem; }
+.art__k { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--faint); }
+.art__v { font-family: var(--font-mono); font-size: 1.4rem; color: var(--ink); }
+
+.art__chips { list-style: none; margin: 0; padding: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.art__chips li { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em;
+  color: var(--muted); border: 1px solid var(--line-2); padding: 0.32em 0.6em; }
+.art__note { margin: 0; padding: 0 0.9rem 0.9rem; color: var(--faint);
+  font-size: 0.78rem; line-height: 1.5; }
+
+/* the reveal is opt-in: pages.js adds .is-armed only once it can drive it.
+   Without JS, or if IntersectionObserver never fires, the phases stay
+   visible rather than sitting at opacity 0 forever. */
+.flow__steps.is-armed .flow__step { opacity: 0; transform: translateY(16px);
+  transition: opacity 0.7s var(--ease-expo), transform 0.7s var(--ease-expo); }
+.flow__steps.is-armed .flow__step.is-in { opacity: 1; transform: none; }
+
+@media (max-width: 860px) {
+  .flow__steps { padding-left: 1.4rem; }
+  .flow__step { grid-template-columns: 1fr; gap: 1.5rem; }
+  .flow__step::before { left: -1.4rem; }
+  .flow__desc { max-width: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .flow__steps.is-armed .flow__step { opacity: 1; transform: none; transition: none; }
@@ -571,7 +608,7 @@ html.lenis, html.lenis body { height: auto; }
 
 /* Rehaan's phase console: demo-mesh log under the copy, phases light up
    in step with the dial */
-.ring-console { margin-top: clamp(3rem, 7vh, 4.5rem); max-width: 21rem; border-top: 3px solid #2a2319; border-bottom: 3px solid #2a2319;
+.ring-console { margin-top: clamp(3.5rem, 9vh, 6rem); max-width: 21rem; border-top: 3px solid #2a2319; border-bottom: 3px solid #2a2319;
   padding: 1rem 0 0.95rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .ring-console__head { margin: 0 0 0.8rem; color: var(--faint); }
 .ring-log { display: flex; flex-direction: column; gap: 0.5rem; }
