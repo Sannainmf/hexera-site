@@ -1,5 +1,5 @@
 /* ============================================================
-   Hexera — waitlist modal + Supabase capture.
+   Hexera, waitlist modal + Supabase capture.
    One shared popup (name + email) opened by every "Join waitlist"
    CTA; the footer email forms hand off into it with the email
    prefilled. Inserts go straight to Supabase REST with the anon
@@ -107,7 +107,7 @@
           "Content-Type": "application/json",
           Prefer: "return=minimal",
         },
-        /* company is nullable — send null rather than "" so blank rows stay
+        /* company is nullable, send null rather than "" so blank rows stay
            empty in the table instead of holding an empty string */
         body: JSON.stringify({ name, email, company: company || null }),
       });

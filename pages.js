@@ -1,5 +1,5 @@
 /* ============================================================
-   Hexera — shared page interactions.
+   Hexera, shared page interactions.
    Everything here is feature-detected: a block only runs if its
    markup exists, so one file safely serves every page.
      · Lenis inertia scrolling + smooth in-page anchor jumps
@@ -23,7 +23,7 @@
   /* ---------- free-running rAF loop for scroll-linked set-pieces ----------
      These must NOT be driven by scroll events. On a phone the momentum
      scroll is advanced by the compositor every frame, but scroll events are
-     dispatched to JS coalesced and late — so anything driven by them (even
+     dispatched to JS coalesced and late, so anything driven by them (even
      via requestAnimationFrame) updates on an irregular cadence and the
      pinned stage judders against the page underneath it.
 
@@ -58,7 +58,7 @@
 
   /* ---------- smooth (inertia) scrolling via Lenis ----------
      Lenis still drives the real window scroll on desktop, so every
-     scroll-linked set-piece keeps working — it just feels eased instead of
+     scroll-linked set-piece keeps working, it just feels eased instead of
      1:1 with the wheel. Off for reduced motion, and off on touch: it only
      smooths the WHEEL, so on a phone it contributes nothing while its rAF
      loop fights the browser's own momentum scrolling. */
@@ -69,7 +69,7 @@
     window.__lenis = lenis;
   }
 
-  /* ---------- in-page anchor jumps — one handler, Lenis when available ---------- */
+  /* ---------- in-page anchor jumps, one handler, Lenis when available ---------- */
   document.addEventListener("click", (e) => {
     const a = e.target.closest('a[href^="#"]');
     if (!a) return;
@@ -85,7 +85,7 @@
   /* ---------- nav: stuck state ---------- */
   const nav = document.getElementById("nav");
   if (nav) {
-    /* a discrete state flip, not an animation — a scroll listener is the
+    /* a discrete state flip, not an animation, a scroll listener is the
        right tool here, and it stays off the per-frame path */
     let stuck = null;
     const upd = () => {
@@ -104,7 +104,7 @@
 
   /* ---------- parallax fade: opacity + gentle drift tied to scroll ----------
      The element peaks (opacity 1, no offset) at viewport centre and fades +
-     drifts away as it leaves — a calm, brutalist transition. */
+     drifts away as it leaves, a calm, brutalist transition. */
   const pfade = Array.from(document.querySelectorAll("[data-parallax-fade]"));
   if (pfade.length) {
     if (reduce) {
@@ -163,7 +163,7 @@
       const p = clamp(-rect.top / Math.max(scrollable, 1), 0, 1);
       // marker travels the full circle starting at the top (-90°)
       const ang = (-90 + p * 360) * (Math.PI / 180);
-      /* each of these is an SVG paint on the main thread — at 60fps on a
+      /* each of these is an SVG paint on the main thread, at 60fps on a
          phone they are the section's whole frame budget. Round to the
          nearest tenth of a user unit and skip the write when it lands on
          the same value, which it does for most frames. */
@@ -195,7 +195,7 @@
     let ambH = 0;
     const measure = () => {
       ambPad = parseFloat(getComputedStyle(list).paddingLeft) || 0;
-      loopH = list.scrollHeight / 2;   // list is two identical sets of 30 — one set is the seamless loop period
+      loopH = list.scrollHeight / 2;   // list is two identical sets of 30, one set is the seamless loop period
       ambH = amb.offsetHeight;         // cached: read every frame otherwise
     };
     measure();
@@ -216,7 +216,7 @@
       // viewports (entry + a touch), then hold while the list keeps scrolling.
       const scrolled = Math.max(vh - rect.top, 0);
       // ZOOM + CENTRE-DRIFT both run on WHOLE-SECTION progress, in step with each
-      // other, so they ramp the entire way down — never finishing up front.
+      // other, so they ramp the entire way down, never finishing up front.
       const pFull = clamp(scrolled / Math.max(ambH, 1), 0, 1);
       const zStart = 3.0, zEnd = 0.56;
       // geometric (constant-ratio) zoom so the shrink reads as EVEN from the very first
@@ -226,13 +226,13 @@
       const centerShift = pFull * Math.max(window.innerWidth * 0.5 - ambPad, 0) * 0.5;
       // INFINITE LOOP, zoom-compensated: the translate is scaled by the zoom,
       // so a fixed model-space rate dies visually as the list shrinks (5x
-      // slower by the end — read as "stopped"). Integrate travel with a rate
+      // slower by the end, read as "stopped"). Integrate travel with a rate
       // divided by the current zoom instead: on-screen speed starts fast
       // (~2.2px per scroll px) and tapers gently to ~1.1, never stalling.
       // Wraps at one set height either direction, so the loop stays seamless.
       if (lastScr === null) lastScr = scrolled;
       /* geometric decay: decelerates continuously with the zoom-out and
-         ends significantly slower — ~16% of the starting speed */
+         ends significantly slower, ~16% of the starting speed */
       const screenRate = 2.2 * Math.pow(0.16, pFull);
       listD += (scrolled - lastScr) * (screenRate / Math.max(zoom, 0.2));
       lastScr = scrolled;
@@ -268,8 +268,8 @@
        trusted at script-parse time. --mesh-line-rgb is overridden by
        orange-theme.css, a second stylesheet request; read it too early and
        it resolves against styles.css alone, yielding the base TEAL. Every
-       wireframe that has no colour baked into its asset — the car, the
-       artery, the gaming selection boxes, both ground grids — strokes with
+       wireframe that has no colour baked into its asset, the car, the
+       artery, the gaming selection boxes, both ground grids, strokes with
        this value, so one early read turns the whole industries section teal.
        That is exactly what happened on mobile while desktop looked correct. */
     let GOLD, TEAL, INK, LINE3, ACC3;
@@ -299,9 +299,9 @@
        unit space: grouped polylines (gold skin / teal mesh), optional
        per-vertex polar coords for the rotor's thermal field, optional
        per-vertex altitude for terrain shading. The scan gate no longer
-       deforms outlines — it wipes one finished mesh into the next. */
+       deforms outlines, it wipes one finished mesh into the next. */
 
-    // 01 · wind-tunnel launch vehicle — a scale sounding rocket, nose into
+    // 01 · wind-tunnel launch vehicle, a scale sounding rocket, nose into
     //      the flow: revolved surface mesh with nose-clustered stations,
     //      four swept fin lattices, and Mach-cone shock lines flaring off
     //      the tip. The supersonic tunnel classic.
@@ -363,7 +363,7 @@
       };
     };
 
-    // 02 · stented artery, longitudinal section — one continuous half-pipe
+    // 02 · stented artery, longitudinal section, one continuous half-pipe
     //      like the published clip views: THICK wall (inner + outer half
     //      surfaces), wide flat cut decks meshed through the thickness the
     //      whole length, meshed cross-sections at both ends, and the stent
@@ -527,7 +527,7 @@
       };
     };
 
-    // 03 · game terrain — 29×29 heightfield, ridged noise + island falloff,
+    // 03 · game terrain, 29×29 heightfield, ridged noise + island falloff,
     //      altitude-tinted wireframe, and marching-squares CONTOUR LINES so
     //      the tile reads like real topo/level data, framed on a base plate
     const buildTerrain = () => {
@@ -587,7 +587,7 @@
       };
     };
 
-    // 04 · vented rotor — dense polar mesh: 9 face rings × 48 spokes plus 48
+    // 04 · vented rotor, dense polar mesh: 9 face rings × 48 spokes plus 48
     //      half-spokes refining the outer friction band (refine where the
     //      gradients live), 12-seg drilled holes each with a local refinement
     //      halo, hub + bore + 5-bolt circle, spinning under a fixed caliper
@@ -801,7 +801,7 @@
         ctx.lineWidth = g.w;
         if (g.pol || g.hgt) {
           /* field-coloured lattice (rotor heat / terrain altitude): quantise
-             the mix into NB buckets and stroke each bucket once — thousands
+             the mix into NB buckets and stroke each bucket once, thousands
              of segments for the cost of eight strokes */
           if (!g._bk) g._bk = Array.from({ length: NB }, () => []);
           for (let b = 0; b < NB; b++) g._bk[b].length = 0;
@@ -888,7 +888,7 @@
          --mesh-line-rgb. These groups carry their own colour inside the
          asset, so the theme token does not reach them. */
       0: { url: "assets/scene_aero.json.gz?v=15", ry: 0.14, rx: -0.17, sc: 0.804, cx: 0.511, cy: 0.231, f3: 4.4, scene: 1, mcy: 0.43, mgs: [{ g: 0, dy: -0.085 }] },
-      /* mrot: portrait roll, screen-space, y-down — so a LESS negative value
+      /* mrot: portrait roll, screen-space, y-down, so a LESS negative value
          rolls the arch clockwise. Eased off -0.50 so the lower limb clears
          the report panels sitting under it on phones. */
       1: { url: "assets/artery.json.gz?v=2", ry: 0.35, rx: -0.18, sc: 0.52, cx: 0.62, cy: 0.32, f3: 3.4, pulse: 1, mcy: 0.36, mch: 0.44, mrot: -0.30 },
@@ -935,7 +935,7 @@
       }
       /* portrait (phones): every pose is composed for landscape, so the
          scene overflows a narrow viewport. Refit in screen space: scale to
-         the width, centre horizontally, park the scene in the upper half —
+         the width, centre horizontally, park the scene in the upper half -
          the copy block owns the bottom third on mobile. An affine map on
          screen coords equals scaling Sc about a shifted origin, so e.pj
          (defined below over the updated bindings) stays exact. */
@@ -943,7 +943,7 @@
       if (PORT) {
         /* mrot: optional screen-space roll for portrait composition (artery:
            tips the arch diagonal to fill the band above the panel row). Only
-           safe on scenes without labels/boxes — e.pj doesn't rotate. */
+           safe on scenes without labels/boxes, e.pj doesn't rotate. */
         if (e.mrot) {
           const rcx = (bx0 + bx1) / 2, rcy = (by0 + by1) / 2;
           const cr = Math.cos(e.mrot), sr = Math.sin(e.mrot);
@@ -956,7 +956,7 @@
           }
         }
         const bw = (bx1 - bx0) || 1, bh = (by1 - by0) || 1;
-        /* mcy/mch: per-entry portrait centre/height-cap — bio and auto park
+        /* mcy/mch: per-entry portrait centre/height-cap, bio and auto park
            higher because their report-panel row sits above the copy block */
         const f = Math.min(1, (0.92 * W) / bw, ((e.mch || 0.54) * H) / bh);
         const ox = W * 0.5 - f * (bx0 + bx1) * 0.5;
@@ -965,7 +965,7 @@
         Sc *= f; cx0 = f * cx0 + ox; cy0 = f * cy0 + oy;
         bx0 = f * bx0 + ox; bx1 = f * bx1 + ox; by0 = f * by0 + oy; by1 = f * by1 + oy;
         /* mgs: shift ONE baked group after the fit ("move just the fuselage
-           up") — the rest of the scene keeps its approved spot. Labels bound
+           up"), the rest of the scene keeps its approved spot. Labels bound
            via L.mg follow their group in the label block below. */
         if (e.mgs && e.groups) {
           for (const gs of e.mgs) {
@@ -1007,7 +1007,7 @@
       }
       /* pooled ground grid (entries with gy): short segments whose alpha
          falls off gaussian from the model's footprint, so the floor
-         dissolves into black with no edges — baked with the mesh */
+         dissolves into black with no edges, baked with the mesh */
       if (e.gy !== undefined && !e.grid) {
         const gyv = e.gy, GX = 3.0, GZ = 2.0, STEP = 0.24, NSEG = 20;
         const aAt = (px2, pz2) => {
@@ -1033,7 +1033,7 @@
           }
         /* wake refinement boxes (entries with wake): two nested wireframe
            volumes hugging the body and trailing downstream (+x), the CFD
-           domain-setup look — baked with the floor */
+           domain-setup look, baked with the floor */
         if (e.wake) {
           const box = (x0, x1, yTop, zH, al) => {
             const pts = [
@@ -1071,7 +1071,7 @@
       else strokeRange(0, e.E.length / 2, TEAL);
       /* editor selection furniture (scene entries): a wireframe bounding
          box per object (gold on the hero, steel otherwise) and a transform
-         gizmo at the hero's base — the game-engine viewport signature */
+         gizmo at the hero's base, the game-engine viewport signature */
       if (e.boxes) {
         g.lineWidth = 1;
         for (const bx of e.boxes) {
@@ -1172,7 +1172,7 @@
         }
       }
       /* annotations: screen-space engineering callouts (arrows / arcs / text)
-         in an accent colour — e.g. the freestream + angle-of-attack marker */
+         in an accent colour, e.g. the freestream + angle-of-attack marker */
       if (e.annot && !PORT) {   /* landscape garnish; on phones it lands on the geometry */
         const A = e.annot;
         g.strokeStyle = "rgb(" + A.col + ")"; g.fillStyle = "rgb(" + A.col + ")";
@@ -1211,10 +1211,10 @@
       }
       /* entries with pulse beat at the same 72bpm as the blood cells and
          the trace: a sub-1% scale throb about the model's own centre plus
-         a slow ambient drift — pure bitmap transforms, no rebakes */
+         a slow ambient drift, pure bitmap transforms, no rebakes */
       if (e.pulse && tNow !== undefined && e.bb) {
         /* lub-dub waveform on the same 72bpm clock: sharp systolic bump,
-           smaller dicrotic echo, long quiet diastole — very faint */
+           smaller dicrotic echo, long quiet diastole, very faint */
         const ph = ((tNow * 0.00754) / (2 * Math.PI)) % 1;
         const lub = Math.exp(-Math.pow((ph - 0.12) / 0.045, 2));
         const dub = 0.5 * Math.exp(-Math.pow((ph - 0.30) / 0.055, 2));
@@ -1230,7 +1230,7 @@
         return;
       }
       /* entries with drift: a faint wind-buffet of the WHOLE baked scene
-         (car + floor + wake boxes move together) about the canvas centre —
+         (car + floor + wake boxes move together) about the canvas centre -
          reads as a gently breathing tunnel camera, not a wobbling floor.
          Horizontal bias with a second harmonic gives an air-buffet feel. */
       if (e.drift && tNow !== undefined) {
@@ -1246,7 +1246,7 @@
         return;
       }
       /* entries with float: a slow turntable-preview bob of the whole baked
-         scene about the canvas centre — vertical-dominant with a faint dolly,
+         scene about the canvas centre, vertical-dominant with a faint dolly,
          the DCC/asset-viewport counterpart to the car's horizontal buffet.
          The floor grid rides along, so it reads as a gently bobbing camera. */
       if (e.float && tNow !== undefined) {
@@ -1288,11 +1288,11 @@
       const iA = Math.min(Math.floor(s), 2);
       const f = clamp(s - iA, 0, 1);
       const morph = f > 0.001 && f < 0.999;
-      const ef = sstep(f);                       /* eased blend — no pop */
+      const ef = sstep(f);                       /* eased blend, no pop */
       const local = pNow >= 0.999 ? 1 : (pNow % 0.25) / 0.25;
       const dA = [0, 1, 2, 3].map((i) => clamp(1 - Math.abs(s - i) * 2.4, 0, 1));
 
-      /* DCC floor grid under the terrain tile (gaming phase) — drawn first
+      /* DCC floor grid under the terrain tile (gaming phase), drawn first
          so the model sits on it. Skipped when the scene asset is loaded,
          since it bakes its own grid. */
       if (dA[2] > 0.01 && lastPj && !(REAL[2] && REAL[2].ready)) {
@@ -1321,7 +1321,7 @@
         drawOne(iA + 1, 0, ef, f >= 0.5);
       }
 
-      /* blood cells + pulse trace (biomedical phase) — ink dots riding the
+      /* blood cells + pulse trace (biomedical phase), ink dots riding the
          lumen on the systole rhythm; the waveform is the same function */
       const pulse = Math.pow(Math.max(Math.sin(t * 0.00754), 0), 2);       /* 72 bpm */
       if (dA[1] > 0.01 && lastPj && dt > 0 && models()[1].path && !(REAL[1] && REAL[1].ready)) {
@@ -1349,7 +1349,7 @@
         ctx.stroke();
       }
 
-      /* axis triad, bottom-left — one instrument shared by every bench,
+      /* axis triad, bottom-left, one instrument shared by every bench,
          rotating with the live model. Landscape only: on phones its corner
          (0.055W, 0.88H) sits inside the copy block. */
       if (lastPj && W >= H) {
@@ -1405,7 +1405,7 @@
            innerHeight ~97px mid-scroll and made the scrub p hop */
         const scrollable = spec.offsetHeight - (stage ? stage.offsetHeight : window.innerHeight);
         p = clamp(-r.top / Math.max(scrollable, 1), 0, 1);
-        /* gentle fade-in as the benches scroll into view (opacity only — a
+        /* gentle fade-in as the benches scroll into view (opacity only, a
            transform here would break the sticky stage) */
         if (!stage) return;
         const fade = clamp((window.innerHeight - r.top) / (window.innerHeight * 0.55), 0, 1).toFixed(3);
@@ -1419,7 +1419,7 @@
         /* final safety net: by the time the section is scrolled into view every
            stylesheet is unquestionably applied, so re-read once here. If the
            parse-time read had been early, this corrects it before anything
-           reaches the screen — and rebakes any scene baked with the old value. */
+           reaches the screen, and rebakes any scene baked with the old value. */
         if (!paletteSettled) {
           paletteSettled = true;
           const before = TEAL;

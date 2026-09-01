@@ -1,11 +1,11 @@
 /* ============================================================
-   Hexera — Hero with in-hero product demo (chat → rendered mesh)
+   Hexera, Hero with in-hero product demo (chat → rendered mesh)
    Palette: obsidian / teal / gold / champagne
    Type:    Big Shoulders Display (headline) + Geist (body) + Geist Mono (data)
    ============================================================ */
 
 :root {
-  --bg:        #060402;   /* warm amber-black — the site's single dark canvas */
+  --bg:        #060402;   /* warm amber-black, the site's single dark canvas */
   --bg-2:      #0b0905;
   --ink:       oklch(0.93 0 0);
   --muted:     oklch(0.80 0 0);
@@ -18,12 +18,12 @@
   --gold-ink:  #211800;
   --crimson:      #d83a30;
   --crimson-soft: #ff6b5e;
-  --green:     #0d0a06;   /* warm raised panel — a sibling of --bg, not cool graphite (kept name for compatibility) */
+  --green:     #0d0a06;   /* warm raised panel, a sibling of --bg, not cool graphite (kept name for compatibility) */
 
   --line:      rgba(238, 235, 225, 0.10);
   --line-2:    rgba(238, 235, 225, 0.20);
 
-  /* canvas render colors as raw r,g,b triplets — the wireframe scenes
+  /* canvas render colors as raw r,g,b triplets, the wireframe scenes
      (airfoil, industries chamber) read these so a palette change is CSS-only */
   --mesh-line-rgb:   15,182,172;
   --mesh-accent-rgb: 255,186,0;
@@ -63,7 +63,7 @@ a { color: inherit; text-decoration: none; }
 .fluid {
   position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%;
   pointer-events: none;          /* never blocks clicks/scroll */
-  opacity: 1;                    /* full strength — original */
+  opacity: 1;                    /* full strength, original */
   mix-blend-mode: screen;        /* only adds light, never covers the image */
 }
 .vignette {
@@ -116,7 +116,7 @@ a { color: inherit; text-decoration: none; }
 .btn:hover span { transform: translate(2px, -2px); }
 .btn--ghost { font-size: 0.9rem; padding: 0.7em 1.1em; color: var(--ink); background: rgba(8,6,2,0.42); backdrop-filter: blur(6px); }
 .btn--ghost:hover { border-color: var(--teal); box-shadow: 0 0 0 1px rgba(15,182,172,0.4), 0 8px 30px rgba(15,182,172,0.12); }
-/* Mono nav CTA — sets the label in the same data-readout voice as the nav links */
+/* Mono nav CTA, sets the label in the same data-readout voice as the nav links */
 .nav__cta.cta-mono { font-family: var(--font-mono); font-weight: 500; font-size: 0.682rem; letter-spacing: 0.16em; text-transform: uppercase; padding-right: 1.1em; }
 .nav__cta.cta-mono > span { font-size: 1.05em; letter-spacing: 0; margin-left: -0.35em; opacity: 0.85; }
 .btn--gold { background: var(--gold); color: var(--gold-ink); border-color: var(--gold); font-weight: 600; }
@@ -272,7 +272,7 @@ a { color: inherit; text-decoration: none; }
 .hero__demo { animation-delay: 0.34s; transform: translateY(1.6rem); }
 @keyframes rise { to { opacity: 1; transform: translateY(0); } }
 
-/* Hero CTA entrance — the two buttons clip-wipe in left-to-right, staggered */
+/* Hero CTA entrance, the two buttons clip-wipe in left-to-right, staggered */
 @keyframes ha-wipe-in {
   from { opacity: 0; clip-path: inset(0 100% 0 0); filter: blur(3px); }
   60%  { opacity: 1; }
@@ -293,7 +293,7 @@ a { color: inherit; text-decoration: none; }
 /* ---------- The mesh experience (ported verbatim from HEXARA, themed teal) ---------- */
 .mesh-experience { position: relative; z-index: var(--z-content); height: 1000vh; background: var(--black); }
 .mesh-experience-sticky { position: sticky; top: 0; height: 100vh; height: 100svh; display: flex; align-items: center; justify-content: center; overflow: hidden;
-  background: var(--black); }   /* plain black — matches the section before it */
+  background: var(--black); }   /* plain black, matches the section before it */
 #meshCanvas3D { position: absolute; inset: 0; width: 100%; height: 100%; }
 .mesh-experience-sticky::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to bottom, var(--black), rgba(13,10,4,0)); z-index: 10; pointer-events: none; }
 .mesh-experience-sticky::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 150px; background: linear-gradient(to top, var(--black), rgba(13,10,4,0)); z-index: 10; pointer-events: none; }
@@ -322,7 +322,7 @@ a { color: inherit; text-decoration: none; }
 }
 .mstep__p { margin: 0.85rem 0 0; color: var(--muted); font-size: clamp(0.9rem, 0.86rem + 0.2vw, 1rem); line-height: 1.55; max-width: 30ch; }
 
-/* ---- live mesh tally (nodes / elements), middle-right — counts up as the mesh forms ---- */
+/* ---- live mesh tally (nodes / elements), middle-right, counts up as the mesh forms ---- */
 .mesh-tally {
   position: absolute; right: var(--pad-x); top: 50%; z-index: 20;
   transform: translateY(-50%) translateX(14px); text-align: right; pointer-events: none;
@@ -360,7 +360,7 @@ a { color: inherit; text-decoration: none; }
 }
 @media (max-width: 560px) {
   /* the bare .nav__cta override lost font-size/padding-right to
-     .nav__cta.cta-mono (0,2,0) — match its specificity so the CTA really
+     .nav__cta.cta-mono (0,2,0), match its specificity so the CTA really
      shrinks, and give it a ~41px touch box. The Contact link hides: it
      duplicates the CTA's destination and the row overflows 360px with it. */
   .nav { gap: 0.75rem; }
@@ -373,7 +373,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* phones: the demo window is the hero's main visual, but its micro-type is
-   desktop-scaled (8-11px) — lift it to a readable floor */
+   desktop-scaled (8-11px), lift it to a readable floor */
 @media (max-width: 640px) {
   .tline { font-size: 0.72rem; }
   .tline--tool code { font-size: 0.72rem; }
@@ -393,7 +393,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ============================================================
-   SITE SYSTEM — shared page chrome + scroll set-pieces.
+   SITE SYSTEM, shared page chrome + scroll set-pieces.
    Used by the inner pages (technology / aerospace / company /
    contact) and the home teaser sections. Built to sit on the
    same obsidian/teal/gold language as the hero.
@@ -402,7 +402,7 @@ a { color: inherit; text-decoration: none; }
   --black:      #060402;   /* warm amber-black canvas (mesh, sections, fades) */
 }
 
-/* inner-page background (no fluid canvas — a calm static field) */
+/* inner-page background (no fluid canvas, a calm static field) */
 .page-bg {
   position: fixed; inset: 0; z-index: var(--z-canvas); pointer-events: none;
   background:
@@ -413,7 +413,7 @@ a { color: inherit; text-decoration: none; }
 
 /* home: opaque "studio" background for everything below the hero + mesh,
    so the marble hero image no longer bleeds down the whole page. A clean
-   deep obsidian with the faintest teal/gold depth — distinct from the hero. */
+   deep obsidian with the faintest teal/gold depth, distinct from the hero. */
 .home-flow {
   position: relative; z-index: var(--z-content); isolation: isolate;
   background: var(--black);   /* brutalist: flat neutral black, no glows */
@@ -427,7 +427,7 @@ html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth iframe { pointer-events: none; }
 
 /* ============================================================
-   INTERLUDE — a full-page, brutalist statement that bridges the
+   INTERLUDE, a full-page, brutalist statement that bridges the
    hero into the mesh scroll. Flat black, one accent, restrained.
    The line fades + drifts on scroll ([data-parallax-fade], pages.js).
    ============================================================ */
@@ -437,7 +437,7 @@ html.lenis, html.lenis body { height: auto; }
   padding: clamp(2rem, 5vh, 4rem) var(--pad-x);
   background: var(--black);
 }
-/* interlude statement — instrument-readout typeset: display setup + mono answer line */
+/* interlude statement, instrument-readout typeset: display setup + mono answer line */
 .il2 { max-width: min(92vw, 52rem); margin: 0 auto; text-align: center; text-wrap: balance; will-change: opacity, transform; }
 .il2__pre { display: block; font-family: var(--font-display); font-weight: 300; line-height: 1.04; letter-spacing: 0; color: var(--ink); font-size: clamp(1.8rem, calc(1.4rem + 2.6vw), 3.4rem); }
 .il2__pre b { font-weight: 500; color: var(--gold-soft); }
@@ -477,7 +477,7 @@ html.lenis, html.lenis body { height: auto; }
 @media (max-width: 760px) {
   .amb__list { --amb-pad: var(--pad-x); }
   /* phones: the ambition copy goes full-width, tucked right below the centre
-     line (it is a child of .amb__line, so top is measured from the line) —
+     line (it is a child of .amb__line, so top is measured from the line) -
      label above the line, copy below it, one tight stack */
   .amb__ambition { right: var(--pad-x); left: var(--pad-x); top: 1.2rem; max-width: 34ch; }
   .amb__label { right: var(--pad-x); }
@@ -487,10 +487,10 @@ html.lenis, html.lenis body { height: auto; }
 .h2 { font-family: var(--font-display); font-weight: 300; font-size: clamp(2rem, 1.3rem + 2.4vw, 3.6rem); line-height: 1.04; letter-spacing: 0; margin: 1rem 0 0; text-wrap: balance; }
 .h2 em { font-style: normal; color: var(--gold); }
 /* ============================================================
-   ORBITAL PROCESS RING — pinned section; a marker travels the
+   ORBITAL PROCESS RING, pinned section; a marker travels the
    ring as you scroll, the left copy + bottom tabs track phase.
    ============================================================ */
-/* no overflow clipping here at any width where .ring-sticky is sticky — an
+/* no overflow clipping here at any width where .ring-sticky is sticky, an
    overflow-clip ancestor drops the sticky off the scrolling thread and it
    judders on touch. The oversized dial art only needs clipping in the
    761-1100px band, and that is exactly the band where .ring-sticky is
@@ -499,7 +499,7 @@ html.lenis, html.lenis body { height: auto; }
 @media (min-width: 761px) and (max-width: 1100px) { .ring-sec { overflow-x: clip; } }
 .ring-sticky { position: sticky; top: 0; min-height: 100vh; display: flex; align-items: center; padding: var(--nav-h) var(--pad-x) clamp(4rem,8vh,6rem); }
 /* streamline backdrop: static artwork with the site background color baked
-   into everything except the smoke, painted plainly — no blend modes, no
+   into everything except the smoke, painted plainly, no blend modes, no
    ramps. Stretched to the box so the baked edges land exactly on the
    section edges; every seam is the same #0d0d0c meeting itself. */
 .ring-sticky::before { content: ""; position: absolute; inset: 0; z-index: 0;
@@ -512,7 +512,7 @@ html.lenis, html.lenis body { height: auto; }
 .ring-dial { position: relative; width: min(100%, 360px); margin-inline: auto; }
 .ring-svg { display: block; width: 100%; height: auto; overflow: visible; }
 
-/* four labels around the dial — exactly two type sizes: a title and a description */
+/* four labels around the dial, exactly two type sizes: a title and a description */
 .ring-label { position: absolute; display: flex; flex-direction: column; gap: 0.35rem; width: 11rem; opacity: 0.4; transition: opacity 0.45s var(--ease-expo); pointer-events: none; }
 .ring-label.active { opacity: 1; }
 .ring-label__t { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; line-height: 1.05; color: var(--ink); }
@@ -543,7 +543,7 @@ html.lenis, html.lenis body { height: auto; }
 .ring-console__strip .v { color: var(--ink); }
 @media (max-width: 900px) { .ring-console { display: none; } }
 .footer { position: relative; z-index: var(--z-content); padding: clamp(2.5rem, 5vh, 4rem) var(--pad-x) clamp(2.5rem, 5vh, 4rem); background: var(--black); overflow: hidden; }
-/* ===== footer (home): full-page closing — pitch + access + nav, on the amber-black canvas ===== */
+/* ===== footer (home): full-page closing, pitch + access + nav, on the amber-black canvas ===== */
 .footer--end {
   min-height: 100vh; min-height: 100svh; background: var(--bg); color: var(--ink);
   display: flex; flex-direction: column; overflow: hidden;
@@ -625,7 +625,7 @@ html.lenis, html.lenis body { height: auto; }
 .ring-center-count { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.28em; fill: var(--gold); }
 
 /* mid-width screens: the orbit labels hang outside the dial and clip the
-   viewport edge below ~1460px — scale the dial + labels with the viewport */
+   viewport edge below ~1460px, scale the dial + labels with the viewport */
 @media (max-width: 1460px) and (min-width: 1101px) {
   .ring-label { width: clamp(7.5rem, 8vw + 2rem, 11rem); }
   .ring-label__t { font-size: clamp(1.2rem, 1vw + 0.55rem, 1.5rem); }
@@ -633,7 +633,7 @@ html.lenis, html.lenis body { height: auto; }
 }
 /* no horizontal room to orbit below ~1100px: the four phases stack below
    the ring (same treatment the 900px block gives phones). Placed after the
-   .home-flow height override so `height: auto` wins on the home page too —
+   .home-flow height override so `height: auto` wins on the home page too -
    without it the home ring keeps its 600vh scrub runway while unpinned and
    phones scroll through five screens of black. */
 @media (max-width: 1100px) {
@@ -657,7 +657,7 @@ html.lenis, html.lenis body { height: auto; }
   .ring-label__t { font-size: 1.2rem; }
   .ring-label__d { font-size: 0.88rem; }
 }
-/* phones: pin the loop again on a shorter runway — the dot orbits over ~2
+/* phones: pin the loop again on a shorter runway, the dot orbits over ~2
    screens of scroll and the four labels collapse into ONE crossfading
    description box under the dial (same grid cell, .active fades in) that
    updates at each checkpoint. 761-1100px keeps the static stacked list. */
@@ -683,25 +683,25 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ============================================================
-   INDUSTRIES — four workbenches. One full-viewport sticky stage;
+   INDUSTRIES, four workbenches. One full-viewport sticky stage;
    each phase dresses it as that discipline's software viewport.
    Text lives inside the environment; scroll crossfades phases.
    ============================================================ */
-/* section header (canonical rules from 2cd5596 — do not let a splice eat
+/* section header (canonical rules from 2cd5596, do not let a splice eat
    these again; the header renders unstyled without them) */
 /* The oversized smoke plate used to be held in by `overflow-x: clip` on
-   .indx. That is CORRECT about layout — clip creates no scroll container, so
-   .spec__sticky did keep pinning — but it is wrong about compositing, and
+   .indx. That is CORRECT about layout, clip creates no scroll container, so
+   .spec__sticky did keep pinning, but it is wrong about compositing, and
    that cost us: an overflow-clip ANCESTOR makes WebKit position the sticky
    stage on the main thread instead of the scrolling thread, which judders
    badly on iOS. The plate is now clipped on .indx::before itself. */
 /* NO overflow clipping here: .spec__sticky is a sticky descendant at every
    width, and an overflow-clip ancestor forces WebKit to position it on the
-   main thread instead of the scrolling thread — which on iOS makes the whole
+   main thread instead of the scrolling thread, which on iOS makes the whole
    pinned stage judder against the page. The oversized header smoke that this
    used to clip is now clipped on .indx::before itself (see the 640px block);
    a pseudo-element has no descendants, so it can never be a sticky ancestor.
-   Do NOT "fix" this with overflow:hidden or contain:paint — hidden would make
+   Do NOT "fix" this with overflow:hidden or contain:paint, hidden would make
    this section the sticky's scroll container and the pin would stop working. */
 .indx { position: relative; z-index: var(--z-content); background: var(--bg); padding: clamp(7rem, 16vh, 11rem) var(--pad-x) 0; }
 .indx__head { width: min(100%, 1280px); margin-inline: auto; max-width: 42ch; margin-bottom: clamp(10rem, 22vh, 17rem); }
@@ -711,12 +711,12 @@ html.lenis, html.lenis body { height: auto; }
 .indx__lede { margin: 1.1rem 0 0; color: var(--muted); font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1rem); line-height: 1.6; text-wrap: pretty; }
 
 /* smoke behind the section header: the FULL generated frame at its natural
-   aspect — the smoke's fade-out lives inside the artwork with ~25% runout
+   aspect, the smoke's fade-out lives inside the artwork with ~25% runout
    on every side, so there is no box edge anywhere near visible pixels.
    Never cropped, never distorted. Text sits above. */
 .indx::before { content: ""; position: absolute; left: 0; right: 0;
   /* top dead space is cropped out of the artwork itself, so the plate
-     starts exactly at the section boundary — zero overhang above it,
+     starts exactly at the section boundary, zero overhang above it,
      nothing can ever cover the loop section's exit. Bloom (~38% of the
      cropped frame) lands behind the heading. */
   top: 0;
@@ -726,17 +726,17 @@ html.lenis, html.lenis body { height: auto; }
 .indx__head { position: relative; z-index: 1; }
 /* phones: the smoke plate is only ~150-180px tall (height tracks vw), so the
    desktop 16vh top pad pushes the heading below the bloom and 22vh leaves a
-   dead black gap — tighten both so the art lands behind the heading again */
+   dead black gap, tighten both so the art lands behind the heading again */
 @media (max-width: 640px) {
   .indx { padding: clamp(3.5rem, 9vh, 5.5rem) var(--pad-x) 0; }
   .indx__head { margin-bottom: clamp(6rem, 14vh, 9rem); }
   /* at 100vw the natural-aspect plate is only ~150px tall and the smoke dies
-     above the heading — oversize it (aspect intact, sides run out off-screen)
+     above the heading, oversize it (aspect intact, sides run out off-screen)
      and centre its bloom on the title + lede so the burst sits dead behind
      "gets hard." / "One meshing core" (plate half-height = 40.11vw) */
   /* clip-path replaces the section-level overflow-x: clip that used to hold
      this plate in. The box spans -45vw..145vw, so trimming (190vw-100vw)/2
-     = 45vw off each side leaves exactly 0..100vw — the same visible pixels,
+     = 45vw off each side leaves exactly 0..100vw, the same visible pixels,
      with no clipping ancestor above the sticky stage. */
   .indx::before { left: 50%; right: auto; width: 190vw; margin-left: -95vw; height: calc(190vw / 2.3683);
     top: max(0px, calc(clamp(3.5rem, 9vh, 5.5rem) + 145px - 40.11vw));
@@ -744,12 +744,12 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* tall scroll runway: ~215vh of scrolling per industry before the
-   crossfade to the next — the scrub p normalizes, so only this number
+   crossfade to the next, the scrub p normalizes, so only this number
    sets the pacing */
 .spec { position: relative; height: 960vh; margin-inline: calc(var(--pad-x) * -1); }
 /* no opaque background: the section behind is the same flat color, and an
    opaque plate here slices the header smoke mid-wisp at the stage's top
-   edge — transparent lets the smoke finish its own fade into the stage */
+   edge, transparent lets the smoke finish its own fade into the stage */
 .spec__sticky { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; }  /* svh: no iOS URL-bar jump */
 .spec-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
@@ -777,7 +777,7 @@ html.lenis, html.lenis body { height: auto; }
 /* aerospace env: copy in the BOTTOM-RIGHT (two-view diagram fills the rest) */
 .spec-env--aero .spec-env__text { left: auto; right: var(--pad-x); text-align: right;
   top: auto; bottom: 7vh; transform: none; }
-/* bottom: matches the phone value on .spec-env__text — the desktop rule
+/* bottom: matches the phone value on .spec-env__text, the desktop rule
    above is (0,2,0), so without restating it here aero alone kept 7vh */
 @media (max-width: 760px) { .spec-env--aero .spec-env__text { right: auto; left: var(--pad-x); text-align: left; bottom: 3vh; } }
 
@@ -802,7 +802,7 @@ html.lenis, html.lenis body { height: auto; }
   .xsec__panel { width: min(calc(50% - 0.5rem), calc(40vh * 2.1)); }
 }
 /* small laptops (1366x768-class): tightest cap, and pin the copy just below
-   the nav — at 31%-with-translate its mode line rides under the nav here.
+   the nav, at 31%-with-translate its mode line rides under the nav here.
    Guarded ≥761px: mobile hides .xsec and moves the copy to the bottom. */
 @media (max-height: 860px) and (min-width: 761px) {
   .xsec__panel { width: min(calc(50% - 0.5rem), calc(30vh * 2.1)); }
@@ -836,15 +836,15 @@ html.lenis, html.lenis body { height: auto; }
      last list row, and the reclaimed space widens the gap between the
      rail and the render above */
   .spec-env__text { top: auto; bottom: 3vh; transform: none; max-width: min(85vw, 21rem); }
-  /* bio/auto keep their (0,2,0) desktop top:31% unless matched here — on
+  /* bio/auto keep their (0,2,0) desktop top:31% unless matched here, on
      phones .xsec is hidden, so they bottom-anchor like the other envs */
   .spec-env--bio .spec-env__text,
   .spec-env--auto .spec-env__text { top: auto; }
   .spec-env__p { display: none; }
   /* tuck the switcher up under the nav so it reads as chrome, not as a
-     label attached to the render — the models park lower via mcy in pages.js */
+     label attached to the render, the models park lower via mcy in pages.js */
   .spec-rail { gap: 1rem; top: calc(var(--nav-h) + 0.25rem); }
-  /* phone scroll pacing: desktop runways read as scroll traps on a thumb —
+  /* phone scroll pacing: desktop runways read as scroll traps on a thumb -
      the scrub JS normalises p by offsetHeight, so height alone sets pacing */
   .spec { height: 560vh; }
   .mesh-experience { height: 550vh; }
@@ -854,7 +854,7 @@ html.lenis, html.lenis body { height: auto; }
      phases via the portrait fit in pages.js). Stays hidden 761-900px. */
   .xsec, .xsec--nocap { display: flex; bottom: calc(3vh + 250px); gap: 0.6rem; }
   .xsec__panel figcaption { display: none; }
-  /* touch: the rail buttons are the only industry switcher on phones —
+  /* touch: the rail buttons are the only industry switcher on phones -
      grow the hit area to 44px without moving the text baseline */
   .spec-rail button { min-height: 44px; padding: 0 0.35em; display: inline-flex; align-items: center; font-size: 0.72rem; }
 }
@@ -867,10 +867,10 @@ html.lenis, html.lenis body { height: auto; }
 .spec--static .spec-rail { display: none; }
 .spec--static .spec-env { position: static; opacity: 1; pointer-events: auto; padding: 2.2rem var(--pad-x); }
 .spec--static .spec-env__text { position: static; transform: none; }
-/* reduced-motion phones get no scrub — keep the only descriptive copy */
+/* reduced-motion phones get no scrub, keep the only descriptive copy */
 .spec--static .spec-env__p { display: block; }
 /* static mode unpins the stage, so the absolutely-anchored panel row has
-   nothing to anchor to — hide it there */
+   nothing to anchor to, hide it there */
 .spec--static .xsec { display: none; }
 
 html.wl-lock, html.wl-lock body { overflow: hidden; }
@@ -898,7 +898,7 @@ html.wl-lock, html.wl-lock body { overflow: hidden; }
 }
 .wl-overlay.is-open .wl-panel { transform: none; }
 
-/* corner registration marks — the CAD-viewport frame */
+/* corner registration marks, the CAD-viewport frame */
 .wl-corner { position: absolute; width: 13px; height: 13px; border: 0 solid rgba(15, 182, 172, 0.55); transition: transform 0.45s var(--ease-expo) 0.05s; }
 .wl-corner--tl { top: 8px; left: 8px; border-top-width: 1px; border-left-width: 1px; transform: translate(4px, 4px); }
 .wl-corner--tr { top: 8px; right: 8px; border-top-width: 1px; border-right-width: 1px; transform: translate(-4px, 4px); }
@@ -918,7 +918,7 @@ html.wl-lock, html.wl-lock body { overflow: hidden; }
 .wl-title em { font-style: normal; color: var(--gold); }
 .wl-sub { margin: 0.6rem 0 1.8rem; font-size: 0.88rem; line-height: 1.6; color: var(--muted); text-wrap: pretty; }
 
-/* ruled fields — instrument form lines, not boxes */
+/* ruled fields, instrument form lines, not boxes */
 .wl-label { display: block; margin: 0 0 0.1rem; font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
 .wl-input {
   display: block; width: 100%; margin-bottom: 1.35rem;

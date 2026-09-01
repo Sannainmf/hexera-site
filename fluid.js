@@ -1,7 +1,7 @@
 /*
- * WebGL Fluid Simulation — Hero integration for Hexara
+ * WebGL Fluid Simulation, Hero integration for Hexara
  * Original: https://github.com/PavelDoGreat/WebGL-Fluid-Simulation
- * MIT License — Copyright (c) 2017 Pavel Dobryakov
+ * MIT License, Copyright (c) 2017 Pavel Dobryakov
  * Modified: transparent canvas, Hexara brand palette, no GUI/promo/GA
  */
 (function () {
@@ -211,7 +211,7 @@ const clearShader = compileShader(gl.FRAGMENT_SHADER, `
 `);
 
 
-// Standard smooth-dye display — renders the fluid as soft glowing smoke
+// Standard smooth-dye display, renders the fluid as soft glowing smoke
 // (no grid). This is the look the Hexera hero uses.
 const displayShader = compileShader(gl.FRAGMENT_SHADER, `
     precision highp float;
@@ -222,7 +222,7 @@ const displayShader = compileShader(gl.FRAGMENT_SHADER, `
     void main () {
         vec3 c = texture2D(uTexture, vUv).rgb;
         float a = max(c.r, max(c.g, c.b));
-        // never let the dye render over the coloured art — fade it out at walls
+        // never let the dye render over the coloured art, fade it out at walls
         float free = 1.0 - smoothstep(0.35, 0.65, texture2D(uObstacle, vUv).x);
         c *= free; a *= free;
         gl_FragColor = vec4(c, a);
@@ -541,7 +541,7 @@ function resizeDoubleFBO (target, w, h, internalFormat, format, type, param) {
 // OBSTACLE MASK
 // Confines the fluid to the dark areas of the hero background. Bright /
 // coloured pixels of the art (gold ribbons, teal marble) become solid
-// walls the fluid bounces off — exactly like the edges of the screen.
+// walls the fluid bounces off, exactly like the edges of the screen.
 // The mask is built in the same `center / cover` + 1.06 zoom framing the
 // CSS uses for .hero-art, so mask UV lines up 1:1 with the fluid canvas.
 // ---------------------------------------------------------------
@@ -737,12 +737,12 @@ function featherWall (wall, w, h, r) {
 }
 
 initFramebuffers();
-// start calm — no intro splats; the effect only wakes on cursor movement
+// start calm, no intro splats; the effect only wakes on cursor movement
 
 let lastUpdateTime = Date.now();
 let colorUpdateTimer = 0.0;
 /* the fixed hero canvas is fully covered by opaque sections once the page
-   scrolls past the hero — skip the whole sim there (battery/thermal win) */
+   scrolls past the hero, skip the whole sim there (battery/thermal win) */
 let heroGone = false;
 window.addEventListener("scroll", () => {
     heroGone = window.scrollY > window.innerHeight * 1.3;
@@ -916,7 +916,7 @@ function correctRadius (radius) {
 }
 
 // Mouse: trigger on move without requiring click.
-// Listen on window (canvas is pointer-events:none) using viewport coords —
+// Listen on window (canvas is pointer-events:none) using viewport coords -
 // the canvas is fixed and fills the viewport, so clientX/Y map 1:1.
 window.addEventListener('mousemove', e => {
     let pointer = pointers[0];
@@ -1024,7 +1024,7 @@ function generateColor () {
     }
     const c = nextGold ? fluidPalette.accent : fluidPalette.line;
     nextGold = !nextGold;
-    const i = 0.3; // vivid — bright, saturated glow
+    const i = 0.3; // vivid, bright, saturated glow
     return { r: c.r * i, g: c.g * i, b: c.b * i };
 }
 

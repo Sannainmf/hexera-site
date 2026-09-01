@@ -1,5 +1,5 @@
 /* ============================================================
-   Hexera — Airfoil mesh scroll experience
+   Hexera, Airfoil mesh scroll experience
    PORT of the old HEXARA site's AirfoilExperience, verbatim
    (parser + camera choreography), loading the same embedded mesh
    (now assets/airfoil.msh.gz, inflated with pako) and themed teal.
@@ -13,7 +13,7 @@
      Read LATE, never at script-execution time: the token is overridden by
      orange-theme.css, which is a second stylesheet request. Reading it up
      front could resolve against styles.css alone and bake the base teal
-     into the material permanently — which is what turned the mesh teal on
+     into the material permanently, which is what turned the mesh teal on
      slower connections while desktop looked fine. */
   let TEAL = 0x0fb6ac;
   const readTheme = () => {
@@ -102,18 +102,18 @@
       this.camera = new THREE.PerspectiveCamera(50, 1, 0.01, 5000);  /* aspect set in sizeToStage() */
       this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      this.renderer.setClearColor(0x060402, 0); // transparent — the stage's CSS background shows behind the model
+      this.renderer.setClearColor(0x060402, 0); // transparent, the stage's CSS background shows behind the model
 
       this.progress = 0;
       this.currentPhase = "surface";
-      // demo NACA 0012 mesh size — the tally counts up to these as the wireframe forms
+      // demo NACA 0012 mesh size, the tally counts up to these as the wireframe forms
       this.NODE_TOTAL = 86747;
       this.ELEM_TOTAL = 172874;
       this.meshData = meshData;
 
       this.buildScene();
       /* portrait: a 50° vertical FOV collapses the horizontal view to ~24°
-         and the model clips both edges — widen vFov so hFov never drops
+         and the model clips both edges, widen vFov so hFov never drops
          below the 50° the shots were composed for. buildScene() computed
          overviewDist from the base fov first, so the domain reveal fits the
          narrow axis with the same 1.3 margin desktop gets. */
@@ -122,14 +122,14 @@
       this.bindEvents();
       this.updateScroll();
       /* reduced motion: hold one representative frame (mesh phase), no loop,
-         no scroll-scrubbed camera — this was the one ungated large motion */
+         no scroll-scrubbed camera, this was the one ungated large motion */
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         this.progress = 0.55;
         this.applyCamera();
         this.renderer.render(this.scene, this.camera);
         return;
       }
-      /* render only while the section is on screen — otherwise this loop
+      /* render only while the section is on screen, otherwise this loop
          burns GPU on a full-screen wireframe 20,000px off-viewport */
       this.visible = false;
       new IntersectionObserver((es) => es.forEach((en) => { this.visible = en.isIntersecting; })).observe(this.section);
@@ -155,7 +155,7 @@
       const airfoilWireGeo = new THREE.WireframeGeometry(airfoilGeo);
       this.airfoilWire = new THREE.LineSegments(airfoilWireGeo, new THREE.LineBasicMaterial({
         color: TEAL, transparent: true, opacity: 0,
-        depthTest: false, depthWrite: false,   // all lines fade in together — no back-face "pop"
+        depthTest: false, depthWrite: false,   // all lines fade in together, no back-face "pop"
       }));
       this.airfoilWire.visible = false;
       this.scene.add(this.airfoilWire);
@@ -289,7 +289,7 @@
           el.classList.toggle("active", el.dataset.step === this.currentPhase));
       }
 
-      // live mesh tally — total nodes / elements count up as the wireframe forms,
+      // live mesh tally, total nodes / elements count up as the wireframe forms,
       // synced to the same smoothstep as the camera, then lock when the mesh completes
       const tally = document.getElementById("meshTally");
       if (tally) {
@@ -335,7 +335,7 @@
         const meshData = parseMshContent(raw);
         const loading = document.getElementById("meshLoading");
         if (loading) loading.classList.add("hidden");
-        readTheme();   // every stylesheet is applied by now — take the themed colour
+        readTheme();   // every stylesheet is applied by now, take the themed colour
         new AirfoilExperience(meshData);
       })
       .catch((e) => {

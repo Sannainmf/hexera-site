@@ -1,5 +1,5 @@
 /* ============================================================
-   Hexera hero — ambient background drift + subtle mouse parallax.
+   Hexera hero, ambient background drift + subtle mouse parallax.
    (Background is a generated still image; no canvas engine.)
    The sticky-nav state lives in pages.js, which serves every page.
    ============================================================ */
