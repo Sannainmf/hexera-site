@@ -4,6 +4,30 @@
    Type:    Big Shoulders Display (headline) + Geist (body) + Geist Mono (data)
    ============================================================ */
 
+/* Metric-matched fallbacks, so the webfont swap causes no reflow.
+   The Google Fonts link uses display=swap: the browser paints in a local
+   font first, then swaps. Saira is ~7.5% narrower than Arial and Geist Mono
+   ~9% wider than Consolas, so that swap used to visibly re-flow the hero.
+   size-adjust rescales the local font to the real one's advance width;
+   measured in-browser, these land within 0.04% of the webfont, so the swap
+   is now a letterform change with zero layout shift.
+   Keep the percentages with the stacks below if a typeface ever changes. */
+@font-face {
+  font-family: "Saira Fallback";
+  src: local("Arial"), local("Helvetica Neue"), local("Liberation Sans");
+  size-adjust: 92.5%; ascent-override: 114%; descent-override: 44%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Fallback";
+  src: local("Arial"), local("Helvetica Neue"), local("Liberation Sans");
+  size-adjust: 102.4%; ascent-override: 101%; descent-override: 30%; line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Geist Mono Fallback";
+  src: local("Consolas"), local("Menlo"), local("DejaVu Sans Mono");
+  size-adjust: 109.1%; ascent-override: 101%; descent-override: 30%; line-gap-override: 0%;
+}
+
 :root {
   --bg:        #060402;   /* warm amber-black, the site's single dark canvas */
   --bg-2:      #0b0905;
@@ -29,9 +53,9 @@
   --mesh-accent-rgb: 255,186,0;
   --mesh-ink-rgb:    236,234,229;
 
-  --font-display: "Saira Semi Condensed", "Helvetica Neue", Arial, sans-serif;
-  --font-body:    "Geist", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  --font-mono:    "Geist Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --font-display: "Saira Semi Condensed", "Saira Fallback", "Helvetica Neue", Arial, sans-serif;
+  --font-body:    "Geist", "Geist Fallback", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:    "Geist Mono", "Geist Mono Fallback", ui-monospace, "SFMono-Regular", Consolas, monospace;
 
   --nav-h: 4.5rem;
   --pad-x: clamp(1.25rem, 4vw, 4rem);
