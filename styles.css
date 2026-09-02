@@ -111,12 +111,16 @@ a { color: inherit; text-decoration: none; }
   transition: background 0.4s var(--ease-expo), border-color 0.4s var(--ease-expo), backdrop-filter 0.4s var(--ease-expo);
 }
 /* page scroll progress: a hairline under the nav that fills left to right */
-.scrollprog { position: fixed; top: var(--nav-h); left: 0; right: 0; height: 2px;
+/* Scroll progress. Sits ON the nav's own bottom hairline rather than under
+   it (top is nav-h minus its 1px height), so there is one line on the page
+   instead of a track stacked beneath a border. No glow and a damped orange:
+   at 1px a full-strength accent with a 12px bloom read as a hot wire. */
+.scrollprog { position: fixed; top: calc(var(--nav-h) - 1px); left: 0; right: 0; height: 1px;
   z-index: calc(var(--z-nav) - 1); background: var(--line);
   opacity: 0; transition: opacity 0.35s var(--ease-expo); pointer-events: none; }
 .scrollprog.on { opacity: 1; }
 .scrollprog i { display: block; height: 100%; transform: scaleX(0); transform-origin: left center;
-  background: var(--gold); box-shadow: 0 0 12px rgba(255,79,0,0.45); will-change: transform; }
+  background: rgba(255, 79, 0, 0.6); will-change: transform; }
 .nav.is-stuck { background: rgba(var(--bg-rgb), 0.9); backdrop-filter: blur(14px) saturate(1.1); border-bottom-color: var(--line); }
 .brand { display: inline-flex; align-items: center; gap: 0.6rem; color: var(--ink); }
 .brand__mark { flex: none; display: block; height: 24px; width: auto; }
@@ -517,93 +521,68 @@ html.lenis, html.lenis body { height: auto; }
 .h2 em { font-style: normal; color: var(--gold); }
 /* ============================================================
    PIPELINE, four phases read top to bottom.
-   Replaces a 600vh pinned ring that scrubbed a marker around a dial:
-   it hijacked six screens of scroll to deliver four sentences. This is
-   a plain vertical read, and each phase shows the artifact it actually
-   produces (a parse readout, mesh parameters, quality metrics, the
-   export bundle) rather than four interchangeable blurbs.
+   Deliberately static: no reveal, no rail fill, no scroll-driven
+   anything. It replaced a 600vh pinned dial that spent six screens
+   delivering four sentences. Monochrome by design, the orange lives
+   in the nav and hero, so this section stays quiet and legible.
    ============================================================ */
 .flow { position: relative; z-index: var(--z-content); background: var(--bg);
-  padding: clamp(5rem, 12vh, 9rem) var(--pad-x) clamp(4rem, 9vh, 7rem); }
-.flow__inner { width: min(100%, 1180px); margin-inline: auto; }
-.flow__head { max-width: 44ch; }
-.flow__lede { margin: 1.25rem 0 0; color: var(--muted); line-height: 1.6;
-  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.12rem); text-wrap: pretty; }
+  padding: clamp(6rem, 15vh, 11rem) var(--pad-x) clamp(5rem, 12vh, 9rem); }
+.flow__inner { width: min(100%, 1240px); margin-inline: auto; }
+.flow__head { max-width: 46ch; }
+.flow__lede { margin: 1.5rem 0 0; color: var(--muted); line-height: 1.65;
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1rem); text-wrap: pretty; }
 
-/* one continuous rail down the left, a node per phase */
-.flow__steps { position: relative; list-style: none; margin: clamp(3.5rem, 9vh, 6rem) 0 0;
-  padding: 0 0 0 clamp(1.5rem, 4vw, 3.5rem); border-left: 1px solid var(--line-2); }
-/* the rail fills as you read down the section, the same gesture as the
-   progress hairline under the nav. It is what makes the space between
-   phases connective rather than just empty. */
-.flow__steps::after { content: ""; position: absolute; left: -1px; top: 0; width: 1px; height: 100%;
-  background: linear-gradient(to bottom, var(--gold), rgba(255,79,0,0.35));
-  transform-origin: top center; transform: scaleY(var(--fill, 0)); }
+.flow__steps { list-style: none; margin: clamp(5rem, 13vh, 9rem) 0 0; padding: 0; }
 
+/* one row per phase: name | index | body. Generous air between them,
+   which is the whole point of dropping the pinned version. */
 .flow__step { position: relative; display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  gap: clamp(1.75rem, 5vw, 4.5rem); align-items: start;
-  padding: clamp(2.5rem, 6.5vh, 4.25rem) 0; }
-.flow__step:first-child { padding-top: 0; }
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.45fr);
+  column-gap: clamp(1.5rem, 4vw, 3.5rem);
+  padding: clamp(2.5rem, 6vh, 4rem) 0 clamp(5rem, 13vh, 9rem); }
 .flow__step:last-child { padding-bottom: 0; }
-/* the node sits on the rail, level with the phase number */
-.flow__step::before { content: ""; position: absolute; top: clamp(2.5rem, 6.5vh, 4.25rem); left: calc(clamp(1.5rem, 4vw, 3.5rem) * -1);
-  transform: translate(-50%, 0.5em); width: 11px; height: 11px; border-radius: 50%; z-index: 1;
-  background: var(--bg); border: 1px solid var(--line-2);
-  transition: background 0.5s var(--ease-expo), border-color 0.5s var(--ease-expo), box-shadow 0.5s var(--ease-expo); }
-.flow__step:first-child::before { top: 0; }
-.flow__step.is-in::before { background: var(--gold); border-color: var(--gold);
-  box-shadow: 0 0 10px rgba(255,79,0,0.45); }
 
-.flow__num { display: block; font-family: var(--font-mono); font-size: 0.7rem;
-  letter-spacing: 0.24em; color: var(--faint); transition: color 0.5s var(--ease-expo); }
-.flow__step.is-in .flow__num { color: var(--gold); }
-.flow__name { margin: 0.7rem 0 0; font-family: var(--font-display); font-weight: 600;
-  font-size: clamp(1.9rem, 1.3rem + 1.9vw, 3rem); line-height: 1; color: var(--ink); }
-.flow__desc { margin: 0.9rem 0 0; color: var(--muted); line-height: 1.6;
-  font-size: clamp(0.95rem, 0.92rem + 0.2vw, 1.05rem); max-width: 34ch; text-wrap: pretty; }
+/* the notched rule above each row: a hairline that steps down before the
+   body column, so the divider tracks the layout instead of cutting flat */
+.jog { grid-column: 1 / -1; position: relative; height: 14px; margin-bottom: clamp(2rem, 5vh, 3.5rem); }
+.jog::before, .jog::after { content: ""; position: absolute; border-top: 1px solid var(--line); }
+.jog::before { left: 0; top: 0; right: calc(30% + 30px); }
+.jog::after { right: 0; bottom: 0; width: 30%; }
+.jog__step { position: absolute; right: 30%; bottom: 0; width: 30px; height: 14px;
+  fill: none; stroke: var(--line); stroke-width: 1; }
 
-/* the artifact: an instrument panel, ruled not boxed-and-rounded */
-.art { margin: 0; border: 1px solid var(--line); background: rgba(var(--bg-rgb), 0.5); }
-.art__bar { margin: 0; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--line);
-  font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--faint); }
-.art__bar b { color: var(--gold); font-weight: 500; }
-.art__rows { margin: 0; padding: 0.35rem 0.9rem 0.75rem; font-family: var(--font-mono); font-size: 0.72rem; }
-.art__rows > div { display: flex; gap: 1.5rem; justify-content: space-between;
-  padding: 0.5rem 0; border-bottom: 1px solid var(--line); }
-.art__rows > div:last-child { border-bottom: 0; }
-.art__rows dt { color: var(--faint); letter-spacing: 0.1em; text-transform: uppercase; }
-.art__rows dd { margin: 0; color: var(--ink); text-align: right; }
+.flow__name { margin: 0; font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(2rem, 1.2rem + 2.6vw, 3.6rem); line-height: 0.98;
+  letter-spacing: -0.01em; color: var(--ink); text-wrap: balance; }
+.flow__num { font-family: var(--font-mono); font-size: 0.82rem; color: var(--faint);
+  letter-spacing: 0.06em; padding-top: 0.45em; }
 
-.art__metrics { list-style: none; margin: 0; padding: 0.9rem;
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
-.art__metrics li { display: flex; flex-direction: column; gap: 0.3rem; }
-.art__k { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.16em;
-  text-transform: uppercase; color: var(--faint); }
-.art__v { font-family: var(--font-mono); font-size: 1.4rem; color: var(--ink); }
+.flow__body { max-width: 46ch; }
+.flow__tag { margin: 0.35em 0 0; font-family: var(--font-mono); font-size: 0.62rem;
+  letter-spacing: 0.18em; text-transform: uppercase; color: var(--faint); }
+.flow__desc { margin: 1.15rem 0 0; color: var(--muted); line-height: 1.7;
+  font-size: clamp(0.95rem, 0.92rem + 0.2vw, 1.02rem); text-wrap: pretty; }
 
-.art__chips { list-style: none; margin: 0; padding: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.art__chips li { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em;
-  color: var(--muted); border: 1px solid var(--line-2); padding: 0.32em 0.6em; }
-.art__note { margin: 0; padding: 0 0.9rem 0.9rem; color: var(--faint);
-  font-size: 0.78rem; line-height: 1.5; }
+/* the run's own numbers, ruled rather than boxed */
+.flow__spec { margin: 2rem 0 0; font-family: var(--font-mono); font-size: 0.72rem; }
+.flow__spec > div { display: flex; gap: 1.5rem; justify-content: space-between;
+  padding: 0.65rem 0; border-top: 1px solid var(--line); }
+.flow__spec dt { color: var(--faint); letter-spacing: 0.12em; text-transform: uppercase; }
+.flow__spec dd { margin: 0; color: var(--muted); text-align: right; }
 
-/* the reveal is opt-in: pages.js adds .is-armed only once it can drive it.
-   Without JS, or if IntersectionObserver never fires, the phases stay
-   visible rather than sitting at opacity 0 forever. */
-.flow__steps.is-armed .flow__step { opacity: 0; transform: translateY(16px);
-  transition: opacity 0.7s var(--ease-expo), transform 0.7s var(--ease-expo); }
-.flow__steps.is-armed .flow__step.is-in { opacity: 1; transform: none; }
+.flow__chips { list-style: none; margin: 2rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.flow__chips li { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em;
+  color: var(--muted); border: 1px solid var(--line); padding: 0.36em 0.62em; }
+.flow__note { margin: 1.1rem 0 0; color: var(--faint); font-size: 0.78rem; line-height: 1.6; }
 
-@media (max-width: 860px) {
-  .flow__steps { padding-left: 1.4rem; }
-  .flow__step { grid-template-columns: 1fr; gap: 1.5rem; }
-  .flow__step::before { left: -1.4rem; }
-  .flow__desc { max-width: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .flow__steps.is-armed .flow__step { opacity: 1; transform: none; transition: none; }
+@media (max-width: 900px) {
+  .flow__step { grid-template-columns: 1fr auto; row-gap: 1.25rem;
+    padding-bottom: clamp(3.5rem, 9vh, 6rem); }
+  .flow__body { grid-column: 1 / -1; max-width: none; }
+  .jog::before { right: calc(38% + 30px); }
+  .jog::after { width: 38%; }
+  .jog__step { right: 38%; }
 }
 
 /* Rehaan's phase console: demo-mesh log under the copy, phases light up

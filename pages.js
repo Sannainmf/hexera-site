@@ -128,51 +128,6 @@
      dial. It read as a scroll trap: six screens of hijack for four
      sentences. Now the phases are static and simply reveal in sequence,
      and each one lights its line in the console as it lands. */
-  const flow = document.querySelector(".flow");
-  if (flow) {
-    const steps = Array.from(flow.querySelectorAll(".flow__step"));
-    const logLines = Array.from(flow.querySelectorAll(".ring-log__ln"));
-    const light = (i) => {
-      steps[i].classList.add("is-in");
-      if (logLines[i]) logLines[i].classList.add("on");
-    };
-    if (reduce || !("IntersectionObserver" in window)) {
-      steps.forEach((_, i) => light(i));
-    } else {
-      flow.querySelector(".flow__steps").classList.add("is-armed");
-      /* Arming sets the steps to opacity 0, so the observer failing would
-         hide the copy outright. It always reports once on observe(), so
-         this net only ever fires if it genuinely never ran. */
-      let reported = false;
-      setTimeout(() => { if (!reported) steps.forEach((_, i) => light(i)); }, 1500);
-      const io = new IntersectionObserver((entries) => {
-        reported = true;
-        entries.forEach((en) => {
-          if (!en.isIntersecting) return;
-          const i = steps.indexOf(en.target);
-          /* stagger by position so a fast scroll still cascades */
-          setTimeout(() => light(i), (i % 4) * 90);
-          io.unobserve(en.target);
-        });
-      }, { rootMargin: "0px 0px -12% 0px", threshold: 0.3 });
-      steps.forEach((el) => io.observe(el));
-    }
-  }
-
-  /* the pipeline rail fills as the section is read */
-  if (flow && !reduce) {
-    const list = flow.querySelector(".flow__steps");
-    const onRail = () => {
-      const r = list.getBoundingClientRect();
-      const span = r.height + window.innerHeight * 0.5;
-      const p = clamp((window.innerHeight * 0.75 - r.top) / Math.max(span, 1), 0, 1);
-      list.style.setProperty("--fill", p.toFixed(3));
-    };
-    window.addEventListener("scroll", onRail, { passive: true });
-    window.addEventListener("resize", onRail);
-    onRail();
-  }
-
   /* ---------- scroll progress: a hairline under the nav ---------- */
   const sprog = document.querySelector("[data-scroll-prog]");
   if (sprog) {

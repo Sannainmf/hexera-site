@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=59" />
+  <link rel="stylesheet" href="styles.css?v=61" />
   <link rel="stylesheet" href="orange-theme.css?v=36" />
 </head>
 <body>
@@ -151,74 +151,78 @@
   <!-- ===== Pipeline: four phases, static and scroll-revealed ===== -->
   <section class="flow" aria-label="Hexera's four-phase meshing process">
     <div class="flow__inner">
-      <header class="flow__head" data-parallax-fade>
+      <header class="flow__head">
         <h2 class="h2">Four phases,<br><em>one&nbsp;pipeline.</em></h2>
         <p class="flow__lede">A multi-agent pipeline takes each part from raw CAD to solver-ready. Specialized agents read the geometry, mesh to intent, check their own work, and hand off.</p>
       </header>
 
       <ol class="flow__steps">
         <li class="flow__step">
-          <div class="flow__side">
-            <span class="flow__num" aria-hidden="true">01</span>
-            <h3 class="flow__name">Ingest</h3>
-            <p class="flow__desc">Opens the CAD, heals gaps, and tags the walls that matter, so nothing downstream is guessing.</p>
+          <div class="jog" aria-hidden="true">
+            <svg class="jog__step" viewBox="0 0 30 14" preserveAspectRatio="none"><path d="M0 0.5 L30 13.5" /></svg>
           </div>
-          <figure class="art">
-            <figcaption class="art__bar">geometry &middot; naca0012.step <b>parsed</b></figcaption>
-            <dl class="art__rows">
+          <h3 class="flow__name">Ingest</h3>
+          <span class="flow__num" aria-hidden="true">1.0</span>
+          <div class="flow__body">
+            <p class="flow__tag">geometry &middot; naca0012.step</p>
+            <p class="flow__desc">Opens the CAD, heals gaps, and tags the walls that matter, so nothing downstream is guessing.</p>
+            <dl class="flow__spec">
               <div><dt>Body</dt><dd>1 watertight solid</dd></div>
               <div><dt>Scale</dt><dd>rescaled mm &rarr; unit chord</dd></div>
               <div><dt>Healed</dt><dd>sliver faces, open edges</dd></div>
               <div><dt>Tagged</dt><dd>walls &middot; farfield &middot; frontAndBack</dd></div>
             </dl>
-          </figure>
+          </div>
         </li>
         <li class="flow__step">
-          <div class="flow__side">
-            <span class="flow__num" aria-hidden="true">02</span>
-            <h3 class="flow__name">Mesh</h3>
-            <p class="flow__desc">Turns plain-language intent into real y+ and prism layers. You describe the run; it picks the numbers.</p>
+          <div class="jog" aria-hidden="true">
+            <svg class="jog__step" viewBox="0 0 30 14" preserveAspectRatio="none"><path d="M0 0.5 L30 13.5" /></svg>
           </div>
-          <figure class="art">
-            <figcaption class="art__bar">meshing &middot; write_geo <b>running</b></figcaption>
-            <dl class="art__rows">
+          <h3 class="flow__name">Mesh</h3>
+          <span class="flow__num" aria-hidden="true">2.0</span>
+          <div class="flow__body">
+            <p class="flow__tag">meshing &middot; write_geo</p>
+            <p class="flow__desc">Turns plain-language intent into real y+ and prism layers. You describe the run; it picks the numbers.</p>
+            <dl class="flow__spec">
               <div><dt>Target</dt><dd>y+ &lt; 1</dd></div>
               <div><dt>Layers</dt><dd>24, first cell 1.2e-5</dd></div>
               <div><dt>Background</dt><dd>12,400 cells</dd></div>
               <div><dt>Volume</dt><dd>129,369 cells</dd></div>
             </dl>
-          </figure>
+          </div>
         </li>
         <li class="flow__step">
-          <div class="flow__side">
-            <span class="flow__num" aria-hidden="true">03</span>
-            <h3 class="flow__name">Verify</h3>
+          <div class="jog" aria-hidden="true">
+            <svg class="jog__step" viewBox="0 0 30 14" preserveAspectRatio="none"><path d="M0 0.5 L30 13.5" /></svg>
+          </div>
+          <h3 class="flow__name">Verify</h3>
+          <span class="flow__num" aria-hidden="true">3.0</span>
+          <div class="flow__body">
+            <p class="flow__tag">quality &middot; re-check</p>
             <p class="flow__desc">Grades its own mesh and re-refines whatever failed, before anything reaches you.</p>
+            <dl class="flow__spec">
+              <div><dt>Skew</dt><dd>0.34</dd></div>
+              <div><dt>y+</dt><dd>0.91</dd></div>
+              <div><dt>Nodes</dt><dd>86,747</dd></div>
+              <div><dt>Elements</dt><dd>172,874</dd></div>
+            </dl>
           </div>
-          <figure class="art">
-            <figcaption class="art__bar">quality &middot; re-check <b>passed</b></figcaption>
-            <ul class="art__metrics">
-              <li><span class="art__k">skew</span><span class="art__v">0.34</span></li>
-              <li><span class="art__k">y+</span><span class="art__v">0.91</span></li>
-              <li><span class="art__k">nodes</span><span class="art__v">86,747</span></li>
-              <li><span class="art__k">elements</span><span class="art__v">172,874</span></li>
-            </ul>
-          </figure>
         </li>
         <li class="flow__step">
-          <div class="flow__side">
-            <span class="flow__num" aria-hidden="true">04</span>
-            <h3 class="flow__name">Deliver</h3>
-            <p class="flow__desc">Exports solver-ready, with the script that built it, so the result is reproducible rather than a black box.</p>
+          <div class="jog" aria-hidden="true">
+            <svg class="jog__step" viewBox="0 0 30 14" preserveAspectRatio="none"><path d="M0 0.5 L30 13.5" /></svg>
           </div>
-          <figure class="art">
-            <figcaption class="art__bar">export &middot; solver-agnostic <b>bundled</b></figcaption>
-            <ul class="art__chips">
+          <h3 class="flow__name">Deliver</h3>
+          <span class="flow__num" aria-hidden="true">4.0</span>
+          <div class="flow__body">
+            <p class="flow__tag">export &middot; solver-agnostic</p>
+            <p class="flow__desc">Exports solver-ready, with the script that built it, so the result is reproducible rather than a black box.</p>
+            <ul class="flow__chips">
               <li>CGNS</li><li>MSH</li><li>STL</li><li>INP</li>
               <li>MED</li><li>UNV</li><li>BDF</li><li>gmsh.py</li>
             </ul>
-            <p class="art__note">OpenFOAM, ANSYS and Abaqus ready, plus an Allmesh wrapper.</p>
-          </figure>
+            <p class="flow__note">OpenFOAM, ANSYS and Abaqus ready, plus an Allmesh wrapper.</p>
+          </div>
         </li>
       </ol>
 
@@ -455,7 +459,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js" defer></script>
   <script src="airfoil.js?v=15" defer></script>
-  <script src="pages.js?v=88" defer></script>
+  <script src="pages.js?v=89" defer></script>
   <script src="waitlist.js?v=12" defer></script>
 </body>
 </html>
