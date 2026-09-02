@@ -559,22 +559,14 @@ html.lenis, html.lenis body { height: auto; }
   letter-spacing: 0.06em; padding-top: 0.45em; }
 
 .flow__body { max-width: 46ch; }
-.flow__tag { margin: 0.35em 0 0; font-family: var(--font-mono); font-size: 0.62rem;
-  letter-spacing: 0.18em; text-transform: uppercase; color: var(--faint); }
-.flow__desc { margin: 1.15rem 0 0; color: var(--muted); line-height: 1.7;
+.flow__desc { margin: 0.45em 0 0; color: var(--muted); line-height: 1.7;
   font-size: clamp(0.95rem, 0.92rem + 0.2vw, 1.02rem); text-wrap: pretty; }
 
-/* the run's own numbers, ruled rather than boxed */
-.flow__spec { margin: 2rem 0 0; font-family: var(--font-mono); font-size: 0.72rem; }
-.flow__spec > div { display: flex; gap: 1.5rem; justify-content: space-between;
-  padding: 0.65rem 0; border-top: 1px solid var(--line); }
-.flow__spec dt { color: var(--faint); letter-spacing: 0.12em; text-transform: uppercase; }
-.flow__spec dd { margin: 0; color: var(--muted); text-align: right; }
-
-.flow__chips { list-style: none; margin: 2rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.flow__chips li { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em;
-  color: var(--muted); border: 1px solid var(--line); padding: 0.36em 0.62em; }
-.flow__note { margin: 1.1rem 0 0; color: var(--faint); font-size: 0.78rem; line-height: 1.6; }
+/* the tag row under each phase: the concrete nouns for that step */
+.flow__tags { list-style: none; margin: 1.6rem 0 0; padding: 0; display: flex; flex-wrap: wrap;
+  align-items: baseline; font-family: var(--font-mono); font-size: 0.66rem;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); line-height: 1.9; }
+.flow__tags li + li::before { content: "·"; margin: 0 0.65em; opacity: 0.55; }
 
 @media (max-width: 900px) {
   .flow__step { grid-template-columns: 1fr auto; row-gap: 1.25rem;
