@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=63" />
+  <link rel="stylesheet" href="styles.css?v=64" />
   <link rel="stylesheet" href="orange-theme.css?v=36" />
 </head>
 <body>
@@ -149,11 +149,11 @@
   <div class="home-flow">
 
   <!-- ===== Pipeline: six phases, static ===== -->
-  <section class="flow" aria-label="Hexera's six-phase meshing pipeline">
+  <section class="flow" aria-label="Hexera's four-phase meshing pipeline">
     <div class="flow__inner">
       <header class="flow__head">
-        <h2 class="h2">Six phases,<br><em>one&nbsp;pipeline.</em></h2>
-        <p class="flow__lede">Agents take each part from raw CAD to solver-ready: an interview up front, an explicit plan, hard quality gates, and an automatic retry when a gate fails.</p>
+        <h2 class="h2">Four phases,<br><em>one&nbsp;pipeline.</em></h2>
+        <p class="flow__lede">Agents take each part from raw CAD to solver-ready: an interview up front, geometry read as exact math, hard quality gates, and an automatic retry when a gate fails.</p>
       </header>
 
       <ol class="flow__steps">
@@ -192,23 +192,8 @@
           <div class="jog" aria-hidden="true">
             <svg class="jog__step" viewBox="0 0 30 14" preserveAspectRatio="none"><path d="M0 0.5 L30 13.5" /></svg>
           </div>
-          <h3 class="flow__name">Plan</h3>
-          <span class="flow__num" aria-hidden="true">03</span>
-          <div class="flow__body">
-            <p class="flow__desc">A planner turns your intent into numbers: base cell size from the bore, refinement levels per feature, prism layer count and first-layer thickness from your y+ target, all inside an explicit cell budget.</p>
-            <ul class="flow__tags">
-              <li>Cell budget</li>
-              <li>Refinement</li>
-              <li>Layers</li>
-            </ul>
-          </div>
-        </li>
-        <li class="flow__step">
-          <div class="jog" aria-hidden="true">
-            <svg class="jog__step" viewBox="0 0 30 14" preserveAspectRatio="none"><path d="M0 0.5 L30 13.5" /></svg>
-          </div>
           <h3 class="flow__name">Mesh</h3>
-          <span class="flow__num" aria-hidden="true">04</span>
+          <span class="flow__num" aria-hidden="true">03</span>
           <div class="flow__body">
             <p class="flow__desc">The plan is authored into a native case and run on cloud compute, snappyHexMesh or gmsh, chosen for the job. Boundary layers, feature-edge snapping, port-local refinement.</p>
             <ul class="flow__tags">
@@ -223,7 +208,7 @@
             <svg class="jog__step" viewBox="0 0 30 14" preserveAspectRatio="none"><path d="M0 0.5 L30 13.5" /></svg>
           </div>
           <h3 class="flow__name">Gate &amp; retry</h3>
-          <span class="flow__num" aria-hidden="true">05</span>
+          <span class="flow__num" aria-hidden="true">04</span>
           <div class="flow__body">
             <p class="flow__desc">Deterministic gates measure the result: non-orthogonality, skewness, port integrity, budget. A failing mesh is not delivered. It is diagnosed, the plan is revised, and the mesher runs again, automatically, up to three attempts.</p>
             <ul class="flow__tags">
@@ -233,34 +218,15 @@
             </ul>
           </div>
         </li>
-        <li class="flow__step">
-          <div class="jog" aria-hidden="true">
-            <svg class="jog__step" viewBox="0 0 30 14" preserveAspectRatio="none"><path d="M0 0.5 L30 13.5" /></svg>
-          </div>
-          <h3 class="flow__name">Review &amp; deliver</h3>
-          <span class="flow__num" aria-hidden="true">06</span>
-          <div class="flow__body">
-            <p class="flow__desc">A reviewer agent inspects the passing mesh, both metrics and visuals, and only a PASS ships. You get the mesh with a quality scorecard, solver-ready for OpenFOAM or Fluent.</p>
-            <ul class="flow__tags">
-              <li>AI review</li>
-              <li>Scorecard</li>
-              <li>OpenFOAM</li>
-              <li>Fluent</li>
-            </ul>
-          </div>
-        </li>
       </ol>
 
       <div class="ring-console" aria-hidden="true">
         <p class="ring-console__head">demo mesh &middot; naca 0012</p>
-        <div class="ring-log">
+        
           <p class="ring-log__ln"><span class="idx">01</span><span class="nm">intake</span></p>
           <p class="ring-log__ln"><span class="idx">02</span><span class="nm">geometry</span></p>
-          <p class="ring-log__ln"><span class="idx">03</span><span class="nm">plan</span></p>
-          <p class="ring-log__ln"><span class="idx">04</span><span class="nm">mesh</span></p>
-          <p class="ring-log__ln"><span class="idx">05</span><span class="nm">gate &amp; retry</span></p>
-          <p class="ring-log__ln"><span class="idx">06</span><span class="nm">review</span></p>
-        </div>
+          <p class="ring-log__ln"><span class="idx">03</span><span class="nm">mesh</span></p>
+          <p class="ring-log__ln"><span class="idx">04</span><span class="nm">gate &amp; retry</span></p>
         <p class="ring-console__strip">
           <span><span class="k">nodes</span> <span class="v">86,747</span></span>
           <span><span class="k">elements</span> <span class="v">172,874</span></span>
