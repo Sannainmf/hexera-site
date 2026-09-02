@@ -579,18 +579,6 @@ html.lenis, html.lenis body { height: auto; }
 
 /* Rehaan's phase console: demo-mesh log under the copy, phases light up
    in step with the dial */
-.ring-console { margin-top: clamp(3.5rem, 9vh, 6rem); max-width: 21rem; border-top: 3px solid #2a2319; border-bottom: 3px solid #2a2319;
-  padding: 1rem 0 0.95rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
-.ring-console__head { margin: 0 0 0.8rem; color: var(--faint); }
-.ring-log { display: flex; flex-direction: column; gap: 0.5rem; }
-.ring-log__ln { margin: 0; display: flex; gap: 1em; color: var(--muted); }
-.ring-log__ln .idx { color: var(--faint); }
-.ring-log__ln.on .nm { color: var(--ink); }
-.ring-log__ln.on .idx { color: var(--gold); }
-.ring-console__strip { margin: 0.9rem 0 0; display: flex; gap: 1.8rem; }
-.ring-console__strip .k { color: var(--faint); }
-.ring-console__strip .v { color: var(--ink); }
-@media (max-width: 900px) { .ring-console { display: none; } }
 .footer { position: relative; z-index: var(--z-content); padding: clamp(2.5rem, 5vh, 4rem) var(--pad-x) clamp(2.5rem, 5vh, 4rem); background: var(--black); overflow: hidden; }
 /* ===== footer (home): full-page closing, pitch + access + nav, on the amber-black canvas ===== */
 .footer--end {
@@ -647,7 +635,6 @@ html.lenis, html.lenis body { height: auto; }
   .fend__legal a { padding: 0.6em 0.2em; }
 }
 
-}
 
 
 /* ============================================================
