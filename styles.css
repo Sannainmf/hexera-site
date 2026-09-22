@@ -642,8 +642,6 @@ html.lenis, html.lenis body { height: auto; }
    each phase dresses it as that discipline's software viewport.
    Text lives inside the environment; scroll crossfades phases.
    ============================================================ */
-/* section header (canonical rules from 2cd5596, do not let a splice eat
-   these again; the header renders unstyled without them) */
 /* The oversized smoke plate used to be held in by `overflow-x: clip` on
    .indx. That is CORRECT about layout, clip creates no scroll container, so
    .spec__sticky did keep pinning, but it is wrong about compositing, and
@@ -658,43 +656,30 @@ html.lenis, html.lenis body { height: auto; }
    a pseudo-element has no descendants, so it can never be a sticky ancestor.
    Do NOT "fix" this with overflow:hidden or contain:paint, hidden would make
    this section the sticky's scroll container and the pin would stop working. */
-.indx { position: relative; z-index: var(--z-content); background: var(--bg); padding: clamp(7rem, 16vh, 11rem) var(--pad-x) 0; }
-.indx__head { width: min(100%, 1280px); margin-inline: auto; max-width: 42ch; margin-bottom: clamp(10rem, 22vh, 17rem); }
-.indx__eyebrow { font-family: var(--font-mono); font-weight: 500; font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
-.indx__title { margin: 1rem 0 0; font-family: var(--font-display); font-weight: 500; font-size: clamp(2rem, 1.4rem + 2.6vw, 3.4rem); line-height: 1.02; color: var(--ink); text-wrap: balance; }
-.indx__title em { font-style: normal; color: var(--gold); }
-.indx__lede { margin: 1.1rem 0 0; color: var(--muted); font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1rem); line-height: 1.6; text-wrap: pretty; }
+.indx { position: relative; z-index: var(--z-content); background: var(--bg); padding: calc(100vw / 2.3683 * 0.72) var(--pad-x) 0; }
 
-/* smoke behind the section header: the FULL generated frame at its natural
+/* smoke at the top of the industries section: the FULL generated frame at its natural
    aspect, the smoke's fade-out lives inside the artwork with ~25% runout
    on every side, so there is no box edge anywhere near visible pixels.
-   Never cropped, never distorted. Text sits above. */
+   Never cropped, never distorted. The section padding clears it. */
 .indx::before { content: ""; position: absolute; left: 0; right: 0;
   /* top dead space is cropped out of the artwork itself, so the plate
      starts exactly at the section boundary, zero overhang above it,
-     nothing can ever cover the loop section's exit. Bloom (~38% of the
-     cropped frame) lands behind the heading. */
+     nothing can ever cover the pipeline section's exit. */
   top: 0;
   height: calc(100vw / 2.3683);
   background: url("assets/header-smoke3.png") center / 100% 100% no-repeat;
   pointer-events: none; }
-.indx__head { position: relative; z-index: 1; }
-/* phones: the smoke plate is only ~150-180px tall (height tracks vw), so the
-   desktop 16vh top pad pushes the heading below the bloom and 22vh leaves a
-   dead black gap, tighten both so the art lands behind the heading again */
+/* phones: at 100vw the plate is only ~150px tall, so it is oversized
+   (aspect intact, sides run out off-screen) and the padding tracks it */
 @media (max-width: 640px) {
-  .indx { padding: clamp(3.5rem, 9vh, 5.5rem) var(--pad-x) 0; }
-  .indx__head { margin-bottom: clamp(6rem, 14vh, 9rem); }
-  /* at 100vw the natural-aspect plate is only ~150px tall and the smoke dies
-     above the heading, oversize it (aspect intact, sides run out off-screen)
-     and centre its bloom on the title + lede so the burst sits dead behind
-     "gets hard." / "One meshing core" (plate half-height = 40.11vw) */
+  .indx { padding: calc(190vw / 2.3683 * 0.72) var(--pad-x) 0; }
   /* clip-path replaces the section-level overflow-x: clip that used to hold
      this plate in. The box spans -45vw..145vw, so trimming (190vw-100vw)/2
      = 45vw off each side leaves exactly 0..100vw, the same visible pixels,
      with no clipping ancestor above the sticky stage. */
   .indx::before { left: 50%; right: auto; width: 190vw; margin-left: -95vw; height: calc(190vw / 2.3683);
-    top: max(0px, calc(clamp(3.5rem, 9vh, 5.5rem) + 145px - 40.11vw));
+    top: 0;
     clip-path: inset(0 calc((100% - 100vw) / 2)); }
 }
 
