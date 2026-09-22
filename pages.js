@@ -123,11 +123,6 @@
     }
   }
 
-  /* ---------- pipeline: reveal each phase as it scrolls into view ----------
-     This used to be a 600vh pinned ring with a marker scrubbing around a
-     dial. It read as a scroll trap: six screens of hijack for four
-     sentences. Now the phases are static and simply reveal in sequence,
-     and each one lights its line in the console as it lands. */
   /* ---------- scroll progress: a hairline under the nav ---------- */
   const sprog = document.querySelector("[data-scroll-prog]");
   if (sprog) {
@@ -1342,4 +1337,310 @@
       });
     }
   }
+  /* ---------- pipeline rail: fill follows the scroll, nodes light as they pass ----------
+     The line's lit segment ends at a reading line 45% down the viewport;
+     the node just above that line is the active phase, the ones above it
+     are past. Runs on the shared frame loop only while the rail is on
+     screen. The Gate -> Mesh retry loop is drawn once per layout: a cubic
+     that leaves node 4, bulges left of the rail and lands on node 3. */
+  const rail = document.querySelector("[data-rail]");
+  if (rail) {
+    const fill = rail.querySelector("[data-rail-fill]");
+    const steps = Array.from(rail.querySelectorAll("[data-rail-step]"));
+    const nodes = steps.map((li) => li.querySelector(".rail__node"));
+    const loop = rail.querySelector("[data-rail-loop]");
+    const loopPath = rail.querySelector("[data-rail-loop-path]");
+    const loopPulse = rail.querySelector("[data-rail-loop-pulse]");
+    const loopText = rail.querySelector("[data-rail-loop-text]");
+
+    const drawLoop = () => {
+      if (!loop || steps.length < 4) return;
+      const rr = rail.getBoundingClientRect();
+      const B = loop.getBoundingClientRect().width;          // the bulge, from CSS
+      const cy = (i) => { const r = nodes[i].getBoundingClientRect(); return r.top - rr.top + r.height / 2; };
+      const y3 = cy(2), y4 = cy(3);
+      const half = nodes[2].getBoundingClientRect().width / 2;
+      const cx = -B / 3;                                     // control x: leftmost point lands at x ≈ 0
+      const d = "M" + B + " " + y4 + " C" + cx + " " + y4 + ", " + cx + " " + y3 + ", " + B + " " + (y3 + half + 1)
+              + " M" + (B - 5) + " " + (y3 + half - 5) + " L" + B + " " + (y3 + half + 1) + " L" + (B + 5) + " " + (y3 + half - 5);
+      loopPath.setAttribute("d", d);
+      loopPulse.setAttribute("d", d);
+      const L = Math.ceil(loopPulse.getTotalLength());
+      loopPulse.style.setProperty("--L", L);
+      if (loopText) {
+        const ty = (y3 + y4) / 2;
+        loopText.setAttribute("transform", "translate(" + (B * 0.34).toFixed(1) + " " + ty.toFixed(1) + ") rotate(-90)");
+      }
+    };
+
+    let railTop = 0, railH = 0;
+    const measure = () => {
+      const r = rail.getBoundingClientRect();
+      railTop = r.top + window.scrollY; railH = r.height;
+      drawLoop();
+    };
+    const update = () => {
+      /* re-read the rail's position every frame: the section above it is a
+         1000vh scroll runway, so any cached offset goes stale on a resize */
+      const rr = rail.getBoundingClientRect();
+      railTop = rr.top + window.scrollY; railH = rr.height;
+      const line = window.scrollY + window.innerHeight * 0.45;
+      const h = clamp(line - railTop, 0, railH);
+      fill.style.height = h.toFixed(1) + "px";
+      let activeIdx = -1;
+      nodes.forEach((n, i) => {
+        const c = n.getBoundingClientRect().top + window.scrollY + n.offsetHeight / 2;
+        if (c <= line) activeIdx = i;
+      });
+      steps.forEach((li, i) => {
+        li.classList.toggle("is-active", i === activeIdx);
+        li.classList.toggle("is-past", i < activeIdx);
+      });
+      rail.classList.toggle("is-looping", activeIdx >= 2);
+    };
+    if (reduce) {
+      measure();
+      steps.forEach((li) => li.classList.add("is-past"));
+      rail.classList.add("is-looping");
+    } else {
+      measure();
+      onScrollFrame(update, rail);
+      let t = 0;
+      window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => { measure(); update(); }, 120); });
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); update(); });
+    }
+  }
+
+  /* ---------- readout board: every character on a tile, flipped in on first view ----------
+     Each value is split into words of tiles (so lines wrap at word
+     boundaries). On the first intersection the tiles cycle through the
+     glyph set for a staggered moment and settle on their character. */
+  const board = document.querySelector("[data-board]");
+  if (board) {
+    const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const tiles = [];
+    board.querySelectorAll("[data-flap]").forEach((dd) => {
+      const text = dd.textContent.replace(/\s+/g, " ").trim();
+      dd.textContent = "";
+      text.split(" ").forEach((word) => {
+        const w = document.createElement("span"); w.className = "flap__w";
+        Array.from(word).forEach((ch) => {
+          const c = document.createElement("span");
+          c.className = "flap__c" + (ch === "·" ? " flap__c--sep" : "");
+          c.textContent = ch; c.dataset.ch = ch;
+          w.appendChild(c);
+          if (ch !== "·" && ch !== "," && ch !== "-") tiles.push(c);
+        });
+        dd.appendChild(w);
+      });
+    });
+    /* a blinking cursor tile after the last value: the board is live */
+    const lastDd = Array.from(board.querySelectorAll("[data-flap]")).pop();
+    if (lastDd) {
+      const w = document.createElement("span"); w.className = "flap__w";
+      const c = document.createElement("span"); c.className = "flap__c flap__c--cursor"; c.appendChild(document.createElement("i"));
+      w.appendChild(c); lastDd.appendChild(w);
+    }
+    if (!reduce && tiles.length) {
+      let started = false;
+      /* idle life: every so often one tile flips through a couple of glyphs
+         and lands back on its own, like a board keeping itself current.
+         Only while the board is on screen. */
+      let idleT = 0, onScreen = false;
+      const flipOne = () => {
+        const c = tiles[(Math.random() * tiles.length) | 0];
+        if (c.classList.contains("is-spinning") || c.classList.contains("is-flip")) return;
+        c.classList.add("is-flip");
+        const mid = setTimeout(() => { c.textContent = GLYPHS[(Math.random() * GLYPHS.length) | 0]; }, 150);
+        setTimeout(() => { c.textContent = c.dataset.ch; c.classList.remove("is-flip"); clearTimeout(mid); }, 340);
+      };
+      const idle = () => {
+        if (!onScreen) return;
+        const n = Math.random() < 0.3 ? 2 : 1;
+        for (let i = 0; i < n; i++) setTimeout(flipOne, i * 90);
+        idleT = setTimeout(idle, 700 + Math.random() * 1600);
+      };
+      const run = () => {
+        const t0 = performance.now();
+        tiles.forEach((c, i) => { c.dataset.end = String(320 + i * 22 + Math.random() * 260); c.classList.add("is-spinning"); });
+        const frame = (now) => {
+          const t = now - t0; let live = 0;
+          for (const c of tiles) {
+            if (!c.classList.contains("is-spinning")) continue;
+            if (t >= +c.dataset.end) { c.textContent = c.dataset.ch; c.classList.remove("is-spinning"); continue; }
+            live++;
+            c.textContent = GLYPHS[(Math.random() * GLYPHS.length) | 0];
+          }
+          if (live) requestAnimationFrame(frame);
+          else { clearTimeout(idleT); idleT = setTimeout(idle, 900); }
+        };
+        requestAnimationFrame(frame);
+      };
+      const io = new IntersectionObserver((entries) => {
+        onScreen = entries.some((e) => e.isIntersecting);
+        if (!started && onScreen) { started = true; run(); }
+        else if (started && onScreen) { clearTimeout(idleT); idleT = setTimeout(idle, 400); }
+        else if (!onScreen) clearTimeout(idleT);
+      }, { threshold: 0.35 });
+      io.observe(board);
+    }
+  }
+
+  /* ---------- mesh mark: the footer's background, a cube that gets meshed as you scroll ----------
+     The canvas is the whole footer. Specks stream in from beyond the
+     right edge of the screen and seat themselves on the cube's three
+     faces as a scan-like point cloud. Then a mesh front sweeps down the
+     solid from its top vertex: triangles are cut between the seated nodes,
+     graded fine toward every edge the way a CFD surface mesh refines at
+     features, the newest cells glowing orange for a beat before settling
+     to gray. Progress is tied to the page end, so it always completes. */
+  document.querySelectorAll("[data-meshmark]").forEach((cv) => {
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+    let W = 0, H = 0, dpr = 1, dots = [], edges = [], tris = [], outline = [], built = false, lastP = -1, narrow = false;
+    let seed = 11;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+    const ss = (t) => t * t * (3 - 2 * t);
+    const SEAT = 0.62;                         // p by which every speck has landed
+    const MESH0 = 0.5, MESH1 = 0.94;           // the front sweeps top to bottom over this range
+
+    const build = () => {
+      const host = cv.parentElement;
+      const cssW = host.clientWidth, cssH = host.clientHeight;
+      if (!cssW || !cssH) return;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cv.width = W = Math.round(cssW * dpr); cv.height = H = Math.round(cssH * dpr);
+      dots = []; edges = []; tris = []; outline = []; seed = 11;
+      const phone = cssW < 640;
+
+      /* --- the cube: isometric, three faces, sat in the middle of the footer --- */
+      /* wide: the pitch sits left, the cube owns the right half of the lead.
+         narrow: the cube sits behind the pitch, centred and smaller. */
+      const wide = cssW >= 1000;
+      const vh = window.innerHeight * dpr;
+      /* narrow: the cube sits in a viewport-sized band above the pitch
+         (the CSS gives the lead 46vh of top padding), so it never crosses
+         the pitch or the links below */
+      const L = wide ? Math.min(H * 0.28, W * 0.16) : Math.min(vh * 0.15, W * 0.36);
+      const w = Math.sqrt(3) / 2 * L;
+      const cx = wide ? W * 0.735 : W * 0.5, cy = wide ? H * 0.36 : vh * 0.22;
+      narrow = !wide;
+      const T = [cx, cy - L], TL = [cx - w, cy - L / 2], TR = [cx + w, cy - L / 2];
+      const C = [cx, cy], BL = [cx - w, cy + L / 2], BR = [cx + w, cy + L / 2], B = [cx, cy + L];
+      const faces = [
+        { o: T,  u: [TR[0] - T[0], TR[1] - T[1]],  v: [TL[0] - T[0], TL[1] - T[1]],  k: 1.0 },
+        { o: TL, u: [C[0] - TL[0], C[1] - TL[1]],  v: [BL[0] - TL[0], BL[1] - TL[1]], k: 0.5 },
+        { o: C,  u: [TR[0] - C[0], TR[1] - C[1]],  v: [B[0] - C[0], B[1] - C[1]],    k: 0.75 },
+      ];
+      const N = phone ? 10 : 16;
+      /* graded spacing: nodes bunch toward both ends of each parametric
+         direction, so the cells are fine along every edge of the face */
+      const g = (k) => 0.5 - 0.5 * Math.cos(Math.PI * k / N);
+      const topY = T[1], botY = B[1];
+      const thrAt = (y) => MESH0 + (MESH1 - MESH0) * Math.max(0, Math.min(1, (y - topY) / (botY - topY)));
+      faces.forEach((f) => {
+        const base = dots.length;
+        for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) {
+          let u = g(i), v = g(j);
+          const edgeNode = i === 0 || j === 0 || i === N || j === N;
+          if (!edgeNode) {                                    // a little jitter inside, none on the boundary
+            u += (rnd() - 0.5) * 0.35 * (g(i + 1) - g(i - 1)) / 2;
+            v += (rnd() - 0.5) * 0.35 * (g(j + 1) - g(j - 1)) / 2;
+          }
+          dots.push({ tx: f.o[0] + f.u[0] * u + f.v[0] * v, ty: f.o[1] + f.u[1] * u + f.v[1] * v,
+                      a: 0.4 + 0.35 * f.k, r: 1.05 * dpr });
+        }
+        const id = (i, j) => base + j * (N + 1) + i;
+        const mid = (p1, p2) => (dots[p1].ty + dots[p2].ty) / 2;
+        const edge = (p1, p2) => { const e = { a: p1, b: p2, t: thrAt(mid(p1, p2)) + (rnd() - 0.5) * 0.012 }; edges.push(e); return e; };
+        for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+          const p00 = id(i, j), p10 = id(i + 1, j), p01 = id(i, j + 1), p11 = id(i + 1, j + 1);
+          if (j === 0) edge(p00, p10);
+          if (i === 0) edge(p00, p01);
+          edge(p10, p11); edge(p01, p11);
+          if (rnd() < 0.5) { edge(p00, p11); tris.push([p00, p10, p11], [p00, p11, p01]); }
+          else { edge(p10, p01); tris.push([p00, p10, p01], [p10, p11, p01]); }
+        }
+        // loose specks inside the face: the scan the mesh is cut from
+        const loose = Math.round((phone ? 120 : 320) * f.k);
+        for (let n = 0; n < loose; n++) {
+          const u = rnd(), v = rnd();
+          dots.push({ tx: f.o[0] + f.u[0] * u + f.v[0] * v, ty: f.o[1] + f.u[1] * u + f.v[1] * v,
+                      a: 0.1 + 0.22 * f.k * rnd(), r: (0.5 + rnd() * 0.5) * dpr });
+        }
+      });
+      for (const t of tris) t.t = Math.max(...t.map((i) => thrAt(dots[i].ty)));
+      outline = [[T, TR], [TR, BR], [BR, B], [B, BL], [BL, TL], [TL, T], [TL, C], [C, TR], [C, B]]
+        .map(([a, b]) => ({ a, b, t: thrAt((a[1] + b[1]) / 2) }));
+
+      /* --- where every speck starts: beyond the right edge of the screen,
+             in a band that drifts up and to the right, so the cloud pours in
+             from the side rather than appearing inside the frame --- */
+      for (const d of dots) {
+        const far = Math.pow(rnd(), 1.4);
+        d.sx = W + W * (0.04 + far * 0.9);
+        d.sy = d.ty - (W * 0.18) * far + (rnd() - 0.5) * H * 0.5;
+        d.delay = far * 0.38 + rnd() * 0.14;                  // the nearest specks land first
+      }
+      built = true; lastP = -1;
+    };
+
+    const draw = (p) => {
+      if (!built) return;
+      ctx.clearRect(0, 0, W, H);
+      /* seated nodes and loose specks */
+      ctx.fillStyle = "#d8d5ce";
+      let landed = 0;
+      for (const d of dots) {
+        const t = ss(Math.max(0, Math.min(1, (p - d.delay) / (SEAT - d.delay))));
+        if (t >= 1) landed++;
+        const x = d.sx + (d.tx - d.sx) * t, y = d.sy + (d.ty - d.sy) * t;
+        if (x > W + 4 || y < -4 || y > H + 4) continue;
+        ctx.globalAlpha = d.a * (0.4 + 0.6 * t);
+        ctx.fillRect(x, y, d.r * 1.7, d.r * 1.7);
+      }
+      ctx.globalAlpha = 1;
+      /* the mesh front: edges appear as p passes their threshold, orange for a beat */
+      if (p > MESH0) {
+        ctx.lineWidth = 0.8 * dpr;
+        ctx.strokeStyle = "rgba(216, 213, 206, 0.2)"; ctx.beginPath();
+        for (const e of edges) if (p - e.t >= 0.05) { ctx.moveTo(dots[e.a].tx, dots[e.a].ty); ctx.lineTo(dots[e.b].tx, dots[e.b].ty); }
+        ctx.stroke();
+        ctx.lineWidth = 1.1 * dpr;
+        ctx.strokeStyle = "rgba(255, 79, 0, 0.85)"; ctx.beginPath();
+        for (const e of edges) if (p >= e.t && p - e.t < 0.05) { ctx.moveTo(dots[e.a].tx, dots[e.a].ty); ctx.lineTo(dots[e.b].tx, dots[e.b].ty); }
+        ctx.stroke();
+        ctx.lineWidth = 1.1 * dpr;
+        ctx.strokeStyle = "rgba(216, 213, 206, 0.5)"; ctx.beginPath();
+        for (const o of outline) if (p >= o.t) { ctx.moveTo(o.a[0], o.a[1]); ctx.lineTo(o.b[0], o.b[1]); }
+        ctx.stroke();
+      }
+    };
+
+    const progress = () => {
+      if (narrow) {
+        /* the footer is taller than a phone screen, so the page end is no
+           use: finish when the cube's band has risen to the upper half */
+        const top = cv.getBoundingClientRect().top;
+        return Math.max(0, Math.min(1, (window.innerHeight * 0.95 - top) / (window.innerHeight * 1.3)));
+      }
+      /* the cloud starts streaming as soon as the footer's top clears the
+         bottom of the screen, and finishes at the page end, so the whole
+         approach is runway (a little over one screen) */
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max <= 0) return 1;
+      const footH = cv.parentElement.offsetHeight;
+      const run = Math.max(window.innerHeight * 0.9, footH + window.innerHeight * 0.3);
+      return Math.max(0, Math.min(1, 1 - (max - window.scrollY) / run));
+    };
+    const update = () => {
+      const p = reduce ? 1 : progress();
+      if (Math.abs(p - lastP) < 0.0015) return;
+      lastP = p; draw(p);
+    };
+    const start = () => { build(); update(); onScrollFrame(update, cv); };
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(start); else start();
+    let t = 0;
+    window.addEventListener("resize", () => { clearTimeout(t); t = setTimeout(() => { build(); update(); }, 150); });
+  });
 })();

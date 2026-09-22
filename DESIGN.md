@@ -93,3 +93,23 @@ Two coordinated pieces:
   (IntersectionObserver), Replay control.
 - `prefers-reduced-motion`: no entrance/parallax; demo shows the conversation populated
   statically plus one static 3/4 render of the mesh.
+
+## Refit (Sep 2026): the Inngest / Railway pass
+
+Lives in `refit.css` (loaded after `orange-theme.css`) plus three feature-detected
+blocks at the end of `pages.js`. Nothing below is a new dependency.
+
+- **From Inngest:** a fine static grain tile (`assets/grain.png`, tone just above the
+  page black) behind every quiet section, fading out where a flat-black canvas
+  set-piece follows; a miniature of the pipeline (four nodes, one loop) in the pipeline header; display lines set uppercase 600 with a solid line paired with an
+  outlined one (`-webkit-text-stroke`); mono uppercase taglines and buttons;
+  square bullets; the footer's mesh mark (`[data-meshmark]`, canvas): a point cloud
+  that streams in as you near the page end and seats itself as the Hexera cube,
+  meshed with a grid over its faces, beside a stippled HEXERA.
+- **From Railway:** the pipeline is a vertical rail (`.rail`), one node per phase,
+  tinted mono pill over a bold Geist heading, a small readout card per phase, the
+  Gate → Mesh retry drawn as a dotted loop with a running pulse; the industries
+  switcher is a segmented control; the readout board (`.board`, `[data-flap]`)
+  flips its tiles in once on view.
+- Untouched: fluid hero art, in-hero demo, mesh scroll, industries stage,
+  ambition list, Lenis, entrances, waitlist form.

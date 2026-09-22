@@ -520,11 +520,8 @@ html.lenis, html.lenis body { height: auto; }
 .h2 { font-family: var(--font-display); font-weight: 300; font-size: clamp(2rem, 1.3rem + 2.4vw, 3.6rem); line-height: 1.04; letter-spacing: 0; margin: 1rem 0 0; text-wrap: balance; }
 .h2 em { font-style: normal; color: var(--gold); }
 /* ============================================================
-   PIPELINE, four phases read top to bottom.
-   Deliberately static: no reveal, no rail fill, no scroll-driven
-   anything. It replaced a 600vh pinned dial that spent six screens
-   delivering four sentences. Monochrome by design, the orange lives
-   in the nav and hero, so this section stays quiet and legible.
+   PIPELINE. Section shell only; the rail, cards and loop live in
+   refit.css (the Railway-style vertical rail replaced the static rows).
    ============================================================ */
 .flow { position: relative; z-index: var(--z-content); background: var(--bg);
   padding: clamp(6rem, 15vh, 11rem) var(--pad-x) clamp(5rem, 12vh, 9rem); }
@@ -533,52 +530,6 @@ html.lenis, html.lenis body { height: auto; }
 .flow__lede { margin: 1.5rem 0 0; color: var(--muted); line-height: 1.65;
   font-size: clamp(1rem, 0.95rem + 0.3vw, 1.1rem); text-wrap: pretty; }
 
-.flow__steps { list-style: none; margin: clamp(5rem, 13vh, 9rem) 0 0; padding: 0; }
-
-/* one row per phase: name | index | body. Generous air between them,
-   which is the whole point of dropping the pinned version. */
-.flow__step { position: relative; display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.45fr);
-  column-gap: clamp(1.5rem, 4vw, 3.5rem);
-  padding: clamp(2.5rem, 6vh, 4rem) 0 clamp(5rem, 13vh, 9rem); }
-.flow__step:last-child { padding-bottom: 0; }
-
-/* the notched rule above each row: a hairline that steps down before the
-   body column, so the divider tracks the layout instead of cutting flat */
-.jog { grid-column: 1 / -1; position: relative; height: 14px; margin-bottom: clamp(2rem, 5vh, 3.5rem); }
-.jog::before, .jog::after { content: ""; position: absolute; border-top: 1px solid var(--line); }
-.jog::before { left: 0; top: 0; right: calc(30% + 30px); }
-.jog::after { right: 0; bottom: 0; width: 30%; }
-.jog__step { position: absolute; right: 30%; bottom: 0; width: 30px; height: 14px;
-  fill: none; stroke: var(--line); stroke-width: 1; }
-
-.flow__name { margin: 0; font-family: var(--font-display); font-weight: 600;
-  font-size: clamp(2rem, 1.2rem + 2.6vw, 3.6rem); line-height: 0.98;
-  letter-spacing: -0.01em; color: var(--ink); text-wrap: balance; }
-.flow__num { font-family: var(--font-mono); font-size: 0.82rem; color: var(--faint);
-  letter-spacing: 0.06em; padding-top: 0.45em; }
-
-.flow__body { max-width: 46ch; }
-.flow__desc { margin: 0.45em 0 0; color: var(--muted); line-height: 1.7;
-  font-size: clamp(0.95rem, 0.92rem + 0.2vw, 1.02rem); text-wrap: pretty; }
-
-/* the tag row under each phase: the concrete nouns for that step */
-.flow__tags { list-style: none; margin: 1.6rem 0 0; padding: 0; display: flex; flex-wrap: wrap;
-  align-items: baseline; font-family: var(--font-mono); font-size: 0.66rem;
-  letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); line-height: 1.9; }
-.flow__tags li + li::before { content: "·"; margin: 0 0.65em; opacity: 0.55; }
-
-@media (max-width: 900px) {
-  .flow__step { grid-template-columns: 1fr auto; row-gap: 1.25rem;
-    padding-bottom: clamp(3.5rem, 9vh, 6rem); }
-  .flow__body { grid-column: 1 / -1; max-width: none; }
-  .jog::before { right: calc(38% + 30px); }
-  .jog::after { width: 38%; }
-  .jog__step { right: 38%; }
-}
-
-/* Rehaan's phase console: demo-mesh log under the copy, phases light up
-   in step with the dial */
 .footer { position: relative; z-index: var(--z-content); padding: clamp(2.5rem, 5vh, 4rem) var(--pad-x) clamp(2.5rem, 5vh, 4rem); background: var(--black); overflow: hidden; }
 /* ===== footer (home): full-page closing, pitch + access + nav, on the amber-black canvas ===== */
 .footer--end {

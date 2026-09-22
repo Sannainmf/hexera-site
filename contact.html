@@ -26,12 +26,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=66" />
+  <link rel="stylesheet" href="styles.css?v=67" />
   <link rel="stylesheet" href="orange-theme.css?v=36" />
+  <link rel="stylesheet" href="refit.css?v=25" />
 </head>
 <body>
   <div class="page-bg" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>
+  <div class="static" aria-hidden="true"></div>
 
   <header class="nav" id="nav">
     <a class="brand" href="index.html" aria-label="Hexera home">
@@ -39,20 +41,23 @@
       <span class="brand__word">HEXERA</span>
     </a>
     <nav class="nav__center" aria-label="Primary">
+      <a class="nav__link" href="index.html#pipeline">Pipeline</a>
+      <a class="nav__link" href="index.html#industries">Industries</a>
+      <a class="nav__link" href="contact.html">Contact</a>
     </nav>
     <div class="nav__end">
-      <a class="nav__link" href="contact.html">Contact</a>
       <a class="nav__link" href="https://console.hexera.ai/sign-in">Sign in</a>
-      <a class="btn btn--ghost nav__cta cta-mono" href="https://console.hexera.ai/sign-up">Sign up <span aria-hidden="true">↗</span></a>
+      <a class="btn btn--solid nav__cta cta-mono" href="https://console.hexera.ai/sign-up">Sign up <span aria-hidden="true">↗</span></a>
     </div>
   </header>
 
   <div class="scrollprog" aria-hidden="true"><i data-scroll-prog></i></div>
 
   <!-- ===== Simple full-page close — get in touch + request access (matches home footer) ===== -->
-  <footer class="footer footer--end">
+  <footer class="footer footer--end" id="waitlist">
+    <canvas class="fend__mark" data-meshmark aria-hidden="true"></canvas>
     <div class="fend__lead">
-      <h1 class="fend__h">Send us a part. Get it back <em>solver-ready</em>.</h1>
+      <h1 class="fend__h">Send us a part.<br>Get it back<br><em>solver-ready</em>.</h1>
       <form class="fend__capture" data-access-form novalidate>
         <input class="fend__email" type="email" name="email" placeholder="Your email…" aria-label="Email" autocomplete="email" required />
         <button class="fend__submit" type="submit">Join waitlist <span aria-hidden="true">→</span></button>
@@ -64,6 +69,7 @@
       <nav class="fend__nav" aria-label="Footer">
         <div class="fend__col">
           <span class="fend__col-h">Product</span>
+          <a href="index.html#pipeline">Pipeline</a>
           <a href="index.html#industries">Industries</a>
         </div>
         <div class="fend__col">
@@ -80,14 +86,14 @@
         </div>
       </nav>
       <div class="fend__bar">
-        <span class="fend__sig">hexera · <span data-year>2026</span></span>
+        <span class="fend__sig">&copy; <span data-year>2026</span> Hexera. All rights reserved.</span>
         <div class="fend__legal"><a href="#">Privacy</a><a href="#">Terms</a></div>
       </div>
     </div>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
-  <script src="pages.js?v=89" defer></script>
+  <script src="pages.js?v=102" defer></script>
   <script src="waitlist.js?v=12" defer></script>
 </body>
 </html>
