@@ -4,9 +4,11 @@
      black     #050505   the page (as it was under the refit)
      stone     #AFAEA2   ink, hairlines, wireframes
      crimson   #D21319   the one accent (was international orange)
-   Display type is Cormorant in capitals, the face of the HEXERA
-   wordmark. Nav, buttons, taglines and data stay in Geist Mono;
-   body copy stays in Geist.
+   Type is the site's own: Saira Semi Condensed capitals for the
+   headlines, Geist Mono for nav, buttons, taglines and data, Geist for
+   body copy. A serif, Cormorant, is kept for three spots only: the
+   HEXERA wordmark, the pipeline's step and phase names, and the footer's
+   column heads.
    The hero art and the smoke over Industries are the original
    plates, re-inked: orange to crimson, blue-grey to stone.
    Everything here overrides a token or repaints a colour. Layout
@@ -56,7 +58,7 @@
   --fluid-line-rgb:   175,174,162;
   --fluid-accent-rgb: 210,19,25;
 
-  --font-display: "Cormorant", "Cormorant Fallback", Georgia, "Times New Roman", serif;
+  --font-serif: "Cormorant", "Cormorant Fallback", Georgia, "Times New Roman", serif;   /* the wordmark, the pipeline names, the footer heads */
 }
 
 ::selection { background: var(--crimson-fill); color: #fff; }
@@ -73,7 +75,7 @@
 
 /* ---------- Nav ---------- */
 .scrollprog i { background: var(--crimson-fill); }
-.brand__word { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; letter-spacing: 0.2em; }
+.brand__word { font-family: var(--font-serif); font-weight: 600; font-size: 1.2rem; letter-spacing: 0.2em; }
 .btn--solid { background: var(--stone-hi); color: #0a0a0a; border-color: var(--stone-hi); }
 
 /* ---------- Buttons ---------- */
@@ -82,36 +84,19 @@
 .btn--ghost { border-color: rgba(175, 174, 162, 0.6); }
 .btn--ghost:hover { border-color: var(--stone-hi); box-shadow: none; }
 
-/* ---------- Display type: the serif of the wordmark, in capitals ----------
-   The outlined second lines of the refit become the same face in stone,
-   so each headline is one face in two colours: crimson, then stone. */
-.hero__title, .il2__pre, .il2__out, .h2, .fend__h {
-  font-family: var(--font-display); font-weight: 500; letter-spacing: 0.005em; line-height: 0.94;
-}
-.hero__title { font-size: clamp(2.6rem, 0.9rem + 3.3vw, 5rem); }
+/* ---------- Headlines: the site's own face and sizes, in the theme's two colours ----------
+   The outlined second lines of the refit are solid stone, so each headline reads
+   crimson, then stone. */
 .hero__l--solid { color: var(--crimson-type); }
 .hero__l--outline, .il2__out, .h2 em, .fend__h em {
   color: var(--stone); -webkit-text-stroke: 0; font-style: normal;
 }
 .hero__sub .num { color: var(--gold); }
-
-.il2__pre { color: var(--stone-hi); font-size: clamp(2.3rem, 1.2rem + 3.4vw, 5rem); }
-.il2__pre b { font-weight: 500; color: var(--crimson-type); }
-.il2__out { font-size: clamp(2.3rem, 1.2rem + 3.4vw, 5rem); }
-
-.h2 { color: var(--crimson-type); font-size: clamp(2.5rem, 1.4rem + 3.1vw, 4.8rem); }
+.il2__pre { color: var(--stone-hi); }
+.il2__pre b { color: var(--crimson-type); }
+.h2 { color: var(--crimson-type); }
 .fend__h { color: var(--crimson-type); }
-
-/* section and card headings move from bold sans to the serif, sentence case */
-.rail__h, .spec-env__name, .mstep__h, .amb__label-t {
-  font-family: var(--font-display); font-weight: 500; letter-spacing: 0; text-transform: none;
-}
-.rail__h { font-size: clamp(1.7rem, 1.25rem + 1.5vw, 2.6rem); line-height: 1.02; }
-.mstep__h { font-size: clamp(1.9rem, 1.3rem + 1.6vw, 2.9rem); line-height: 1; }
-.spec-env__name { font-size: clamp(2.1rem, 1.4rem + 2vw, 3.4rem); line-height: 1; }
-.amb__label-t { font-size: clamp(2.1rem, 1.3rem + 2.4vw, 3.5rem); line-height: 0.98; }
-.amb__item { font-family: var(--font-display); font-weight: 500; letter-spacing: 0; }
-.fend__col-h { font-family: var(--font-display); font-size: 1.3rem; font-weight: 500; }
+.fend__col-h { font-family: var(--font-serif); font-size: 1.3rem; font-weight: 500; }
 
 /* ---------- Product window (hero demo): neutral blacks, crimson accents ---------- */
 .win { background: #161615; }
@@ -197,11 +182,35 @@
    text on the other, alternating down the page. No cards, no pills,
    no rail. The header carries the whole pipeline as one diagram.
    ============================================================ */
-.flow__head { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); align-items: end; }
-.flow__diagram { grid-column: 2; grid-row: 1 / span 3; justify-self: end; align-self: end; margin: 0; max-width: 100%; }
+/* the header: the statement on the left, the pipeline as a short vertical list on the right */
+.flow__head { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); grid-template-rows: 1fr auto auto 1fr; align-items: start; column-gap: clamp(2rem, 5vw, 6rem); row-gap: 0; }
+/* the statement sits level with the middle of the line beside it */
+.flow__head .h2 { margin-top: 0; grid-row: 2; }
+.flow__head .flow__lede { grid-row: 3; }
+.flow__lede { max-width: 44ch; }
+.flowline { grid-column: 2; grid-row: 1 / -1; justify-self: center; display: block; width: min(100%, 520px); height: auto; overflow: visible; }
+/* the line itself: a faint dotted path, with dashes running along it the way the air runs in the footer */
+.flowline__path { fill: none; stroke: var(--stone); stroke-opacity: 0.8; stroke-width: 0.9; stroke-dasharray: 0.5 2.9; stroke-linecap: round; }
+.flowline__run { fill: none; stroke: var(--stone-hi); stroke-width: 1; stroke-linecap: round; stroke-dasharray: 15 49; animation: flowline-run 2.6s linear infinite; }
+.flowline__path--retry { stroke: var(--gold); stroke-opacity: 0.95; }
+.flowline__run--retry { stroke: var(--gold); stroke-dasharray: 9 55; animation-duration: 3.4s; }
+@keyframes flowline-run { to { stroke-dashoffset: -64; } }
+.flowline__head { fill: var(--stone-hi); }
+.flowline__head--retry { fill: var(--gold); }
+/* each step's number sits on the line, the way a contour line carries its height */
+.flowline__s rect { fill: var(--bg); }
+.flowline__no { font-family: var(--font-mono); font-weight: 500; font-size: 7.5px; letter-spacing: 0.14em; text-anchor: middle; text-transform: uppercase; fill: var(--gold); }
+.flowline__n { font-family: var(--font-serif); font-weight: 500; font-size: 21px; fill: var(--ink); }
+.flowline__d { font-family: var(--font-body); font-size: 9.6px; fill: var(--muted); }
+.flowline__s--end .flowline__no { fill: var(--faint); }
+.flowline__s--end .flowline__n { fill: var(--stone); }
+.flowline__s--end .flowline__d { fill: var(--faint); }
+.flowline__retry { font-family: var(--font-mono); font-weight: 500; font-size: 7px; letter-spacing: 0.16em; text-transform: uppercase; fill: var(--gold); }
+@media (prefers-reduced-motion: reduce) { .flowline__run { animation: none; } }
 @media (max-width: 1100px) {
-  .flow__head { grid-template-columns: 1fr; }
-  .flow__diagram { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 2.5rem; }
+  .flow__head { grid-template-columns: 1fr; grid-template-rows: none; }
+  .flow__head .h2, .flow__head .flow__lede { grid-row: auto; }
+  .flowline { grid-column: 1; grid-row: auto; justify-self: start; margin-top: 3rem; width: min(100%, 460px); }
 }
 
 .phases { list-style: none; margin: clamp(4rem, 10vh, 7rem) 0 0; padding: 0; }
@@ -220,7 +229,7 @@
 }
 .phase__no b { font-weight: 500; color: var(--gold); margin-right: 0.9em; }
 .phase__h {
-  margin: 0; font-family: var(--font-display); font-weight: 500; letter-spacing: 0; text-wrap: balance;
+  margin: 0; font-family: var(--font-serif); font-weight: 500; letter-spacing: 0; text-wrap: balance;
   font-size: clamp(2rem, 1.3rem + 2.1vw, 3.4rem); line-height: 1; color: var(--ink);
 }
 .phase__p { margin: 1.4rem 0 0; max-width: 46ch; color: var(--muted); line-height: 1.65; text-wrap: pretty;
@@ -302,12 +311,12 @@
    A figure's type is sized from the width of the column it actually sits in (a container
    query unit), not from a guess at it, so a wide figure can never be cut off at the edge. */
 .plate { container-type: inline-size; }
-.phase .plate, .flow__diagram { justify-self: stretch; width: 100%; max-width: 100%; }
+.phase .plate { justify-self: stretch; width: 100%; max-width: 100%; }
 .plate__art { width: max-content; max-width: 100%; margin-inline: auto; overflow: visible;
   font-size: clamp(3px, calc(100cqw / (var(--cols) * 0.61)), 13px); }
-.flow__diagram .plate__art { margin-inline: auto 0; }
 .plate__cap { width: min(100%, calc(var(--cap-cols, 110) * 0.61 * 13px)); margin-inline: auto; }
 @media (max-width: 1100px) {
-  .plate__art, .flow__diagram .plate__art { margin-inline: 0; }
+  .plate__art { margin-inline: 0; }
   .plate__cap { margin-inline: 0; }
+}
 }

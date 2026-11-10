@@ -28,11 +28,11 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Cormorant:wght@500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css?v=67" />
   <link rel="stylesheet" href="orange-theme.css?v=36" />
   <link rel="stylesheet" href="refit.css?v=33" />
-  <link rel="stylesheet" href="midnight-theme.css?v=8" />
+  <link rel="stylesheet" href="midnight-theme.css?v=14" />
 </head>
 <body>
   <div class="hero-art" aria-hidden="true"></div>
@@ -172,8 +172,52 @@
       <header class="flow__head">
         <h2 class="h2">Four phases,<br><em>one&nbsp;pipeline.</em></h2>
         <p class="flow__lede">Agents take each part from raw CAD to solver-ready: an interview up front, geometry read as exact math, hard quality gates, and an automatic retry when a gate fails.</p>
-        <!-- the pipeline in one diagram, drawn in text. The four plates below are its four boxes. -->
-        <figure class="flow__diagram plate" data-plate aria-hidden="true"><pre class="plate__art plate__art--map plate__art--draw" style="--cols:76"><span class="pl"> <b>CAD</b></span><span class="pl">  |</span><span class="pl">  v</span><span class="pl"> .----------.    .------------.    .--------.    .--------.</span><span class="pl"> | <b>1 INTAKE</b> |---&gt;| <b>2 GEOMETRY</b> |---&gt;| <b>3 MESH</b> |---&gt;| <b>4 GATE</b> |---&gt; <b>SOLVER-READY</b></span><span class="pl"> '----------'    '------------'    '----^---'    '---+----'</span><span class="pl">                                        |            |</span><span class="pl">                                        '-- <i>RETRY</i> ---'</span><span class="pl">                                           <i>up to 3</i></span></pre></figure>
+        <!-- the pipeline at a glance: one line from CAD to a solver-ready mesh. A failed gate runs back to the mesh. -->
+        <svg class="flowline" viewBox="0 0 360 392" role="img" aria-label="The pipeline: CAD in, then intake, geometry, mesh and gate, then a solver-ready mesh out. A failed gate sends the part back to the mesh, up to three times.">
+          <path class="flowline__path" d="M210 12 L210 46 C210 79.6 150 72.4 150 106 C150 139.6 210 132.4 210 166 C210 199.6 150 192.4 150 226 C150 259.6 210 252.4 210 286 C210 319.6 150 312.4 150 346 L150 376" />
+          <path class="flowline__run" d="M210 12 L210 46 C210 79.6 150 72.4 150 106 C150 139.6 210 132.4 210 166 C210 199.6 150 192.4 150 226 C150 259.6 210 252.4 210 286 C210 319.6 150 312.4 150 346 L150 376" />
+          <path class="flowline__path flowline__path--retry" d="M214 277 C226 246 228 228 163 226" />
+          <path class="flowline__run flowline__run--retry" d="M214 277 C226 246 228 228 163 226" />
+          <path class="flowline__head flowline__head--retry" d="M161.5 226 l6 -3.2 v6.4 z" />
+          <path class="flowline__head" d="M150 380 l-3.2 -6 h6.4 z" />
+          <text class="flowline__retry" x="230" y="245">Retry up to 3</text>
+          <g class="flowline__s flowline__s--end">
+            <rect x="199.9" y="39.5" width="20.2" height="13" />
+            <text class="flowline__no" x="210" y="48.9">In</text>
+            <text class="flowline__n" x="230" y="49" text-anchor="start">CAD</text>
+            <text class="flowline__d" x="230" y="65" text-anchor="start">A STEP or IGES file</text>
+          </g>
+          <g class="flowline__s">
+            <rect x="139.9" y="99.5" width="20.2" height="13" />
+            <text class="flowline__no" x="150" y="108.9">01</text>
+            <text class="flowline__n" x="130" y="109" text-anchor="end">Intake</text>
+            <text class="flowline__d" x="130" y="125" text-anchor="end">Asks before it assumes</text>
+          </g>
+          <g class="flowline__s">
+            <rect x="199.9" y="159.5" width="20.2" height="13" />
+            <text class="flowline__no" x="210" y="168.9">02</text>
+            <text class="flowline__n" x="230" y="169" text-anchor="start">Geometry</text>
+            <text class="flowline__d" x="230" y="185" text-anchor="start">Measured, not guessed</text>
+          </g>
+          <g class="flowline__s">
+            <rect x="139.9" y="219.5" width="20.2" height="13" />
+            <text class="flowline__no" x="150" y="228.9">03</text>
+            <text class="flowline__n" x="130" y="229" text-anchor="end">Mesh</text>
+            <text class="flowline__d" x="130" y="245" text-anchor="end">Run on cloud compute</text>
+          </g>
+          <g class="flowline__s">
+            <rect x="199.9" y="279.5" width="20.2" height="13" />
+            <text class="flowline__no" x="210" y="288.9">04</text>
+            <text class="flowline__n" x="230" y="289" text-anchor="start">Gate</text>
+            <text class="flowline__d" x="230" y="305" text-anchor="start">Hard quality limits</text>
+          </g>
+          <g class="flowline__s flowline__s--end">
+            <rect x="137.1" y="339.5" width="25.8" height="13" />
+            <text class="flowline__no" x="150" y="348.9">Out</text>
+            <text class="flowline__n" x="130" y="349" text-anchor="end">Solver-ready</text>
+            <text class="flowline__d" x="130" y="365" text-anchor="end">A validated mesh</text>
+          </g>
+        </svg>
       </header>
 
       <!-- Four phases as four plates: the copy on one side, a figure drawn in text on the other,
