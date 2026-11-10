@@ -18,20 +18,21 @@
   <meta property="og:url" content="https://hexera.ai/" />
   <meta property="og:title" content="Hexera: The autonomous meshing engineer" />
   <meta property="og:description" content="Hexera is multi-agent AI that turns aerospace CAD geometry into simulation-ready meshes in hours, not days." />
-  <meta property="og:image" content="https://hexera.ai/assets/hero-bg.jpg" />
+  <meta property="og:image" content="https://hexera.ai/assets/hero-bg-midnight.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Hexera: The autonomous meshing engineer" />
   <meta name="twitter:description" content="Hexera is multi-agent AI that turns aerospace CAD geometry into simulation-ready meshes in hours, not days." />
-  <meta name="twitter:image" content="https://hexera.ai/assets/hero-bg.jpg" />
+  <meta name="twitter:image" content="https://hexera.ai/assets/hero-bg-midnight.jpg" />
   <link rel="icon" href="assets/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css?v=67" />
   <link rel="stylesheet" href="orange-theme.css?v=36" />
-  <link rel="stylesheet" href="refit.css?v=25" />
+  <link rel="stylesheet" href="refit.css?v=33" />
+  <link rel="stylesheet" href="midnight-theme.css?v=8" />
 </head>
 <body>
   <div class="hero-art" aria-hidden="true"></div>
@@ -109,6 +110,11 @@
 
     <p class="il2" data-parallax-fade=""><span class="il2__pre">Engineers lose <b>weeks</b><br>to manual meshing.</span><span class="il2__out">We take that<br>work away.</span></p>
 
+    <!-- the statement, acted out in text: an airliner wing meshed by hand, then all at once (ascii.js) -->
+    <figure class="ascii" data-ascii aria-hidden="true">
+      <div class="ascii__stage" data-ascii-stage><pre data-ascii-solid></pre><pre data-ascii-line></pre><pre data-ascii-hot></pre></div>
+    </figure>
+
   </section>
 
   <!-- ===== The mesh experience: airfoil scroll (ported from HEXARA) ===== -->
@@ -166,116 +172,60 @@
       <header class="flow__head">
         <h2 class="h2">Four phases,<br><em>one&nbsp;pipeline.</em></h2>
         <p class="flow__lede">Agents take each part from raw CAD to solver-ready: an interview up front, geometry read as exact math, hard quality gates, and an automatic retry when a gate fails.</p>
-        <!-- the pipeline in miniature: four nodes, one loop. A map of the rail below. -->
-        <svg class="flow__map" viewBox="0 0 360 96" aria-hidden="true">
-          <path class="flow__map-line" d="M24 60 H336" />
-          <path class="flow__map-loop" d="M300 60 C300 14, 208 14, 208 60" />
-          <path class="flow__map-pulse" d="M24 60 H300 C300 14, 208 14, 208 60 H336" />
-          <g class="flow__map-nodes">
-            <circle cx="24" cy="60" r="5" /><circle cx="116" cy="60" r="5" /><circle cx="208" cy="60" r="5" /><circle cx="300" cy="60" r="5" class="is-gate" />
-          </g>
-          <g class="flow__map-labels">
-            <text x="24" y="84">01 intake</text><text x="116" y="84">02 geometry</text><text x="208" y="84">03 mesh</text><text x="300" y="84">04 gate</text>
-          </g>
-          <text class="flow__map-retry" x="254" y="26">retry &#8804; 3</text>
-        </svg>
+        <!-- the pipeline in one diagram, drawn in text. The four plates below are its four boxes. -->
+        <figure class="flow__diagram plate" data-plate aria-hidden="true"><pre class="plate__art plate__art--map plate__art--draw" style="--cols:76"><span class="pl"> <b>CAD</b></span><span class="pl">  |</span><span class="pl">  v</span><span class="pl"> .----------.    .------------.    .--------.    .--------.</span><span class="pl"> | <b>1 INTAKE</b> |---&gt;| <b>2 GEOMETRY</b> |---&gt;| <b>3 MESH</b> |---&gt;| <b>4 GATE</b> |---&gt; <b>SOLVER-READY</b></span><span class="pl"> '----------'    '------------'    '----^---'    '---+----'</span><span class="pl">                                        |            |</span><span class="pl">                                        '-- <i>RETRY</i> ---'</span><span class="pl">                                           <i>up to 3</i></span></pre></figure>
       </header>
 
-      <ol class="rail" data-rail>
-        <span class="rail__track" aria-hidden="true"><i class="rail__fill" data-rail-fill></i></span>
-        <svg class="rail__loop" data-rail-loop aria-hidden="true">
-          <path class="rail__loop-path" data-rail-loop-path d="" />
-          <path class="rail__loop-pulse" data-rail-loop-pulse d="" />
-          <text class="rail__loop-text" data-rail-loop-text x="0" y="0">retry &le; 3</text>
-        </svg>
-
-        <li class="rail__step" data-rail-step>
-          <span class="rail__node" aria-hidden="true"><i></i></span>
-          <div class="rail__copy">
-            <span class="pill">01 &middot; Intake</span>
-            <h3 class="rail__h">An engineer that asks before it assumes</h3>
-            <p class="rail__p">An AI meshing engineer interviews you: what the part is, internal or external flow, working fluid, units, which openings are inlets and outlets, near-wall resolution (y+ target). It proposes a mesh engine and asks before assuming, so ambiguity gets a question rather than a guess.</p>
-            <ul class="rail__facts">
-              <li>Purpose</li><li>Ports</li><li>y+ target</li><li>Engine</li>
-            </ul>
+      <!-- Four phases as four plates: the copy on one side, a figure drawn in text on the other,
+           alternating down the page. No cards, no pills, no rail. -->
+      <ol class="phases">
+        <li class="phase">
+          <div class="phase__copy">
+            <p class="phase__no"><b>01</b> Intake</p>
+            <h3 class="phase__h">An engineer that asks before it assumes</h3>
+            <p class="phase__p">An AI meshing engineer interviews you: what the part is, internal or external flow, working fluid, units, which openings are inlets and outlets, near-wall resolution (y+ target). It proposes a mesh engine and asks before assuming, so ambiguity gets a question rather than a guess.</p>
+            <p class="phase__facts">Purpose <i>/</i> Ports <i>/</i> y+ target <i>/</i> Engine</p>
           </div>
-          <div class="card" aria-hidden="true">
-            <div class="card__bar"><span>intake &middot; interview</span><span class="card__st">4 / 4 answered</span></div>
-            <div class="card__body">
-              <div class="kv"><span>Flow</span><b>external, air</b></div>
-              <div class="kv"><span>Units</span><b>metres</b></div>
-              <div class="kv"><span>Ports</span><b>inlet &times;1 &middot; outlet &times;1</b></div>
-              <div class="kv"><span>y+ target</span><b>1.0</b></div>
-              <div class="kv kv--ask"><span>Engine</span><b>snappyHexMesh? <em>confirm</em></b></div>
-            </div>
-          </div>
+          <figure class="plate" data-plate aria-hidden="true">
+            <pre class="plate__art" style="--cols:54"><span class="pl"><i>HEXERA   </i>What is the part?</span><span class="pl"><b>YOU      </b>A manifold. One solid.</span><span class="pl">&nbsp;</span><span class="pl"><i>HEXERA   </i>Internal or external flow?</span><span class="pl"><b>YOU      </b>Internal. Air.</span><span class="pl">&nbsp;</span><span class="pl"><i>HEXERA   </i>What units is the file in?</span><span class="pl"><b>YOU      </b>Metres.</span><span class="pl">&nbsp;</span><span class="pl"><i>HEXERA   </i>Which openings are inlets, which are outlets?</span><span class="pl"><b>YOU      </b>One inlet, three outlets.</span><span class="pl">&nbsp;</span><span class="pl"><i>HEXERA   </i>How fine at the wall?</span><span class="pl"><b>YOU      </b>y+ of 1.</span><span class="pl">&nbsp;</span><span class="pl"><i>HEXERA   </i>snappyHexMesh fits this job. Use it?</span><span class="pl"><b>YOU      </b>Yes.<i class="caret">_</i></span></pre>
+            <figcaption class="plate__cap"><b>Fig. 1</b> The interview</figcaption>
+          </figure>
         </li>
-
-        <li class="rail__step" data-rail-step>
-          <span class="rail__node" aria-hidden="true"><i></i></span>
-          <div class="rail__copy">
-            <span class="pill">02 &middot; Geometry</span>
-            <h3 class="rail__h">Read as exact math, not a picture</h3>
-            <p class="rail__p">The CAD is read as exact math: bounding box, solid count, watertightness, every opening measured for position and bore. Defects are named to your face (a gap, a non-manifold edge, a disconnected volume) before any compute is spent.</p>
-            <ul class="rail__facts">
-              <li>STEP</li><li>IGES</li><li>Measured, not guessed</li>
-            </ul>
+        <li class="phase">
+          <div class="phase__copy">
+            <p class="phase__no"><b>02</b> Geometry</p>
+            <h3 class="phase__h">Read as exact math, not a picture</h3>
+            <p class="phase__p">The CAD is read as exact math: bounding box, solid count, watertightness, every opening measured for position and bore. Defects are named to your face (a gap, a non-manifold edge, a disconnected volume) before any compute is spent.</p>
+            <p class="phase__facts">STEP <i>/</i> IGES <i>/</i> Measured, not guessed</p>
           </div>
-          <div class="card" aria-hidden="true">
-            <div class="card__bar"><span>geometry &middot; wing.step</span><span class="card__st">watertight</span></div>
-            <div class="card__body">
-              <div class="kv"><span>Solids</span><b>1</b></div>
-              <div class="kv"><span>Bounding box</span><b>1.020 &times; 0.118 &times; 0.600 m</b></div>
-              <div class="kv"><span>Openings</span><b>2 measured</b></div>
-              <div class="kv"><span>Non-manifold edges</span><b>0</b></div>
-              <div class="kv"><span>Gaps</span><b>0</b></div>
-            </div>
-          </div>
+          <figure class="plate" data-plate aria-hidden="true">
+            <pre class="plate__art plate__art--draw" style="--cols:72"><span class="pl">                                                             <b>%%%%%%</b></span><span class="pl">                                                     <b>%%%%%%%%%%%%%%#</b></span><span class="pl">                                              <b>%%%%%%%%%%%%%#########*</b></span><span class="pl">                                      <b>%%%%%%%%%%%%%%##########*******+</b></span><span class="pl">                               <b>%%%%%%%%%%%%%##########********++++++++</b></span><span class="pl">     <b>+++*#%%</b>           <b>%%%%%%%%%%%%%%##########********++++++++++++++++</b></span><span class="pl">    <b>++++++*#%#</b>  <b>%%%%%%%%%%%%%##########********++++++++++++++++++++++++</b></span><span class="pl">   <b>+++++++++###%%%%%%%##########********+++++++++++++++++++++++++++++++</b></span><span class="pl">   <b>+++</b><i>+==+</i><b>+++*##########********++++++++++++++++++++++++++++++++++++++=</b></span><span class="pl">   <b>++</b><i>+;</i><b>..</b><i>:=</i><b>+++***********+++++++++++++++++++++++++++++++++++++=========</b></span><span class="pl">   <b>++</b><i>+</i><b>....,</b><i>=</i><b>+++++++++++++++++++++++++++++++++++++++++++========-----;-</b></span><span class="pl">   <b>++</b><i>-</i><b>,,,,,</b><i>,+</i><b>++++++++++++++++++++++++++++++++++=========------;;</b></span><span class="pl">   <b>++</b><i>=</i><b>,,,,,,</b><i>=</i><b>+++++++++++++++++++++++++++========---------=++++</b></span><span class="pl">   <b>++</b><i>+,</i><b>,,,,,</b><i>;+</i><b>++++++++++++++++++=========-----;;;</b> <b>====--==++++</b></span><span class="pl">    <b>++</b><i>-</i><b>,,,,,</b><i>;+</i><b>+++++++++++========-------==+=</b>      <b>++==--=+++*+</b></span><span class="pl">    <b>++</b><i>+:</i><b>,,,,</b><i>;+</i><b>+++++=======-----;-=----==++++</b>      <b>+++++++++**+</b></span><span class="pl">     <b>++</b><i>+;</i><b>,,,</b><i>-</i><b>+++++=----==-;</b>     <b>++==--==++++</b>      <b>=+********+++</b></span><span class="pl">     <b>+++</b><i>+=-=+</i><b>+++==---=++++</b>      <b>++++===++***</b>       <b>+*###%%%%%%%#**++</b></span><span class="pl">      <b>++++</b><i>+</i><b>++++===--==++++</b>      <b>=+*****++++++</b>      <b>=+##%%@@@#+++++++++</b></span><span class="pl">       <b>++++++++--==-==++*+</b>       <b>+**#######*#%#**</b>   <b>=*#%%@%++++</b><i>++++</i><b>++++</b></span><span class="pl">         <b>++++=;=++++++++**+</b>      <b>=+*#%%@@@@#*+++++++</b> <b>=*#%#+++</b><i>+;:</i><b>,.</b><i>:=+</i><b>+++</b></span><span class="pl">               <b>+***####**++</b>       <b>=*#%%@@#++++</b><i>++</i><b>+++++-=*#+++</b><i>=</i><b>::,,,,</b><i>,+</i><b>+++</b></span><span class="pl">               <b>=**#%%%%%%%#**++++</b>  <b>+*#%%*++</b><i>+=-;;-++</i><b>+++</b> <b>*+++</b><i>+:</i><b>::::,,</b><i>,+</i><b>+++</b></span><span class="pl">                <b>+*#%%@@@#++++++++++-=*%+++</b><i>+;</i><b>,,,,.</b><i>,+</i><b>+++</b> <b>++++</b><i>+:</i><b>::::::</b><i>-+</i><b>++</b></span><span class="pl">                <b>=+##%@#+++</b><i>++==++</i><b>++++;**++</b><i>+;</i><b>::::,,</b><i>,+</i><b>+++</b> <b>-=++</b><i>+=:</i><b>,,</b><i>:;=+</i><b>+++</b></span><span class="pl">                 <b>-+*%#++</b><i>+=;</i><b>,,..</b><i>;+</i><b>+++</b> <b>++++</b><i>+;</i><b>::::::</b><i>:+</i><b>+++</b>  <b>;++++</b><i>+++++</i><b>++++</b></span><span class="pl">                  <b>-*#+++</b><i>=</i><b>:::,,,.</b><i>=+</i><b>++</b> <b>-+++</b><i>+-</i><b>,,:::</b><i>;+</i><b>+++</b>    <b>-++++++++++</b></span><span class="pl">                   <b>++++</b><i>+;</i><b>:::::,</b><i>,=</i><b>+++</b>  <b>-+++</b><i>++---++</i><b>+++</b>        <b>+++++</b></span><span class="pl">                   <b>=+++</b><i>+;</i><b>,:::::</b><i>-+</i><b>+++</b>   <b>=+++++++++++</b></span><span class="pl">                    <b>=+++</b><i>+-::;-++</i><b>+++</b>      <b>+++++++</b></span><span class="pl">                    <b>:=+++</b><i>++++</i><b>+++++</b></span><span class="pl">                      <b>=+++++++++</b></span><span class="pl">                          <b>++</b></span></pre>
+            <figcaption class="plate__cap"><b>Fig. 2</b> One solid. Four openings, measured. Watertight</figcaption>
+          </figure>
         </li>
-
-        <li class="rail__step" data-rail-step>
-          <span class="rail__node" aria-hidden="true"><i></i></span>
-          <div class="rail__copy">
-            <span class="pill">03 &middot; Mesh</span>
-            <h3 class="rail__h">A native case, run on cloud compute</h3>
-            <p class="rail__p">The plan is authored into a native case and run on cloud compute, snappyHexMesh or gmsh, chosen for the job. Boundary layers, feature-edge snapping, port-local refinement.</p>
-            <ul class="rail__facts">
-              <li>snappyHexMesh</li><li>gmsh</li><li>Cloud run</li>
-            </ul>
+        <li class="phase">
+          <div class="phase__copy">
+            <p class="phase__no"><b>03</b> Mesh</p>
+            <h3 class="phase__h">A native case, run on cloud compute</h3>
+            <p class="phase__p">The plan is authored into a native case and run on cloud compute, snappyHexMesh or gmsh, chosen for the job. Boundary layers, feature-edge snapping, port-local refinement.</p>
+            <p class="phase__facts">snappyHexMesh <i>/</i> gmsh <i>/</i> Cloud run</p>
           </div>
-          <div class="card" aria-hidden="true">
-            <div class="card__bar"><span>mesh &middot; run 2</span><span class="card__st">cloud &middot; 32 cores</span></div>
-            <div class="card__body card__body--log">
-              <div class="ln ln--ok">blockMesh</div>
-              <div class="ln ln--ok">surfaceFeatureExtract</div>
-              <div class="ln ln--ok">snappyHexMesh &middot; castellate</div>
-              <div class="ln ln--ok">snappyHexMesh &middot; snap</div>
-              <div class="ln ln--run">snappyHexMesh &middot; layers</div>
-              <div class="ln ln--dim">checkMesh</div>
-            </div>
-          </div>
+          <figure class="plate" data-plate aria-hidden="true">
+            <pre class="plate__art plate__art--draw" style="--cols:106"><span class="pl">                                        <b>#%##*####</b>           <b>##*#####</b></span><span class="pl">                                        <b>**</b>+===++<b>*</b>*         <b>#*</b>+===+<b>*#</b></span><span class="pl">                           <b>##*</b>          <b>**</b>+====+<b>*#</b>        <b>#*</b>+==;=+<b>**</b>           <b>#%</b></span><span class="pl">                       <b>%##*</b>++<b>**</b>+        <b>##</b>+=;;;==<b>*#%%##%%##*</b>=;;;=+<b>*</b>+         <b>**</b>++<b>*##%</b></span><span class="pl">                      <b>##</b>+==;;=+<b>*##</b>   <b>%%%##</b>+==;;====++++++===;;;;=+<b>*###%</b>    <b>#*</b>+=;===+<b>**</b>;</span><span class="pl">                      <b>%##*</b>+=;;==+<b>*###*</b>++++==++*+++++==;;;;;;;;;;;==+++<b>**##*</b>*==;;==+<b>*</b>+:.</span><span class="pl">                      <b>%%%#*</b>+=;;;;=====;;=+<b>*#*</b>==;;==+<b>**</b>++=;;;;;;;;;;;;;=======;;=+<b>**</b>;..</span><span class="pl">            <b>##</b>         <b>%%%%*</b>+=;;;;;;;;==+<b>#*</b>:....:::::=<b>#*</b>==;;;;;;;;;;;;;;;;;;;;;=<b>*#</b>+:.</span><span class="pl">          <b>%%#*</b>*++<b>**</b>    <b>%#*</b>+==;;;;;;;;;;=<b>*#</b>;..... :::::<b>*#</b>+==;;;;;;;;;;;;;;=====;==+<b>*#%</b>     <b>******#%</b></span><span class="pl">         <b>%#</b>+======+<b>**#*</b>*+=;;;;;;;;;;;;;=+<b>#</b>+          =<b>#*</b>==;;;;;;;;;;;;==++<b>****</b>+++==++<b>*##**</b>+=====<b>*#%</b></span><span class="pl">        <b>%%#*</b>+===;;;;;==;;;;;;;;;;;;;;;;==+<b>###</b>      <b>###*</b>+=;;;;;;;;;;===+<b>#*</b>=;;;;;=+<b>#*</b>+======;;===+<b>***</b>=</span><span class="pl">        <b>%@@@%#*</b>++=;;;;;;;;;;;;;;;;;;;;;;;==+<b>*</b>*<b>*****</b>+++===;;;;;;;;;;=+<b>*#</b>;....::::::<b>*#</b>+=;;;===+<b>**</b>+=;;:</span><span class="pl">         <b>@@@@@@%#</b>+=;;;;====;==;;;;;;;;;;;;;;==+++*<b>******</b>++++==;;;;;=+<b>#</b>+...     :::;<b>#*</b>==;==+<b>#*</b>=;;;;;:</span><span class="pl">            <b>@@%#*</b>+===++<b>******</b>++==;;;;;;;;;;=+++<b>*##*</b>+++<b>##**</b>+++++===;==<b>*#</b>=          <b>*#</b>+==;;==<b>*#</b>+;;</span><span class="pl">    <b>###*</b>     <b>%#*</b>==+<b>*#</b>+;:.::;=+<b>#*</b>+==;;;;;;=+++++<b>*#%</b>;...=+<b>*###*</b>*++======+<b>*###</b>    <b>###*</b>+==;;;;;=<b>*%%</b></span><span class="pl">   <b>%#</b>++++*<b>****</b>+==+<b>**</b>:....::::::<b>**</b>+==;;;==++++<b>*#*</b>=:....::::;=<b>*#*</b>++====;==+++<b>****</b>+++=;;;;;;;;=+<b>**#**</b>++++<b>*#%</b></span><span class="pl">  <b>%#</b>*==;;;;==;;==+<b>#</b>+..       ::+<b>#</b>*==;;;==++<b>*##</b>+.......:::::::+<b>##*</b>+++==;;;;=====;;;;;;;;;;;;;;;=========+<b>#%</b></span><span class="pl">  <b>%#*</b>++++=====;;==<b>*#</b>+         <b>*#*</b>+==;;===++<b>*##</b>........::::::::<b>##*</b>++++=;;;;;;;;;;;;;;;;;;;;;;;;;;====+++<b>*#%</b></span><span class="pl">  <b>@@%%%%####*</b>==;;==+<b>*###</b>   <b>###*</b>+===;;;===++<b>*#%</b>:....   ::::::::<b>##*</b>++++=;;;;;;;;;;;;;;;;;;;;;;;==+<b>**#*****</b>+=</span><span class="pl">  <b>@@%%%%%%%%*</b>+==;;;===+++<b>**</b>++==;;;;;;;+===+*<b>*##</b>;..        ::=<b>##*</b>+++==:;;;;;;;;;;;;;;;;;;;;;;;=+<b>*%</b>*<b>******</b>+=</span><span class="pl">       <b>%%%@#*</b>+=;;;;;;;;;;=;;;;;;;;;;;;<b>*#</b>+=+++<b>**###</b>        <b>###**</b>++++=::;;;;;;;===+=====;;;;;;;=+<b>#%</b>*<b>*****</b></span><span class="pl">          <b>##*</b>+=;;;;;;;;;;;;;;;;;;;;;;;+<b>%%*</b>++++++<b>***#####***</b>*++++==;:.:;;;;===+<b>*********</b>++=;;;=+<b>#%</b></span><span class="pl">  <b>###*</b>+<b>**</b>++===;;;;;;;;;;;;;;;;;;;;;;;;;<b>*%@@#</b>*+=+++++++++++++++==;:..:;;;;=+<b>*#*</b>;...::::=<b>*#</b>*==;===++<b>*****##</b></span><span class="pl">  <b>%#</b>+===;;;==;;;;;;;;;;;;;;;;;;;;;;;;;;;+<b>%@@@@%#**</b>+++++=+++++==;;:::;;;;==+<b>#</b>+.....::::::<b>**</b>+==;;;;;====+<b>*##</b></span><span class="pl">  <b>#%*</b>+=====++++==;;;;;;;;;====++====;;;;;;<b>*%@@@@@%%%%###***</b>++==;;:;;;;;===+<b>#</b>+.         :<b>*#</b>+====++======<b>*#</b>=</span><span class="pl">  <b>#%###**####%#</b>+==;;;;;==+<b>***</b>++++<b>*#*</b>++==;;;;=<b>*#%@%%%%###***</b>++=;;;;;;;;;;;==<b>*##</b>         <b>##</b>+==+<b>#####**####*</b>.</span><span class="pl">  <b>#%%########%%#</b>+=;;;;=+<b>*#</b>=:...::::;<b>**</b>+==;;;;;;;;==++++==;;;;;;;;;;;;;;;;;==++<b>*#######*</b>++==*<b>#*</b>;<b>%%%%%%%%#</b>;.</span><span class="pl">   <b>%%########%%%*</b>+==;=+<b>*#</b>=.....::::::<b>##</b>+=;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;==++++======+<b>#*</b>:;<b>%%%%%%%%#</b>;</span><span class="pl">             <b>##*</b>+==;===<b>*#</b>;.         :<b>*#</b>+==;;;;;;;;;;;;====++++==;;;;;;;;;;;;;;;;;;;;;;;;;=+<b>**</b>+*</span><span class="pl">          <b>**</b>*+===;;;;===+<b>##</b>        <b>##*</b>+==;;;;;;;;;;==+*<b>#*</b>++==+<b>***</b>+==;;;;;;;;;;;;;;;;;;;;;;;;=++*<b>*#</b></span><span class="pl">        <b>#%#</b>+==;===+++*++=+<b>****####*</b>*+===;;;;;;;;;;==+<b>#</b>+:....::::=<b>#*</b>+==;;;;;;;;;;;;;=+++++==;====+<b>##</b>=</span><span class="pl">        <b>#%%#</b>+++++<b>**</b>++<b>%%#*</b>+==========;;;;;;;;;;;;;==+<b>#*</b>......:::::=<b>#*</b>+=;;;;;;;;;;==+<b>*#*#%#*</b>+*+++<b>*#*</b>;.</span><span class="pl">        <b>%@@%#**</b>+====+<b>%@@%%#</b>+=;;;;;;;;;;;;;;;;;;;;;=+<b>*#</b>:         :+<b>#</b>+=;;;;;;;;;=++<b>##</b>+;:<b>*@@@%%####</b>=...</span><span class="pl">          <b>@@%</b>*+=====  <b>@@@##</b>+==;;;==;;;;;;;;;;;;;;;;=+<b>*##</b>        <b>#**</b>=;;;;;;;;;;=+<b>*#</b>=::: <b>@@@@@@@%</b>:..</span><span class="pl">           <b>@%</b>++=       <b>##*</b>+==;==+++++====;;;;;;;;;;;;=++<b>**##****</b>+=====++*+==;;;=+<b>**</b>+        <b>@@%</b>;.</span><span class="pl">                      <b>#*</b>+==;==+<b>**</b>+<b>#%%##**</b>+==;;;;;================++<b>*####*%#*</b>+=;;==+<b>*#</b></span><span class="pl">                     <b>%%#*</b>+==+++=::<b>*@@@@%#*</b>+==;;=+<b>***#####*</b>+==;;=+<b>*#**</b>++++<b>@@%#*</b>+==+<b>*##*</b></span><span class="pl">                     <b>%@@@%%#*</b>=:..: <b>@@@@@#*</b>+=;;=+<b>*#</b>=<b>%#####%*</b>+==;==+<b>**</b>+++++<b>@@@@%####*</b>+=;</span><span class="pl">                      <b>@@@@@@</b>=:..        <b>*</b>+==;==*<b>*</b>;=<b>%#####%**</b>+=;;=+<b>**</b>       <b>@@@@#</b>====;;</span><span class="pl">                         <b>@@@</b>=:          <b>##*</b>+++*<b>*</b>=.       <b>%#**</b>++++<b>*##</b>         <b>@@#</b>===</span><span class="pl">                                        <b>%%%%%%%</b>+:.        <b>%%######*</b>+</span><span class="pl">                                        <b>%%%%%%%</b>=.          <b>%##*****</b>+</span><span class="pl">                                          <b>%%%%%</b>=            <b>##****</b></span></pre>
+            <figcaption class="plate__cap"><b>Fig. 3</b> A sprocket, meshed for stress analysis. Faces brighter where the mesh is finer</figcaption>
+          </figure>
         </li>
-
-        <li class="rail__step rail__step--gate" data-rail-step>
-          <span class="rail__node" aria-hidden="true"><i></i></span>
-          <div class="rail__copy">
-            <span class="pill pill--orange">04 &middot; Gate &amp; retry</span>
-            <h3 class="rail__h">A failing mesh is never delivered</h3>
-            <p class="rail__p">Deterministic gates measure the result: non-orthogonality, skewness, port integrity, budget. A failing mesh is not delivered. It is diagnosed, the plan is revised, and the mesher runs again, automatically, up to three attempts.</p>
-            <ul class="rail__facts">
-              <li>Hard gates</li><li>Auto-retry</li><li>No silent failures</li>
-            </ul>
+        <li class="phase">
+          <div class="phase__copy">
+            <p class="phase__no"><b>04</b> Gate &amp; retry</p>
+            <h3 class="phase__h">A failing mesh is never delivered</h3>
+            <p class="phase__p">Deterministic gates measure the result: non-orthogonality, skewness, port integrity, budget. A failing mesh is not delivered. It is diagnosed, the plan is revised, and the mesher runs again, automatically, up to three attempts.</p>
+            <p class="phase__facts">Hard gates <i>/</i> Auto-retry <i>/</i> No silent failures</p>
           </div>
-          <div class="card" aria-hidden="true">
-            <div class="card__bar"><span>gate &middot; attempt 2 of 3</span><span class="card__st card__st--ok">passed</span></div>
-            <div class="card__body">
-              <div class="kv kv--fail"><span>attempt 1 &middot; skewness</span><b>5.1 &middot; fail &rarr; plan revised</b></div>
-              <div class="kv"><span>Non-orthogonality</span><b>64.8&deg; &middot; ok</b></div>
-              <div class="kv"><span>Skewness</span><b>3.6 &middot; ok</b></div>
-              <div class="kv"><span>Port integrity</span><b>2 / 2 &middot; ok</b></div>
-              <div class="kv"><span>Budget</span><b>within &middot; ok</b></div>
-            </div>
-          </div>
+          <figure class="plate" data-plate aria-hidden="true">
+            <pre class="plate__art" style="--cols:63"><span class="pl"> <b>ATTEMPT 1</b></span><span class="pl">   skewness            <i>5.1 </i>    [###############|#### ]   <i>FAIL</i></span><span class="pl">                               <i>plan revised, meshed again</i></span><span class="pl">&nbsp;</span><span class="pl"> <b>ATTEMPT 2</b></span><span class="pl">   non-orthogonality   64.8    [############## |     ]<b>   ok</b></span><span class="pl">   skewness            3.6     [############## |     ]<b>   ok</b></span><span class="pl">   port integrity      2 / 2   [###############|     ]<b>   ok</b></span><span class="pl">   budget              within  ......................<b>   ok</b></span><span class="pl">&nbsp;</span><span class="pl">                                             <b>PASSED. DELIVERED.</b></span></pre>
+            <figcaption class="plate__cap"><b>Fig. 4</b> Two attempts at the gates</figcaption>
+          </figure>
         </li>
       </ol>
     </div>
@@ -324,11 +274,11 @@
           </div>
           <div class="xsec" aria-hidden="true">
             <figure class="xsec__panel">
-              <img src="assets/bio-xsec-1.jpg?v=3" alt="" />
+              <img src="assets/bio-xsec-1-midnight.jpg?v=1" alt="" />
               <figcaption>transverse cut &middot; lumen</figcaption>
             </figure>
             <figure class="xsec__panel">
-              <img src="assets/bio-xsec-2.jpg?v=3" alt="" />
+              <img src="assets/bio-xsec-2-midnight.jpg?v=1" alt="" />
               <figcaption>longitudinal cut &middot; interior</figcaption>
             </figure>
           </div>
@@ -360,10 +310,10 @@
           </div>
           <div class="xsec xsec--nocap" aria-hidden="true">
             <figure class="xsec__panel">
-              <img src="assets/auto-zoom.jpg?v=3" alt="" />
+              <img src="assets/auto-zoom-midnight.jpg?v=1" alt="" />
             </figure>
             <figure class="xsec__panel">
-              <img src="assets/auto-cp.jpg?v=5" alt="" />
+              <img src="assets/auto-cp-midnight.jpg?v=1" alt="" />
             </figure>
           </div>
         </div>
@@ -463,7 +413,7 @@
 
   <!-- ===== Footer: the close. Pitch + access, then the stippled wordmark and nav ===== -->
   <footer class="footer footer--end" id="waitlist">
-    <canvas class="fend__mark" data-meshmark aria-hidden="true"></canvas>
+    <div class="fend__stage"><canvas class="fend__mark" data-meshmark aria-hidden="true"></canvas></div>
     <div class="fend__lead">
       <h2 class="fend__h">Send us a part.<br>Get it back<br><em>solver-ready</em>.</h2>
       <form class="fend__capture" data-access-form novalidate>
@@ -474,6 +424,8 @@
     </div>
 
     <div class="fend__foot">
+      <!-- a real Hexera mesh in a wind tunnel, drawn in text (ascii.js) -->
+      <div class="tunnel" data-ascii-tunnel data-car="assets/ascii-car-3d.json?v=4" aria-hidden="true"><pre data-tunnel-car></pre><pre data-tunnel-carhi></pre><pre data-tunnel-flow></pre><pre data-tunnel-hot></pre></div>
       <nav class="fend__nav" aria-label="Footer">
         <div class="fend__col">
           <span class="fend__col-h">Product</span>
@@ -504,12 +456,13 @@
 
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
   <script src="hero.js?v=11" defer></script>
-  <script src="fluid.js?v=12" defer></script>
+  <script src="fluid.js?v=13" defer></script>
   <script src="demo.js?v=10" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js" defer></script>
   <script src="airfoil.js?v=15" defer></script>
-  <script src="pages.js?v=102" defer></script>
+  <script src="pages.js?v=105" defer></script>
   <script src="waitlist.js?v=12" defer></script>
+  <script src="ascii.js?v=15" defer></script>
 </body>
 </html>

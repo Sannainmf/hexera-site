@@ -991,7 +991,15 @@
           g.stroke();
         }
       };
-      if (e.groups) { for (const gr of e.groups) strokeRange(gr.e0, gr.e1, gr.col); }
+      /* the scene assets carry a colour per object, baked when they were
+         built (steel, amber, sky, green). The midnight theme has three
+         colours, so each baked colour is mapped to its nearest role here:
+         the hero object takes the accent, the rest are light or mid stone. */
+      const themed = (c) => ({
+        "109,139,175": "196,194,182", "96,168,206": "196,194,182",
+        "236,168,84": GOLD, "228,152,84": GOLD, "126,200,140": "128,127,118",
+      })[c] || c;
+      if (e.groups) { for (const gr of e.groups) strokeRange(gr.e0, gr.e1, themed(gr.col)); }
       else strokeRange(0, e.E.length / 2, TEAL);
       /* editor selection furniture (scene entries): a wireframe bounding
          box per object (gold on the hero, steel otherwise) and a transform
@@ -1037,13 +1045,13 @@
           const SP = (PORT && L.msp) ? L.msp : L.sp;
           let tx = SP ? SP[0] * W : s[0] + 14, ty = SP ? (PORT ? Math.min(SP[1], 0.56) : SP[1]) * H : s[1] - 14;
           if (PORT) { tx = Math.min(tx, W - 134); ty = Math.max(ty, 78); }
-          g.strokeStyle = "rgba(118,130,146,0.7)"; g.lineWidth = 1;
+          g.strokeStyle = "rgba(175,174,162,0.6)"; g.lineWidth = 1;
           g.beginPath(); g.moveTo(s[0], s[1]); g.lineTo(tx - (L.sp ? 6 : 5), ty + (L.sp ? 9 : 11)); g.stroke();
-          g.fillStyle = "rgba(214,218,224,0.94)";
+          g.fillStyle = "rgba(226,224,212,0.94)";
           g.font = "500 15px 'Geist Mono', ui-monospace, monospace";
           g.fillText(L.n, tx, ty);
           if (L.t) {
-            g.fillStyle = "rgba(150,158,168,0.85)";
+            g.fillStyle = "rgba(175,174,162,0.8)";
             g.font = "13px 'Geist Mono', ui-monospace, monospace";
             g.fillText(L.t.toLocaleString() + " tris", tx, ty + 17);
           }
@@ -1053,7 +1061,7 @@
          in an accent colour, e.g. the freestream + angle-of-attack marker */
       if (e.annot && !PORT) {   /* landscape garnish; on phones it lands on the geometry */
         const A = e.annot;
-        g.strokeStyle = "rgb(" + A.col + ")"; g.fillStyle = "rgb(" + A.col + ")";
+        g.strokeStyle = "rgb(" + themed(A.col) + ")"; g.fillStyle = "rgb(" + themed(A.col) + ")";
         g.textBaseline = "top";
         for (const it of A.items) {
           if (it.t === "arrow" || it.t === "line") {
@@ -1523,7 +1531,7 @@
          the pitch or the links below */
       const L = wide ? Math.min(H * 0.28, W * 0.16) : Math.min(vh * 0.15, W * 0.36);
       const w = Math.sqrt(3) / 2 * L;
-      const cx = wide ? W * 0.735 : W * 0.5, cy = wide ? H * 0.36 : vh * 0.22;
+      const cx = wide ? W * 0.735 : W * 0.5, cy = wide ? H * 0.5 : vh * 0.22;   /* wide: level with the pitch beside it */
       narrow = !wide;
       const T = [cx, cy - L], TL = [cx - w, cy - L / 2], TR = [cx + w, cy - L / 2];
       const C = [cx, cy], BL = [cx - w, cy + L / 2], BR = [cx + w, cy + L / 2], B = [cx, cy + L];
@@ -1607,7 +1615,7 @@
         for (const e of edges) if (p - e.t >= 0.05) { ctx.moveTo(dots[e.a].tx, dots[e.a].ty); ctx.lineTo(dots[e.b].tx, dots[e.b].ty); }
         ctx.stroke();
         ctx.lineWidth = 1.1 * dpr;
-        ctx.strokeStyle = "rgba(255, 79, 0, 0.85)"; ctx.beginPath();
+        ctx.strokeStyle = "rgba(226, 44, 44, 0.9)"; ctx.beginPath();
         for (const e of edges) if (p >= e.t && p - e.t < 0.05) { ctx.moveTo(dots[e.a].tx, dots[e.a].ty); ctx.lineTo(dots[e.b].tx, dots[e.b].ty); }
         ctx.stroke();
         ctx.lineWidth = 1.1 * dpr;
@@ -1624,14 +1632,14 @@
         const top = cv.getBoundingClientRect().top;
         return Math.max(0, Math.min(1, (window.innerHeight * 0.95 - top) / (window.innerHeight * 1.3)));
       }
-      /* the cloud starts streaming as soon as the footer's top clears the
-         bottom of the screen, and finishes at the page end, so the whole
-         approach is runway (a little over one screen) */
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      if (max <= 0) return 1;
-      const footH = cv.parentElement.offsetHeight;
-      const run = Math.max(window.innerHeight * 0.9, footH + window.innerHeight * 0.3);
-      return Math.max(0, Math.min(1, 1 - (max - window.scrollY) / run));
+      /* the cloud starts streaming as soon as the cube's stage clears the
+         bottom of the screen, and finishes when that stage fills the screen,
+         so the whole approach is runway (a little over one screen). The stage
+         is the canvas's parent: one screen tall, at the top of the footer. */
+      const stage = cv.parentElement;
+      const rest = Math.max(0, stage.getBoundingClientRect().bottom - window.innerHeight);
+      const run = Math.max(window.innerHeight * 0.9, stage.offsetHeight + window.innerHeight * 0.3);
+      return Math.max(0, Math.min(1, 1 - rest / run));
     };
     const update = () => {
       const p = reduce ? 1 : progress();

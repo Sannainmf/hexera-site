@@ -598,12 +598,17 @@ function buildObstacleMask () {
     const px = ctx.getImageData(0, 0, mw, mh).data;
     const N = mw * mh;
 
-    // 1) Raw walls: bright/coloured art = wall (1), black field = open (0).
+    // 1) Raw walls: the art = wall (1), the open field = open (0). The field
+    //    is the page colour (--bg-rgb; black on the old theme, navy now), so a
+    //    pixel is wall when it sits far enough from that colour on any channel.
     let wall = new Uint8Array(N);
     const t = config.OBSTACLE_THRESHOLD * 255;
+    const fm = getComputedStyle(document.documentElement).getPropertyValue('--bg-rgb')
+        .trim().match(/^(\d+)\s*,\s*(\d+)\s*,\s*(\d+)$/);
+    const fr = fm ? +fm[1] : 0, fg = fm ? +fm[2] : 0, fb = fm ? +fm[3] : 0;
     for (let i = 0; i < N; i++) {
         const j = i * 4;
-        if (Math.max(px[j], px[j + 1], px[j + 2]) >= t) wall[i] = 1;
+        if (Math.max(Math.abs(px[j] - fr), Math.abs(px[j + 1] - fg), Math.abs(px[j + 2] - fb)) >= t) wall[i] = 1;
     }
 
     // 2) Seal: a morphological close (dilate then erode) fills the thin

@@ -18,20 +18,21 @@
   <meta property="og:url" content="https://hexera.ai/contact.html" />
   <meta property="og:title" content="Contact Hexera" />
   <meta property="og:description" content="Join the Hexera waitlist or book a meshing demo. Bring a real aerospace part and we'll turn it around solver-ready." />
-  <meta property="og:image" content="https://hexera.ai/assets/hero-bg.jpg" />
+  <meta property="og:image" content="https://hexera.ai/assets/hero-bg-midnight.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Contact Hexera" />
   <meta name="twitter:description" content="Join the Hexera waitlist or book a meshing demo. Bring a real aerospace part and we'll turn it around solver-ready." />
-  <meta name="twitter:image" content="https://hexera.ai/assets/hero-bg.jpg" />
+  <meta name="twitter:image" content="https://hexera.ai/assets/hero-bg-midnight.jpg" />
   <link rel="icon" href="assets/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@300;400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600&family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css?v=67" />
   <link rel="stylesheet" href="orange-theme.css?v=36" />
-  <link rel="stylesheet" href="refit.css?v=25" />
+  <link rel="stylesheet" href="refit.css?v=33" />
+  <link rel="stylesheet" href="midnight-theme.css?v=8" />
 </head>
 <body>
   <div class="page-bg" aria-hidden="true"></div>
@@ -58,7 +59,7 @@
 
   <!-- ===== Simple full-page close — get in touch + request access (matches home footer) ===== -->
   <footer class="footer footer--end" id="waitlist">
-    <canvas class="fend__mark" data-meshmark aria-hidden="true"></canvas>
+    <div class="fend__stage"><canvas class="fend__mark" data-meshmark aria-hidden="true"></canvas></div>
     <div class="fend__lead">
       <h1 class="fend__h">Send us a part.<br>Get it back<br><em>solver-ready</em>.</h1>
       <form class="fend__capture" data-access-form novalidate>
@@ -69,6 +70,8 @@
     </div>
 
     <div class="fend__foot">
+      <!-- a real Hexera mesh in a wind tunnel, drawn in text (ascii.js) -->
+      <div class="tunnel" data-ascii-tunnel data-car="assets/ascii-car-3d.json?v=4" aria-hidden="true"><pre data-tunnel-car></pre><pre data-tunnel-carhi></pre><pre data-tunnel-flow></pre><pre data-tunnel-hot></pre></div>
       <nav class="fend__nav" aria-label="Footer">
         <div class="fend__col">
           <span class="fend__col-h">Product</span>
@@ -96,7 +99,8 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.20/dist/lenis.min.js" defer></script>
-  <script src="pages.js?v=102" defer></script>
+  <script src="pages.js?v=105" defer></script>
   <script src="waitlist.js?v=12" defer></script>
+  <script src="ascii.js?v=15" defer></script>
 </body>
 </html>
