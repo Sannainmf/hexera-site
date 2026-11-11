@@ -226,14 +226,15 @@
        artery, the gaming selection boxes, both ground grids, strokes with
        this value, so one early read turns the whole industries section teal.
        That is exactly what happened on mobile while desktop looked correct. */
-    let GOLD, TEAL, INK, LINE3, ACC3;
+    let GOLD, TEAL, INK, BLUE, LINE3, ACC3;
     let MODELS = null;
     const readPalette = () => {
       const g = cssRGB("--mesh-accent-rgb", "255,186,0");
       const t = cssRGB("--mesh-line-rgb", "15,182,172");
       const k = cssRGB("--mesh-ink-rgb", "236,234,229");
-      const changed = g !== GOLD || t !== TEAL || k !== INK;
-      GOLD = g; TEAL = t; INK = k;
+      const b = cssRGB("--mesh-blue-rgb", "96,168,206");
+      const changed = g !== GOLD || t !== TEAL || k !== INK || b !== BLUE;
+      GOLD = g; TEAL = t; INK = k; BLUE = b;
       LINE3 = TEAL.split(",").map(Number); ACC3 = GOLD.split(",").map(Number);
       // the procedural specimens bake the colour into their groups at build
       // time, so drop them and let the next use rebuild against the new value
@@ -994,9 +995,10 @@
       /* the scene assets carry a colour per object, baked when they were
          built (steel, amber, sky, green). The midnight theme has three
          colours, so each baked colour is mapped to its nearest role here:
-         the hero object takes the accent, the rest are light or mid stone. */
+         the hero object takes the accent, a sky-blue object takes the theme's
+         blue, the rest are light or mid stone. */
       const themed = (c) => ({
-        "109,139,175": "196,194,182", "96,168,206": "196,194,182",
+        "109,139,175": "196,194,182", "96,168,206": BLUE,
         "236,168,84": GOLD, "228,152,84": GOLD, "126,200,140": "128,127,118",
       })[c] || c;
       if (e.groups) { for (const gr of e.groups) strokeRange(gr.e0, gr.e1, themed(gr.col)); }

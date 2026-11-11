@@ -47,6 +47,8 @@
   --gold-ink:  #FFF6EE;
   --crimson:      #E8403D;
   --crimson-soft: #F25E57;
+  /* the reference navy (#1B1E4A) lifted to read on black: used as a hint only, never a fill */
+  --blue:         #6872D6;
 
   /* the old interactive tint retires into stone */
   --teal:      var(--stone);
@@ -58,6 +60,8 @@
   --mesh-line-rgb:   175,174,162;
   --mesh-accent-rgb: 226,44,44;
   --mesh-ink-rgb:    226,224,212;
+  /* the reference picture's navy (#1B1E4A), lifted so a wireframe reads on black: the second object colour */
+  --mesh-blue-rgb:   104,114,214;
   --fluid-line-rgb:   175,174,162;
   --fluid-accent-rgb: 210,19,25;
 
@@ -65,7 +69,7 @@
 }
 
 ::selection { background: var(--crimson-fill); color: #fff; }
-:focus-visible { outline-color: var(--gold); }
+:focus-visible { outline-color: var(--blue); }
 
 /* ---------- Hero art: the original plate, re-inked ---------- */
 .hero-art { background: var(--bg) url("assets/hero-bg-midnight.jpg?v=4") center / cover no-repeat; }
@@ -201,7 +205,7 @@
 .flowline { grid-column: 2; grid-row: 1 / -1; justify-self: center; display: block; width: min(100%, 520px); height: auto; overflow: visible; }
 /* the line itself: a faint dotted path, with dashes running along it the way the air runs in the footer */
 .flowline__path { fill: none; stroke: var(--stone); stroke-opacity: 0.8; stroke-width: 0.9; stroke-dasharray: 0.5 2.9; stroke-linecap: round; }
-.flowline__run { fill: none; stroke: var(--stone-hi); stroke-width: 1; stroke-linecap: round; stroke-dasharray: 15 49; animation: flowline-run 2.6s linear infinite; }
+.flowline__run { fill: none; stroke: var(--blue); stroke-width: 1; stroke-linecap: round; stroke-dasharray: 15 49; animation: flowline-run 2.6s linear infinite; }
 .flowline__path--retry { stroke: var(--gold); stroke-opacity: 0.95; }
 .flowline__run--retry { stroke: var(--gold); stroke-dasharray: 9 55; animation-duration: 3.4s; }
 @keyframes flowline-run { to { stroke-dashoffset: -64; } }
