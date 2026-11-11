@@ -6,9 +6,12 @@
      crimson   #D21319   the one accent (was international orange)
    Type is the site's own: Saira Semi Condensed capitals for the
    headlines, Geist Mono for nav, buttons, taglines and data, Geist for
-   body copy. A serif, Cormorant, is kept for three spots only: the
-   HEXERA wordmark, the pipeline's step and phase names, and the footer's
-   column heads.
+   body copy. A serif, Cormorant, sets the HEXERA wordmark and the
+   headings inside sections (the mesh steps, the pipeline's step and phase
+   names, the industry names, the frontier label, the footer's column
+   heads). The three big statements (the hero, "Engineers lose weeks",
+   "Send us a part") stay in Saira: they open, turn and close the page in
+   one voice.
    The hero art and the smoke over Industries are the original
    plates, re-inked: orange to crimson, blue-grey to stone.
    Everything here overrides a token or repaints a colour. Layout
@@ -94,9 +97,16 @@
 .hero__sub .num { color: var(--gold); }
 .il2__pre { color: var(--stone-hi); }
 .il2__pre b { color: var(--crimson-type); }
-.h2 { color: var(--crimson-type); }
+/* a section's own heading is in the serif, like everything else inside the section */
+.h2 { color: var(--crimson-type); font-family: var(--font-serif); font-weight: 500; letter-spacing: 0.01em; line-height: 0.98;
+  font-size: clamp(2.2rem, 1.2rem + 2.3vw, 3.5rem); }
 .fend__h { color: var(--crimson-type); }
 .fend__col-h { font-family: var(--font-serif); font-size: 1.3rem; font-weight: 500; }
+/* the serif also sets the headings inside the scroll sections: the mesh steps, the industry names, the frontier label */
+.mstep__h, .spec-env__name, .amb__label-t { font-family: var(--font-serif); font-weight: 500; letter-spacing: 0; text-transform: none; }
+.mstep__h { font-size: clamp(1.9rem, 1.3rem + 1.6vw, 2.9rem); line-height: 1; }
+.spec-env__name { font-size: clamp(2.1rem, 1.4rem + 2vw, 3.4rem); line-height: 1; }
+.amb__label-t { font-size: clamp(2.1rem, 1.3rem + 2.4vw, 3.5rem); line-height: 0.98; }
 
 /* ---------- Product window (hero demo): neutral blacks, crimson accents ---------- */
 .win { background: #161615; }
